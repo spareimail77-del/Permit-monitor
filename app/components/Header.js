@@ -1,27 +1,47 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
+
+const NAV_ITEMS = [
+  { href: "/", label: "Dashboard" },
+  { href: "/permits", label: "Permit List" },
+  { href: "/upload", label: "Upload" },
+];
 
 export default function Header({ uploadedAt, today }) {
+  const pathname = usePathname();
+
   return (
-    <header style={styles.header}>
-      <div style={styles.headerInner}>
+    <header className="hero">
+      <div className="hero-inner" style={styles.headerInner}>
         <div>
           <p style={styles.eyebrow}>SWWS — Salalah</p>
           <h1 style={styles.title}>Permit Log Register</h1>
         </div>
         <nav style={styles.nav}>
-          <Link href="/" style={styles.navLink}>
-            Dashboard
-          </Link>
-          <Link href="/permits" style={styles.navLink}>
-            Permit List
-          </Link>
-          <Link href="/upload" style={styles.navLink}>
-            Upload
-          </Link>
+          {NAV_ITEMS.map((item) => {
+            const active =
+              item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  ...styles.navLink,
+                  ...(active ? styles.navLinkActive : null),
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <ThemeToggle />
         </nav>
       </div>
       {(uploadedAt || today) && (
-        <div style={styles.meta}>
+        <div className="hero-inner" style={styles.meta}>
           <div style={styles.metaInner}>
             {uploadedAt && (
               <span>
@@ -36,8 +56,7 @@ export default function Header({ uploadedAt, today }) {
             )}
             {today && (
               <span style={{ marginLeft: 16 }}>
-                Calculated for <span className="mono">{today}</span> (Oman
-                time)
+                Calculated for <span className="mono">{today}</span> (Oman time)
               </span>
             )}
           </div>
@@ -48,11 +67,10 @@ export default function Header({ uploadedAt, today }) {
 }
 
 const styles = {
-  header: { background: "var(--color-brand-dark)", color: "#fff" },
   headerInner: {
-    maxWidth: 1080,
+    maxWidth: 1120,
     margin: "0 auto",
-    padding: "24px 20px 20px",
+    padding: "26px 20px 22px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -64,22 +82,34 @@ const styles = {
     fontFamily: "var(--font-mono)",
     fontSize: "var(--font-size-xs)",
     letterSpacing: "0.04em",
-    color: "#bfe3ec",
+    color: "var(--color-brand-2)",
   },
-  title: { marginTop: 6, fontSize: "var(--font-size-2xl)", color: "#fff" },
-  nav: { display: "flex", gap: 20 },
+  title: {
+    marginTop: 6,
+    fontSize: "var(--font-size-2xl)",
+    color: "var(--color-ink)",
+  },
+  nav: { display: "flex", gap: 6, alignItems: "center" },
   navLink: {
-    color: "#dcecef",
+    color: "var(--color-ink-muted)",
     textDecoration: "none",
     fontSize: "var(--font-size-sm)",
     fontWeight: 600,
+    padding: "8px 14px",
+    borderRadius: 999,
   },
-  meta: { background: "rgba(0,0,0,0.15)" },
+  navLinkActive: {
+    color: "var(--color-ink)",
+    background: "var(--color-surface-2)",
+  },
+  meta: {
+    borderTop: "1px solid var(--color-rule)",
+  },
   metaInner: {
-    maxWidth: 1080,
+    maxWidth: 1120,
     margin: "0 auto",
-    padding: "8px 20px",
+    padding: "10px 20px",
     fontSize: "var(--font-size-xs)",
-    color: "#cfe6ea",
+    color: "var(--color-ink-muted)",
   },
 };

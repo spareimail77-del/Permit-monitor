@@ -3,77 +3,94 @@
 Read-only work permit monitoring site for the SWWS Salalah permit log.
 Excel remains the master record. This site never writes back to it.
 
-## Step 1 of 8: project skeleton ✅
+## What this update changed
 
-Confirmed working — the site deploys and hosting is set up.
+**1. Theme — dark by default, with a light/dark switch**
+Violet-accented dark theme (soft glow behind the header, rounded
+cards, icon chips) with a working switch in the header nav. Choice is
+remembered per-browser (`localStorage`), and a small inline script in
+`app/layout.js` applies it before first paint so there's no flash of
+the wrong theme. Status colors (open/expiring/expired/closed/canceled)
+stay distinct from the violet accent so they're never ambiguous.
 
-## Step 2 of 8: Vercel Blob storage + upload page ✅
+**2. A fuller dashboard**
+Beyond the 6 status cards: a hero "Total Permits" card, a status
+distribution donut (pure SVG, no chart library), an "Expiring Soon"
+watchlist, and Area / Permit Type breakdown bars. All computed from
+columns already in your workbook — no new data required.
 
-## Step 3 of 8: reading the Excel file ✅
+**3. Upload locked to HSE**
+`/upload` now shows a passcode gate. Enter the correct passcode once
+and a signed, httpOnly session cookie (12-hour expiry) unlocks the
+real upload form on that browser. The `/api/upload` endpoint
+independently checks the same cookie server-side, so the lock can't be
+bypassed by calling the API directly — the UI gate isn't the only
+thing enforcing it. There's a "Sign out" link on the upload page for
+shared computers.
 
-## Step 4 of 8: the Expiring Soon rule ✅
+The passcode and the cookie-signing secret are **not in this code** —
+they live only as Vercel environment variables (see step 3 below), so
+they're never committed to GitHub.
 
-## Step 5 of 8: the Dashboard page ✅
+**4. Housekeeping**
+Bumped `next` from `14.2.5` → `^14.2.35` (the `14.2.5` line had
+several CVEs patched in Next.js's December 2025 security update).
 
-## Step 6 of 8: the Permit List page ✅
+## Honest caveat on the Upload lock
 
-## Step 7 of 8: the Permit Details page ✅
+This is a **shared department passcode**, not individual logins —
+there's no user database, which keeps it simple and free to run.
+Anyone with the passcode can upload; it can't tell which HSE person
+did it. Rotate the passcode in Vercel if it's ever shared outside HSE.
 
-## Step 8 of 8: polish, edge cases, and final checks
+Separately: your Blob store is on **public** access, meaning the raw
+`.xlsm` file itself is fetchable by anyone with its exact blob URL,
+independent of the upload lock above. Vercel Blob access mode can't be
+changed after a store is created, so fixing that would mean creating a
+new **private** store and pointing `lib/blob.js` at it — happy to do
+that in a follow-up if you'd like the file itself locked down too.
 
-This last step doesn't add new pages — it hardens what's already
-there, based on the error-handling checklist from the original plan:
+## Deploy checklist
 
-- **Duplicate permit references:** if two rows in your workbook ever
-  share the same reference number, the Dashboard and Permit List now
-  show a warning banner, the duplicate is flagged with a ⚠ in the
-  table, and the detail page notes it. (Permit links now use the
-  workbook row number internally, not the reference, so duplicates
-  can't accidentally open the wrong permit.)
-- **Empty dataset:** if the uploaded file has zero permit rows, the
-  Dashboard and Permit List show a clear message instead of a wall of
-  zeros or a blank table.
-- **OPEN permits missing a Valid To date:** flagged on the detail
-  page, since Expiring Soon can't be calculated without one.
-- **Mobile:** explicit viewport handling added for consistent scaling
-  on phones (headers, filters, and the permit table already wrap/
-  scroll correctly from earlier steps).
-- **Search-engine protection:** added `robots.txt` (Disallow: /) as a
-  second layer alongside the `noindex` tag from Step 1.
+1. **Replace your GitHub repo's files** with everything in this
+   folder (keep the same repo/project so your existing Blob store
+   stays connected). `node_modules` and `.next` are intentionally not
+   included — Vercel builds those itself.
+2. **Push to GitHub.** Vercel will redeploy automatically if it's
+   connected to the repo.
+3. **Add two environment variables** in Vercel → your Project →
+   Settings → Environment Variables (apply to Production, and
+   Preview/Development if you use them):
+   - `HSE_UPLOAD_PASSWORD` — the shared passcode HSE will type at
+     `/upload`. Any phrase works; it doesn't need to look like a
+     random token.
+   - `AUTH_SECRET` — a random signing secret for the session cookie.
+     Generate one locally with `openssl rand -hex 32`, or any
+     32+ character random string.
 
-### Deploy and test
+   After adding both, **redeploy** (Vercel → Deployments → ⋮ → Redeploy)
+   so the new functions pick them up.
+4. **Re-test the checklist:**
+   - [ ] Dashboard loads with the new dark theme; switch toggles to
+         light and back, and persists after a refresh
+   - [ ] Dashboard shows the donut chart, expiring-soon list, and
+         area/type breakdowns
+   - [ ] Visiting `/upload` in a private/incognito window shows the
+         passcode gate, not the upload form
+   - [ ] Wrong passcode is rejected; correct passcode unlocks the form
+   - [ ] Uploading a fresh `.xlsm` updates the dashboard
+   - [ ] "Sign out" on the upload page re-locks it
+   - [ ] Calling `/api/upload` without having signed in returns
+         "Not authorized" (confirms the API-level lock, not just the
+         page)
+   - [ ] Site is usable on your phone in both themes
+   - [ ] No edit/save/delete controls exist anywhere on the dashboard
+         or permit views
 
-1. Replace the files in your repo with this final version. Changed:
-   `lib/parsePermits.js`, `app/page.js`, `app/permits/page.js`,
-   `app/components/PermitTable.js`, `app/layout.js`. Renamed:
-   `app/permits/[reference]/` → `app/permits/[rowNumber]/`. New:
-   `public/robots.txt`.
-2. Wait for Vercel to redeploy.
-3. Re-test the full checklist:
-   - [ ] Dashboard counts match Excel
-   - [ ] Search and each filter on Permit List work
-   - [ ] Clicking a permit opens the right details
-   - [ ] A bad `/permits/...` URL shows "Permit not found", not a crash
-   - [ ] Site is usable on your phone
-   - [ ] No edit/save/delete controls exist anywhere
-   - [ ] Uploading a fresh Excel file updates the dashboard after
-         redeploy-free refresh (no code change needed — just re-upload
-         at `/upload`)
+## Ongoing use
 
-## You're done
-
-The site is a read-only monitoring layer: Excel (and your existing
-VBA) stays the master record, and the only thing the website ever
-calculates itself is the Expiring Soon flag on top of your Excel
-Status column. To keep it current going forward, just re-upload the
-latest `.xlsm` at `/upload` whenever you want the site refreshed —
-there's nothing else to maintain.
-
-## Post-launch: clickable dashboard cards
-
-Each of the 6 summary cards on the Dashboard now links to the Permit
-List, pre-filtered to that status (Total Permits links to the
-unfiltered list). No new deploy steps beyond the usual: replace
-`app/components/StatCard.js` and `app/page.js`, add the new bit to
-`app/permits/page.js` and `app/components/PermitTable.js`, and the
-small CSS addition in `app/globals.css`, then redeploy.
+Nothing else to maintain: Excel (and your existing VBA) stays the
+master record, HSE re-uploads the latest `.xlsm` at `/upload`
+whenever they want the site refreshed, and the site recalculates
+everything else (Expiring Soon, the dashboard widgets) on every page
+load — no rebuild needed for new data.

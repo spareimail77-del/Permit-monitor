@@ -1,16 +1,23 @@
 import Link from "next/link";
 import Header from "./Header";
+import Icon from "./Icon";
 
 export default function ErrorScreen({ message }) {
   return (
     <main>
       <Header />
       <section style={styles.body}>
-        <div style={styles.card}>
+        <div className="panel" style={styles.card}>
+          <span
+            className="passcode-icon"
+            style={{ margin: 0, background: "var(--color-expired-tint)", color: "var(--color-expired)" }}
+          >
+            <Icon name="alertTriangle" size={20} />
+          </span>
           <h2 style={styles.title}>Data unavailable</h2>
           <p style={styles.text}>{message}</p>
-          <Link href="/upload" style={styles.link}>
-            Go to the upload page →
+          <Link href="/upload" className="btn btn-primary" style={{ marginTop: 8 }}>
+            Go to the upload page
           </Link>
         </div>
       </section>
@@ -19,24 +26,16 @@ export default function ErrorScreen({ message }) {
 }
 
 const styles = {
-  body: { maxWidth: 1080, margin: "0 auto", padding: "32px 20px" },
+  body: { maxWidth: 1120, margin: "0 auto", padding: "32px 20px" },
   card: {
-    background: "var(--color-expired-tint)",
-    border: "1px solid var(--color-expired)",
-    borderRadius: "var(--radius-md)",
-    padding: "24px 28px",
-    maxWidth: 480,
+    padding: "28px 32px",
+    maxWidth: 460,
   },
   title: {
     fontSize: "var(--font-size-lg)",
-    color: "var(--color-expired)",
+    color: "var(--color-ink)",
     marginBottom: 8,
+    marginTop: 4,
   },
-  text: { color: "var(--color-ink)", marginTop: 0 },
-  link: {
-    display: "inline-block",
-    marginTop: 12,
-    color: "var(--color-brand-dark)",
-    fontWeight: 600,
-  },
+  text: { color: "var(--color-ink-muted)", marginTop: 0 },
 };

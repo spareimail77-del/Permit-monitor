@@ -39,7 +39,7 @@ export default async function PermitListPage({ searchParams }) {
       <section style={styles.body}>
         <h2 style={styles.sectionTitle}>Permit List</h2>
         {data.duplicateReferences.length > 0 && (
-          <div style={styles.notice}>
+          <div className="notice">
             {data.duplicateReferences.length} reference number
             {data.duplicateReferences.length > 1 ? "s appear" : " appears"}{" "}
             more than once in the workbook:{" "}
@@ -71,14 +71,5 @@ const styles = {
     fontSize: "var(--font-size-lg)",
     marginBottom: 14,
     color: "var(--color-ink)",
-  },
-  notice: {
-    background: "var(--color-expiring-tint)",
-    border: "1px solid var(--color-expiring)",
-    color: "var(--color-ink)",
-    borderRadius: "var(--radius-sm)",
-    padding: "10px 14px",
-    fontSize: "var(--font-size-sm)",
-    marginBottom: 16,
   },
 };

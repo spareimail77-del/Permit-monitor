@@ -1,52 +1,35 @@
 import Link from "next/link";
+import Icon from "./Icon";
 
-export default function StatCard({ label, value, color, href }) {
+export default function StatCard({ label, value, color, icon, href, hero }) {
+  const iconColor = color || "var(--color-brand-2)";
   const content = (
     <>
-      <p style={styles.value}>{value}</p>
-      <p style={{ ...styles.label, color: color || "var(--color-ink-muted)" }}>
-        {label}
-      </p>
+      <span
+        className="stat-card__icon"
+        style={{
+          background: color ? `color-mix(in srgb, ${color} 16%, transparent)` : "var(--color-brand-tint)",
+          color: iconColor,
+        }}
+      >
+        <Icon name={icon || "layers"} />
+      </span>
+      <div>
+        <p className="stat-card__value">{value}</p>
+        <p className="stat-card__label">{label}</p>
+      </div>
     </>
   );
 
-  const cardStyle = {
-    ...styles.card,
-    borderTop: `3px solid ${color || "var(--color-rule-strong)"}`,
-  };
+  const className = `stat-card${hero ? " stat-card--hero" : ""}`;
 
   if (href) {
     return (
-      <Link href={href} className="stat-card-link" style={cardStyle}>
+      <Link href={href} className={className}>
         {content}
       </Link>
     );
   }
 
-  return <div style={cardStyle}>{content}</div>;
+  return <div className={className}>{content}</div>;
 }
-
-const styles = {
-  card: {
-    background: "var(--color-surface)",
-    border: "1px solid var(--color-rule)",
-    borderRadius: "var(--radius-md)",
-    padding: "18px 20px",
-    minWidth: 140,
-    flex: "1 1 140px",
-    display: "block",
-    textDecoration: "none",
-  },
-  value: {
-    fontFamily: "var(--font-mono)",
-    fontSize: "var(--font-size-2xl)",
-    fontWeight: 600,
-    margin: 0,
-    color: "var(--color-ink)",
-  },
-  label: {
-    margin: "4px 0 0",
-    fontSize: "var(--font-size-sm)",
-    fontWeight: 600,
-  },
-};

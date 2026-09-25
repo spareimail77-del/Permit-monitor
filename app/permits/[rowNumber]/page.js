@@ -6,6 +6,7 @@ import Header from "../../components/Header";
 import ErrorScreen from "../../components/ErrorScreen";
 import StatusBadge from "../../components/StatusBadge";
 import DetailField from "../../components/DetailField";
+import Icon from "../../components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,9 @@ export default async function PermitDetailPage({ params }) {
         <Header uploadedAt={data.uploadedAt} today={today} />
         <section style={styles.body}>
           <Link href="/permits" className="back-link">
-            ← Back to Permit List
+            <Icon name="arrowLeft" size={15} /> Back to Permit List
           </Link>
-          <div style={styles.notFound}>
+          <div className="panel" style={{ ...styles.notFound, padding: "24px 28px" }}>
             <h2 style={{ marginTop: 0 }}>Permit not found</h2>
             <p style={{ color: "var(--color-ink-muted)" }}>
               No permit at that reference in the current data. It may
@@ -52,7 +53,7 @@ export default async function PermitDetailPage({ params }) {
       <Header uploadedAt={data.uploadedAt} today={today} />
       <section style={styles.body}>
         <Link href="/permits" className="back-link">
-          ← Back to Permit List
+          <Icon name="arrowLeft" size={15} /> Back to Permit List
         </Link>
 
         <div style={styles.titleRow}>
@@ -63,7 +64,7 @@ export default async function PermitDetailPage({ params }) {
         </div>
 
         {isDuplicateRef && (
-          <div style={styles.warning}>
+          <div className="notice">
             More than one row in the workbook uses reference{" "}
             <span className="mono">{permit.reference}</span>. Showing
             workbook row {permit.rowNumber} — check the Excel file for
@@ -72,14 +73,14 @@ export default async function PermitDetailPage({ params }) {
         )}
 
         {permit.excelStatus === "OPEN" && !permit.validTo && (
-          <div style={styles.warning}>
+          <div className="notice">
             This permit is OPEN but has no Valid To date on file, so
             Expiring Soon can't be calculated for it. Check the date in
             Excel.
           </div>
         )}
 
-        <div style={styles.card}>
+        <div className="panel" style={styles.card}>
           <h3 style={styles.groupTitle}>Overview</h3>
           <dl className="detail-grid">
             <DetailField label="Area" value={permit.area} />
@@ -98,7 +99,7 @@ export default async function PermitDetailPage({ params }) {
           </dl>
         </div>
 
-        <div style={styles.card}>
+        <div className="panel" style={styles.card}>
           <h3 style={styles.groupTitle}>Validity</h3>
           <dl className="detail-grid">
             <DetailField label="Valid From" value={permit.validFrom} mono />
@@ -106,7 +107,7 @@ export default async function PermitDetailPage({ params }) {
           </dl>
         </div>
 
-        <div style={styles.card}>
+        <div className="panel" style={styles.card}>
           <h3 style={styles.groupTitle}>Job Details</h3>
           <dl className="detail-grid">
             <DetailField label="Job Description" value={permit.jobDescription} />
@@ -115,7 +116,7 @@ export default async function PermitDetailPage({ params }) {
           </dl>
         </div>
 
-        <div style={styles.card}>
+        <div className="panel" style={styles.card}>
           <h3 style={styles.groupTitle}>People</h3>
           <dl className="detail-grid">
             <DetailField label="Applicant" value={permit.applicant} />
@@ -141,9 +142,6 @@ const styles = {
   },
   title: { fontSize: "var(--font-size-xl)", margin: 0 },
   card: {
-    background: "var(--color-surface)",
-    border: "1px solid var(--color-rule)",
-    borderRadius: "var(--radius-md)",
     padding: "20px 24px",
     marginBottom: 16,
   },
@@ -156,19 +154,6 @@ const styles = {
     marginBottom: 16,
   },
   notFound: {
-    background: "var(--color-surface)",
-    border: "1px solid var(--color-rule)",
-    borderRadius: "var(--radius-md)",
-    padding: "24px 28px",
     maxWidth: 480,
-  },
-  warning: {
-    background: "var(--color-expiring-tint)",
-    border: "1px solid var(--color-expiring)",
-    color: "var(--color-ink)",
-    borderRadius: "var(--radius-sm)",
-    padding: "10px 14px",
-    fontSize: "var(--font-size-sm)",
-    marginBottom: 16,
   },
 };
