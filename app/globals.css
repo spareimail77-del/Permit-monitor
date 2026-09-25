@@ -1,0 +1,91 @@
+/* ---------------------------------------------------------
+   Design tokens — Permit Log dashboard
+   Subject: industrial wastewater/TSE utility work-permit register.
+   Register/ledger feel over generic dashboard-card feel:
+   ruled rows, restrained color, monospace for data/codes.
+--------------------------------------------------------- */
+
+:root {
+  /* base */
+  --color-bg: #f5f6f4;
+  --color-surface: #ffffff;
+  --color-ink: #1c2530;
+  --color-ink-muted: #5b6672;
+  --color-rule: #d8dce0;
+  --color-rule-strong: #b7bec5;
+
+  /* brand — teal nods to water/treated-effluent without being literal */
+  --color-brand: #0e7490;
+  --color-brand-dark: #0b5a70;
+  --color-brand-tint: #e3f0f3;
+
+  /* status — deliberately distinct hues, not a single tinted ramp */
+  --color-open: #1e7a46;
+  --color-open-tint: #e7f4ec;
+  --color-expiring: #c97a1e;
+  --color-expiring-tint: #fbf0e1;
+  --color-expired: #b3261e;
+  --color-expired-tint: #fbe9e8;
+  --color-closed: #5b6672;
+  --color-closed-tint: #edeef0;
+  --color-canceled: #6b5ca5;
+  --color-canceled-tint: #ede9f6;
+
+  /* type scale (base 16px, ~1.2 ratio) */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.2rem;
+  --font-size-xl: 1.44rem;
+  --font-size-2xl: 1.9rem;
+
+  --radius-sm: 3px;
+  --radius-md: 5px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+a {
+  color: var(--color-brand-dark);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
