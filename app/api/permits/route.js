@@ -1,4 +1,5 @@
 import { fetchPermitData } from "../../../lib/parsePermits";
+import { computeDisplayStatus, todayInMuscat } from "../../../lib/status";
 
 // Always read fresh from Blob — never cache stale permit data.
 export const dynamic = "force-dynamic";
@@ -14,5 +15,19 @@ export async function GET() {
     );
   }
 
-  return Response.json(data);
+  const today = todayInMuscat();
+
+  const permits = data.permits.map((permit) => {
+    const { displayStatus, daysRemaining } = computeDisplayStatus(
+      permit,
+      today
+    );
+    return { ...permit, displayStatus, daysRemaining };
+  });
+
+  return Response.json({
+    uploadedAt: data.uploadedAt,
+    today,
+    permits,
+  });
 }

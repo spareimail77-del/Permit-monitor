@@ -9,43 +9,38 @@ Confirmed working — the site deploys and hosting is set up.
 
 ## Step 2 of 8: Vercel Blob storage + upload page ✅
 
-## Step 3 of 8: reading the Excel file
+## Step 3 of 8: reading the Excel file ✅
 
-This adds a read-only API endpoint at `/api/permits` that opens the
-stored file and pulls out every permit row (columns A–Q), exactly as
-written, plus your existing Excel Status column. Nothing is
-recalculated yet — that's Step 4 (Expiring Soon). There's still no
-visual dashboard yet — that's Step 5 onward.
+## Step 4 of 8: the Expiring Soon rule
 
-Notes on how it reads the file:
-- It looks for a sheet whose name starts with `SWWS-PERMITS` (so it
-  still works if you rename the tab to a new year, e.g.
-  `SWWS-PERMITS - 2027`).
-- Data is read starting at row 6, stopping once it hits a run of
-  blank rows — so adding new permit rows in Excel just works, no
-  code change needed.
-- Dates are read as plain calendar dates (e.g. `2026-09-30`), not
-  converted between timezones, so they always match what's typed in
-  Excel.
+This adds the one piece of status logic the website ever computes
+itself: if a permit's Excel Status is `OPEN` and its Valid To date is
+3 days or less away (and not yet passed), the API now also returns
+`displayStatus: "EXPIRING_SOON"` for that row. Every other Excel
+status (`CLOSED`, `EXPIRED`, `CANCELED`, etc.) passes straight
+through unchanged as `displayStatus`.
+
+- **Timezone:** calculated in `Asia/Muscat` (Oman, no daylight
+  saving), matching the site location, regardless of where Vercel's
+  servers physically run.
+- Each permit in the JSON now also has a `daysRemaining` number
+  (when it's OPEN and has a Valid To date) so you can see exactly how
+  the boundary was calculated.
+- The response also includes a top-level `today` field showing the
+  exact date used for the calculation, for easy checking.
 
 ### Deploy and test
 
 1. Replace the files in your GitHub repo with this version (adds
-   `app/api/permits/route.js`, `lib/parsePermits.js`,
-   `lib/permitColumns.js`, and one new dependency).
+   `lib/status.js`, updates `app/api/permits/route.js`).
 2. Wait for Vercel to redeploy.
-3. Visit `your-site.vercel.app/api/permits` directly in your browser.
-   You should see raw JSON listing your permit rows — reference
-   numbers, dates, status, etc. (This is a technical check, not the
-   real dashboard — it's expected to look like plain text/data.)
-4. If you see an error instead, it'll say one of:
-   - `No permit file has been uploaded yet` → go upload one at `/upload`
-   - `Could not retrieve the stored file` → try re-uploading
-   - `The uploaded file could not be read as an Excel workbook` →
-     confirm the file is the real `.xlsm`, not renamed/corrupted
-   - `Could not find a sheet named like "SWWS-PERMITS..."` → check
-     the sheet tab name in Excel
+3. Visit `your-site.vercel.app/api/permits` again. Each permit object
+   should now include `displayStatus` and `daysRemaining`, and the
+   top of the response shows `today`.
+4. Sanity check: find a permit whose Valid To date is within 3 days
+   of `today` and whose Excel status is OPEN — it should show
+   `"displayStatus": "EXPIRING_SOON"`. One further out should still
+   show `"displayStatus": "OPEN"`.
 
-Reply once you see your permit data in that JSON (or tell me what
-error/output you get) and we'll move to Step 4: the Expiring Soon
-rule.
+Reply once that looks right and we'll move to Step 5: the Dashboard
+page (the first real visual screen).
