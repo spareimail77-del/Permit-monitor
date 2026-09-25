@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import { STATUS_META } from "../../lib/statusMeta";
 
@@ -11,6 +12,7 @@ function uniqueSorted(values) {
 }
 
 export default function PermitTable({ permits }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [areaFilter, setAreaFilter] = useState("ALL");
@@ -116,7 +118,21 @@ export default function PermitTable({ permits }) {
           </thead>
           <tbody>
             {filtered.map((p) => (
-              <tr key={p.reference + p.rowNumber}>
+              <tr
+                key={p.reference + p.rowNumber}
+                onClick={() =>
+                  router.push(`/permits/${encodeURIComponent(p.reference)}`)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")
+                    router.push(
+                      `/permits/${encodeURIComponent(p.reference)}`
+                    );
+                }}
+                tabIndex={0}
+                role="link"
+                style={{ cursor: "pointer" }}
+              >
                 <td className="mono">{p.reference}</td>
                 <td>{p.area}</td>
                 <td>{p.location}</td>

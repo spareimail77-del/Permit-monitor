@@ -170,3 +170,41 @@ h3 {
   color: var(--color-ink-muted);
   margin: 0 0 10px;
 }
+
+/* ---------------------------------------------------------
+   Permit Detail page
+--------------------------------------------------------- */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px 28px;
+}
+
+.detail-field dt {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-muted);
+  margin: 0 0 4px;
+}
+
+.detail-field dd {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-ink);
+  word-break: break-word;
+}
+
+.detail-field dd.mono {
+  font-size: var(--font-size-sm);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-brand-dark);
+  text-decoration: none;
+}

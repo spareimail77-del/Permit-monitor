@@ -15,35 +15,28 @@ Confirmed working — the site deploys and hosting is set up.
 
 ## Step 5 of 8: the Dashboard page ✅
 
-## Step 6 of 8: the Permit List page
+## Step 6 of 8: the Permit List page ✅
 
-This makes the **Permit List** nav link work: a searchable, filterable
-table of every permit.
+## Step 7 of 8: the Permit Details page
 
-- **Search** matches: Reference, Location, Job Description, Applicant,
-  Holder, Issuer, Area Authority, Controller.
-- **Filters:** Status (using the same Expiring Soon-aware status as
-  the dashboard), Area, and Permit Type — each filter's dropdown
-  options are built from whatever values actually exist in your
-  workbook, so it stays accurate as your data changes.
-- Table is horizontally scrollable on narrow/mobile screens rather
-  than squeezing columns unreadably small.
-- Clicking a row doesn't do anything yet — that's Step 7, when the
-  Permit Details page exists to link to.
+Clicking any row in the Permit List now opens a read-only detail page
+for that permit at `/permits/<reference>`, grouped into Overview,
+Validity, Job Details, and People. It shows both the website's
+computed status (with Expiring Soon applied) and the raw Excel Status
+column side by side, so it's always clear which is which.
 
 ### Deploy and test
 
 1. Replace the files in your repo with this version. New:
-   `app/permits/page.js`, `app/components/PermitTable.js`,
-   `app/components/StatusBadge.js`. Changed: `app/globals.css` (added
-   table/filter styles).
+   `app/permits/[reference]/page.js`, `app/components/DetailField.js`.
+   Changed: `app/components/PermitTable.js` (rows are now clickable),
+   `app/globals.css` (added detail-page styles).
 2. Wait for Vercel to redeploy.
-3. Visit `your-site.vercel.app/permits`. You should see all 32
-   permits in a table.
-4. Try the search box (e.g. search a location or applicant name) and
-   each filter dropdown, and confirm the table narrows correctly.
-5. On your phone, or by narrowing your browser window, confirm the
-   table scrolls sideways instead of breaking the page layout.
+3. Go to `/permits`, click any row, and confirm it opens that
+   permit's details correctly.
+4. Try visiting a made-up reference directly, e.g.
+   `your-site.vercel.app/permits/doesnotexist` — you should see a
+   clean "Permit not found" message, not a broken page.
 
-Reply once that looks right and we'll move to Step 7: the Permit
-Details page.
+Reply once that looks right and we'll move to Step 8: mobile polish,
+error handling review, and final deployment checks.
