@@ -208,3 +208,12 @@ h3 {
   color: var(--color-brand-dark);
   text-decoration: none;
 }
+
+.stat-card-link {
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.stat-card-link:hover {
+  box-shadow: 0 2px 8px rgba(28, 37, 48, 0.1);
+  transform: translateY(-1px);
+}

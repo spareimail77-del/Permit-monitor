@@ -1,17 +1,29 @@
-export default function StatCard({ label, value, color, tint }) {
-  return (
-    <div
-      style={{
-        ...styles.card,
-        borderTop: `3px solid ${color || "var(--color-rule-strong)"}`,
-      }}
-    >
+import Link from "next/link";
+
+export default function StatCard({ label, value, color, href }) {
+  const content = (
+    <>
       <p style={styles.value}>{value}</p>
       <p style={{ ...styles.label, color: color || "var(--color-ink-muted)" }}>
         {label}
       </p>
-    </div>
+    </>
   );
+
+  const cardStyle = {
+    ...styles.card,
+    borderTop: `3px solid ${color || "var(--color-rule-strong)"}`,
+  };
+
+  if (href) {
+    return (
+      <Link href={href} className="stat-card-link" style={cardStyle}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div style={cardStyle}>{content}</div>;
 }
 
 const styles = {
@@ -22,6 +34,8 @@ const styles = {
     padding: "18px 20px",
     minWidth: 140,
     flex: "1 1 140px",
+    display: "block",
+    textDecoration: "none",
   },
   value: {
     fontFamily: "var(--font-mono)",

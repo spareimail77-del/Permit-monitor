@@ -59,13 +59,14 @@ export default async function Dashboard() {
           </p>
         ) : (
           <div style={styles.grid}>
-            <StatCard label="Total Permits" value={permits.length} />
+            <StatCard label="Total Permits" value={permits.length} href="/permits" />
             {Object.entries(STATUS_META).map(([key, meta]) => (
               <StatCard
                 key={key}
                 label={meta.label}
                 value={counts[key]}
                 color={meta.color}
+                href={`/permits?status=${key}`}
               />
             ))}
             {other > 0 && (

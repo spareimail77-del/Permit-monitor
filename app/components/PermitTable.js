@@ -11,10 +11,14 @@ function uniqueSorted(values) {
   );
 }
 
-export default function PermitTable({ permits, duplicateReferences = [] }) {
+export default function PermitTable({
+  permits,
+  duplicateReferences = [],
+  initialStatus = "ALL",
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [areaFilter, setAreaFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
 

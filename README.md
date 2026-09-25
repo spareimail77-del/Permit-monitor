@@ -68,3 +68,12 @@ calculates itself is the Expiring Soon flag on top of your Excel
 Status column. To keep it current going forward, just re-upload the
 latest `.xlsm` at `/upload` whenever you want the site refreshed —
 there's nothing else to maintain.
+
+## Post-launch: clickable dashboard cards
+
+Each of the 6 summary cards on the Dashboard now links to the Permit
+List, pre-filtered to that status (Total Permits links to the
+unfiltered list). No new deploy steps beyond the usual: replace
+`app/components/StatCard.js` and `app/page.js`, add the new bit to
+`app/permits/page.js` and `app/components/PermitTable.js`, and the
+small CSS addition in `app/globals.css`, then redeploy.

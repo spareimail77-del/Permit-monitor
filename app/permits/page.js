@@ -1,18 +1,24 @@
 import { fetchPermitData } from "../../lib/parsePermits";
 import { computeDisplayStatus, todayInMuscat } from "../../lib/status";
-import { normalizeStatus } from "../../lib/statusMeta";
+import { STATUS_META, normalizeStatus } from "../../lib/statusMeta";
 import Header from "../components/Header";
 import ErrorScreen from "../components/ErrorScreen";
 import PermitTable from "../components/PermitTable";
 
 export const dynamic = "force-dynamic";
 
-export default async function PermitListPage() {
+export default async function PermitListPage({ searchParams }) {
   const data = await fetchPermitData();
 
   if (data.error) {
     return <ErrorScreen message={data.message} />;
   }
+
+  // Only accept a status coming from the dashboard links — anything
+  // else falls back to "show everything" rather than erroring.
+  const requestedStatus = searchParams?.status;
+  const initialStatus =
+    requestedStatus && STATUS_META[requestedStatus] ? requestedStatus : "ALL";
 
   const today = todayInMuscat();
   const permits = data.permits.map((permit) => {
@@ -51,6 +57,7 @@ export default async function PermitListPage() {
           <PermitTable
             permits={permits}
             duplicateReferences={data.duplicateReferences}
+            initialStatus={initialStatus}
           />
         )}
       </section>
