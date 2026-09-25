@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Header from "../components/Header";
 
 export default function UploadPage() {
   const [file, setFile] = useState(null);
@@ -41,12 +42,7 @@ export default function UploadPage() {
 
   return (
     <main style={styles.main}>
-      <header style={styles.header}>
-        <div style={styles.headerInner}>
-          <p style={styles.eyebrow}>SWWS — Salalah</p>
-          <h1 style={styles.title}>Upload Permit Log</h1>
-        </div>
-      </header>
+      <Header />
 
       <section style={styles.body}>
         <div style={styles.card}>
@@ -103,16 +99,6 @@ export default function UploadPage() {
 
 const styles = {
   main: { minHeight: "100dvh" },
-  header: { background: "var(--color-brand-dark)", color: "#fff" },
-  headerInner: { maxWidth: 720, margin: "0 auto", padding: "28px 20px" },
-  eyebrow: {
-    margin: 0,
-    fontFamily: "var(--font-mono)",
-    fontSize: "var(--font-size-xs)",
-    letterSpacing: "0.04em",
-    color: "#bfe3ec",
-  },
-  title: { marginTop: 6, fontSize: "var(--font-size-2xl)" },
   body: { maxWidth: 720, margin: "0 auto", padding: "32px 20px" },
   card: {
     background: "var(--color-surface)",

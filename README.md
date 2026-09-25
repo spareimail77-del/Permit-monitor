@@ -11,36 +11,31 @@ Confirmed working — the site deploys and hosting is set up.
 
 ## Step 3 of 8: reading the Excel file ✅
 
-## Step 4 of 8: the Expiring Soon rule
+## Step 4 of 8: the Expiring Soon rule ✅
 
-This adds the one piece of status logic the website ever computes
-itself: if a permit's Excel Status is `OPEN` and its Valid To date is
-3 days or less away (and not yet passed), the API now also returns
-`displayStatus: "EXPIRING_SOON"` for that row. Every other Excel
-status (`CLOSED`, `EXPIRED`, `CANCELED`, etc.) passes straight
-through unchanged as `displayStatus`.
+## Step 5 of 8: the Dashboard page
 
-- **Timezone:** calculated in `Asia/Muscat` (Oman, no daylight
-  saving), matching the site location, regardless of where Vercel's
-  servers physically run.
-- Each permit in the JSON now also has a `daysRemaining` number
-  (when it's OPEN and has a Valid To date) so you can see exactly how
-  the boundary was calculated.
-- The response also includes a top-level `today` field showing the
-  exact date used for the calculation, for easy checking.
+This replaces the placeholder home page with the real dashboard:
+summary counts for Total, Active/Open, Expiring Soon, Expired,
+Closed, and Canceled, plus a "Data as of" line showing when the file
+was last uploaded and what date was used for the calculation.
+
+There's also now a shared header with navigation across pages
+(Dashboard / Permit List / Upload). The **Permit List** link won't
+work yet — that's built in Step 6, so it'll 404 until then.
 
 ### Deploy and test
 
-1. Replace the files in your GitHub repo with this version (adds
-   `lib/status.js`, updates `app/api/permits/route.js`).
+1. Replace the files in your GitHub repo with this version. Changed:
+   `app/page.js` (rewritten), `app/upload/page.js` (now reuses the
+   shared header). New: `app/components/Header.js`,
+   `app/components/StatCard.js`, `app/components/ErrorScreen.js`,
+   `lib/statusMeta.js`.
 2. Wait for Vercel to redeploy.
-3. Visit `your-site.vercel.app/api/permits` again. Each permit object
-   should now include `displayStatus` and `daysRemaining`, and the
-   top of the response shows `today`.
-4. Sanity check: find a permit whose Valid To date is within 3 days
-   of `today` and whose Excel status is OPEN — it should show
-   `"displayStatus": "EXPIRING_SOON"`. One further out should still
-   show `"displayStatus": "OPEN"`.
+3. Visit `your-site.vercel.app` — you should see the real dashboard
+   with your permit counts, not the old "skeleton deployed" message.
+4. Check the counts by eye against what you know of your permit log
+   (e.g. total should be 32 if nothing's changed since upload).
 
-Reply once that looks right and we'll move to Step 5: the Dashboard
-page (the first real visual screen).
+Reply once the dashboard looks right and we'll move to Step 6: the
+searchable, filterable Permit List.
