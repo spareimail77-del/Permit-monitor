@@ -11,7 +11,7 @@ function uniqueSorted(values) {
   );
 }
 
-export default function PermitTable({ permits }) {
+export default function PermitTable({ permits, duplicateReferences = [] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -121,19 +121,24 @@ export default function PermitTable({ permits }) {
               <tr
                 key={p.reference + p.rowNumber}
                 onClick={() =>
-                  router.push(`/permits/${encodeURIComponent(p.reference)}`)
+                  router.push(`/permits/${p.rowNumber}`)
                 }
                 onKeyDown={(e) => {
                   if (e.key === "Enter")
-                    router.push(
-                      `/permits/${encodeURIComponent(p.reference)}`
-                    );
+                    router.push(`/permits/${p.rowNumber}`);
                 }}
                 tabIndex={0}
                 role="link"
                 style={{ cursor: "pointer" }}
               >
-                <td className="mono">{p.reference}</td>
+                <td className="mono">
+                  {p.reference}
+                  {duplicateReferences.includes(p.reference) && (
+                    <span title="Duplicate reference — check Excel" style={{ color: "var(--color-expiring)" }}>
+                      {" "}⚠
+                    </span>
+                  )}
+                </td>
                 <td>{p.area}</td>
                 <td>{p.location}</td>
                 <td>{p.permitType}</td>

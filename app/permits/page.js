@@ -32,7 +32,27 @@ export default async function PermitListPage() {
       <Header uploadedAt={data.uploadedAt} today={today} />
       <section style={styles.body}>
         <h2 style={styles.sectionTitle}>Permit List</h2>
-        <PermitTable permits={permits} />
+        {data.duplicateReferences.length > 0 && (
+          <div style={styles.notice}>
+            {data.duplicateReferences.length} reference number
+            {data.duplicateReferences.length > 1 ? "s appear" : " appears"}{" "}
+            more than once in the workbook:{" "}
+            <span className="mono">{data.duplicateReferences.join(", ")}</span>.
+            Rows are still shown individually — check Excel to correct
+            duplicates.
+          </div>
+        )}
+        {permits.length === 0 ? (
+          <p style={{ color: "var(--color-ink-muted)" }}>
+            The uploaded file was read successfully but contains no
+            permit rows.
+          </p>
+        ) : (
+          <PermitTable
+            permits={permits}
+            duplicateReferences={data.duplicateReferences}
+          />
+        )}
       </section>
     </main>
   );
@@ -44,5 +64,14 @@ const styles = {
     fontSize: "var(--font-size-lg)",
     marginBottom: 14,
     color: "var(--color-ink)",
+  },
+  notice: {
+    background: "var(--color-expiring-tint)",
+    border: "1px solid var(--color-expiring)",
+    color: "var(--color-ink)",
+    borderRadius: "var(--radius-sm)",
+    padding: "10px 14px",
+    fontSize: "var(--font-size-sm)",
+    marginBottom: 16,
   },
 };

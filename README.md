@@ -17,26 +17,54 @@ Confirmed working — the site deploys and hosting is set up.
 
 ## Step 6 of 8: the Permit List page ✅
 
-## Step 7 of 8: the Permit Details page
+## Step 7 of 8: the Permit Details page ✅
 
-Clicking any row in the Permit List now opens a read-only detail page
-for that permit at `/permits/<reference>`, grouped into Overview,
-Validity, Job Details, and People. It shows both the website's
-computed status (with Expiring Soon applied) and the raw Excel Status
-column side by side, so it's always clear which is which.
+## Step 8 of 8: polish, edge cases, and final checks
+
+This last step doesn't add new pages — it hardens what's already
+there, based on the error-handling checklist from the original plan:
+
+- **Duplicate permit references:** if two rows in your workbook ever
+  share the same reference number, the Dashboard and Permit List now
+  show a warning banner, the duplicate is flagged with a ⚠ in the
+  table, and the detail page notes it. (Permit links now use the
+  workbook row number internally, not the reference, so duplicates
+  can't accidentally open the wrong permit.)
+- **Empty dataset:** if the uploaded file has zero permit rows, the
+  Dashboard and Permit List show a clear message instead of a wall of
+  zeros or a blank table.
+- **OPEN permits missing a Valid To date:** flagged on the detail
+  page, since Expiring Soon can't be calculated without one.
+- **Mobile:** explicit viewport handling added for consistent scaling
+  on phones (headers, filters, and the permit table already wrap/
+  scroll correctly from earlier steps).
+- **Search-engine protection:** added `robots.txt` (Disallow: /) as a
+  second layer alongside the `noindex` tag from Step 1.
 
 ### Deploy and test
 
-1. Replace the files in your repo with this version. New:
-   `app/permits/[reference]/page.js`, `app/components/DetailField.js`.
-   Changed: `app/components/PermitTable.js` (rows are now clickable),
-   `app/globals.css` (added detail-page styles).
+1. Replace the files in your repo with this final version. Changed:
+   `lib/parsePermits.js`, `app/page.js`, `app/permits/page.js`,
+   `app/components/PermitTable.js`, `app/layout.js`. Renamed:
+   `app/permits/[reference]/` → `app/permits/[rowNumber]/`. New:
+   `public/robots.txt`.
 2. Wait for Vercel to redeploy.
-3. Go to `/permits`, click any row, and confirm it opens that
-   permit's details correctly.
-4. Try visiting a made-up reference directly, e.g.
-   `your-site.vercel.app/permits/doesnotexist` — you should see a
-   clean "Permit not found" message, not a broken page.
+3. Re-test the full checklist:
+   - [ ] Dashboard counts match Excel
+   - [ ] Search and each filter on Permit List work
+   - [ ] Clicking a permit opens the right details
+   - [ ] A bad `/permits/...` URL shows "Permit not found", not a crash
+   - [ ] Site is usable on your phone
+   - [ ] No edit/save/delete controls exist anywhere
+   - [ ] Uploading a fresh Excel file updates the dashboard after
+         redeploy-free refresh (no code change needed — just re-upload
+         at `/upload`)
 
-Reply once that looks right and we'll move to Step 8: mobile polish,
-error handling review, and final deployment checks.
+## You're done
+
+The site is a read-only monitoring layer: Excel (and your existing
+VBA) stays the master record, and the only thing the website ever
+calculates itself is the Expiring Soon flag on top of your Excel
+Status column. To keep it current going forward, just re-upload the
+latest `.xlsm` at `/upload` whenever you want the site refreshed —
+there's nothing else to maintain.

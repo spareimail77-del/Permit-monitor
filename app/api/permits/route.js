@@ -28,6 +28,7 @@ export async function GET() {
   return Response.json({
     uploadedAt: data.uploadedAt,
     today,
+    duplicateReferences: data.duplicateReferences,
     permits,
   });
 }
