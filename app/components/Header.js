@@ -1,17 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import Icon from "./Icon";
+import { createClient } from "../../lib/supabase/client";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/permits", label: "Permit List" },
-  { href: "/upload", label: "Upload" },
 ];
 
 export default function Header({ uploadedAt, today }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [me, setMe] = useState(null); // { email, role } | null while loading
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) setMe(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMe(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  const navItems =
+    me?.role === "admin"
+      ? [...BASE_NAV_ITEMS, { href: "/upload", label: "Upload" }]
+      : BASE_NAV_ITEMS;
 
   return (
     <header className="hero">
@@ -21,7 +52,7 @@ export default function Header({ uploadedAt, today }) {
           <h1 style={styles.title}>Permit Log Register</h1>
         </div>
         <nav style={styles.nav}>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active =
               item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
             return (
@@ -38,6 +69,22 @@ export default function Header({ uploadedAt, today }) {
             );
           })}
           <ThemeToggle />
+          {me?.email && (
+            <span style={styles.userChip} title={me.email}>
+              {me.role === "admin" ? "Admin" : "User"}
+            </span>
+          )}
+          {me?.email && (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="btn btn-ghost"
+              style={styles.signOutBtn}
+            >
+              <Icon name="logout" size={14} />
+              Sign out
+            </button>
+          )}
         </nav>
       </div>
       {(uploadedAt || today) && (
@@ -101,6 +148,20 @@ const styles = {
   navLinkActive: {
     color: "var(--color-ink)",
     background: "var(--color-surface-2)",
+  },
+  userChip: {
+    fontSize: "var(--font-size-xs)",
+    fontWeight: 700,
+    letterSpacing: "0.03em",
+    textTransform: "uppercase",
+    color: "var(--color-brand-2)",
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: "1px solid var(--color-rule)",
+  },
+  signOutBtn: {
+    padding: "6px 12px",
+    fontSize: "var(--font-size-xs)",
   },
   meta: {
     borderTop: "1px solid var(--color-rule)",

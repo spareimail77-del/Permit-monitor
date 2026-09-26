@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../components/Icon";
+import { createClient } from "../../lib/supabase/client";
 
 export default function UploadForm() {
   const router = useRouter();
@@ -46,8 +47,10 @@ export default function UploadForm() {
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      const supabase = createClient();
+      await supabase.auth.signOut();
     } finally {
+      router.push("/login");
       router.refresh();
     }
   }
@@ -56,7 +59,7 @@ export default function UploadForm() {
     <div className="panel" style={styles.card}>
       <div style={styles.cardHead}>
         <p style={styles.badge}>
-          <Icon name="checkCircle" size={14} /> Signed in as HSE
+          <Icon name="checkCircle" size={14} /> Signed in as admin
         </p>
         <button
           type="button"

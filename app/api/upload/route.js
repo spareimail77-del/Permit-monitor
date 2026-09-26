@@ -1,21 +1,37 @@
-import { cookies } from "next/headers";
 import { put } from "@vercel/blob";
 import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
-import { SESSION_COOKIE, verifySessionToken } from "../../../lib/auth";
+import { createClient } from "../../../lib/supabase/server";
 
 // This route ONLY writes the raw Excel file to blob storage.
 // It never reads, edits, or modifies the workbook's content —
 // it's a byte-for-byte copy of whatever file you upload.
 //
-// The passcode gate on the /upload page is UI only — this check is
-// what actually enforces "HSE only", since someone could otherwise
-// POST here directly and skip the page entirely.
+// Middleware already blocks non-admins from reaching this route, but
+// this check runs independently so the lock still holds even if
+// middleware config ever changes.
 export async function POST(request) {
-  const token = cookies().get(SESSION_COOKIE)?.value;
-  if (!verifySessionToken(token)) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return Response.json(
-      { error: "Not authorized. Sign in with the HSE passcode at /upload first." },
+      { error: "Not authenticated. Sign in at /login first." },
       { status: 401 }
+    );
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role !== "admin") {
+    return Response.json(
+      { error: "Not authorized. Only HSE admins can upload." },
+      { status: 403 }
     );
   }
 
