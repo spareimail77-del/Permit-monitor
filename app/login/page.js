@@ -14,7 +14,7 @@ export default function LoginPage() {
 
 const styles = {
   main: {
-    minHeight: "100dvh",
+    minHeight: "100svh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

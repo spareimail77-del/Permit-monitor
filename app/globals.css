@@ -71,12 +71,12 @@
   --color-ink-muted: #5c5a75;
   --color-ink-faint: #86849c;
 
-  --color-brand: #7c3aed;
-  --color-brand-2: #8b5cf6;
-  --color-brand-dark: #5b21b6;
-  --color-brand-tint: rgba(124, 58, 237, 0.08);
-  --color-glow-1: rgba(124, 58, 237, 0.16);
-  --color-glow-2: rgba(91, 33, 182, 0.12);
+  --color-brand: #0d9488;
+  --color-brand-2: #14b8a6;
+  --color-brand-dark: #0f766e;
+  --color-brand-tint: rgba(13, 148, 136, 0.08);
+  --color-glow-1: rgba(13, 148, 136, 0.14);
+  --color-glow-2: rgba(15, 118, 110, 0.1);
 
   --color-open: #059669;
   --color-open-tint: rgba(5, 150, 105, 0.1);
@@ -90,7 +90,7 @@
   --color-canceled-tint: rgba(219, 39, 119, 0.1);
 
   --shadow-card: 0 1px 2px rgba(30, 20, 60, 0.05), 0 10px 24px -16px rgba(30, 20, 60, 0.18);
-  --shadow-pop: 0 1px 2px rgba(30, 20, 60, 0.06), 0 20px 36px -18px rgba(124, 58, 237, 0.22);
+  --shadow-pop: 0 1px 2px rgba(30, 20, 60, 0.06), 0 20px 36px -18px rgba(13, 148, 136, 0.22);
 
   color-scheme: light;
 }
@@ -466,6 +466,25 @@ a.stat-card:hover {
 .watchlist {
   display: flex;
   flex-direction: column;
+}
+
+.watchlist-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.watchlist-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.watchlist-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.watchlist-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-rule-strong);
+  border-radius: 999px;
 }
 
 .watchlist-row {

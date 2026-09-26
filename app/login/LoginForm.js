@@ -3,30 +3,34 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
+import { staffIdToAuthEmail } from "../../lib/staffAuth";
 import Icon from "../components/Icon";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
   const [state, setState] = useState("idle"); // idle | checking | error
   const [message, setMessage] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!staffId || !password) return;
     setState("checking");
     setMessage("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: staffIdToAuthEmail(staffId),
+      password,
+    });
 
     if (error) {
       setState("error");
       setMessage(
         error.message === "Invalid login credentials"
-          ? "Wrong email or password."
+          ? "Wrong staff ID or password."
           : error.message
       );
       return;
@@ -46,19 +50,20 @@ export default function LoginForm() {
         Permit Log Register
       </h2>
       <p style={{ margin: 0, color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" }}>
-        Sign in with your HSE account to view the site.
+        Sign in with your staff ID to view the site.
       </p>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10, marginTop: 14 }}>
         <input
-          type="email"
-          autoComplete="email"
+          type="text"
+          inputMode="numeric"
+          autoComplete="username"
           autoFocus
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Staff ID"
+          value={staffId}
+          onChange={(e) => setStaffId(e.target.value)}
           className="passcode-input"
-          aria-label="Email"
+          aria-label="Staff ID"
         />
         <input
           type="password"
@@ -72,7 +77,7 @@ export default function LoginForm() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!email || !password || state === "checking"}
+          disabled={!staffId || !password || state === "checking"}
           style={{ width: "100%", justifyContent: "center" }}
         >
           {state === "checking" ? "Signing in…" : "Sign in"}

@@ -69,12 +69,15 @@ export default function Header({ uploadedAt, today }) {
             );
           })}
           <ThemeToggle />
-          {me?.email && (
-            <span style={styles.userChip} title={me.email}>
-              {me.role === "admin" ? "Admin" : "User"}
+          {me?.staffId && (
+            <span
+              style={styles.userChip}
+              title={me.email ? `${me.email} · ${me.role}` : me.role}
+            >
+              {me.staffId} · {me.role === "admin" ? "Admin" : "User"}
             </span>
           )}
-          {me?.email && (
+          {me?.staffId && (
             <button
               type="button"
               onClick={handleSignOut}

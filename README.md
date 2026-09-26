@@ -10,6 +10,11 @@ anymore, including the dashboard. Accounts and sessions are handled
 by **Supabase Auth** (free tier), not by this app's own code, so there's
 no password storage or session logic to maintain here.
 
+Staff sign in with their **staff ID** (e.g. `18489`), not an email —
+see "Logging in with a staff ID" below for how that works under the
+hood. Real personal email is stored separately, for communication
+only, and is never used to sign in.
+
 - **`user` role** — can view the dashboard, the permit list, and permit
   detail pages. No upload access.
 - **`admin` role** — everything a `user` can do, plus `/upload`.
@@ -21,15 +26,30 @@ you add later — adding a new permission won't require touching the
 auth flow again, just checking that field where it matters.
 
 There is **no self-signup** — accounts are created by you from the
-Supabase dashboard (Authentication → Users → Add user), and default to
-`role = 'user'` via a database trigger. Promote an account to admin
-with one SQL statement (see `supabase-schema.sql`, step 3).
+Supabase dashboard, and default to `role = 'user'` via a database
+trigger. Promote an account to admin with one SQL statement (see
+`supabase-schema.sql`, step 3).
 
 Enforcement happens in two places, deliberately redundant:
 `middleware.js` (blocks every request before it reaches a page or
 API route) and the `/upload` page and `/api/upload` route themselves
 (re-check independently, so the lock holds even if the middleware
 config ever changes).
+
+### Logging in with a staff ID
+
+Supabase Auth is built around email + password; it has no separate
+"username" field. So each staff ID maps to a synthetic, never-emailed
+address like `18489@staff.permit-log.internal` — that's what's
+actually stored as the Supabase login email, and the login page
+converts what someone types into that address behind the scenes
+(`lib/staffAuth.js`). Their real email lives in `profiles.email` purely
+for you to contact them; it's disconnected from login entirely.
+
+One consequence: Supabase's built-in "forgot password" email flow
+won't reach anyone, since the login address isn't real. For now, reset
+a forgotten password yourself from Supabase Dashboard → Authentication
+→ Users → (person) → reset password.
 
 ## What this update changed
 
@@ -75,10 +95,15 @@ do either in a follow-up.
    Providers/Settings → disable "Allow new users to sign up" (name may
    vary slightly by Supabase's current UI). Accounts are created by
    you only.
-3. **Create your own account**: Authentication → Users → Add user
-   (email + password). Then in the SQL Editor:
+3. **Create your own account**: Authentication → Users → Add user.
+   For **Email**, enter `<your staff id>@staff.permit-log.internal`
+   (e.g. `18489@staff.permit-log.internal`) — this is never emailed to
+   anyone, it's just Supabase's required login field. Pick any
+   password. Then in the SQL Editor:
    ```sql
-   update public.profiles set role = 'admin' where email = 'you@example.com';
+   update public.profiles
+      set email = 'you@company.com', role = 'admin'
+    where staff_id = '18489';
    ```
 4. **Get your API keys**: Project Settings → API → copy the Project
    URL and the `anon` `public` key.
@@ -99,7 +124,8 @@ do either in a follow-up.
 8. **Re-test the checklist:**
    - [ ] Visiting the site in a private/incognito window redirects to
          `/login`, not the dashboard
-   - [ ] Wrong email/password is rejected; your admin account signs in
+   - [ ] Wrong staff ID/password is rejected; your admin account signs
+         in with its staff ID
    - [ ] Signed in as `admin`: the "Upload" link is visible, `/upload`
          shows the upload form, and uploading a fresh `.xlsm` updates
          the dashboard
@@ -109,7 +135,10 @@ do either in a follow-up.
    - [ ] "Sign out" returns you to `/login` and re-locks everything
    - [ ] Calling `/api/upload` directly while signed in as a `user`
          (not admin) returns a 403, confirming the API-level lock
-   - [ ] Site is usable on your phone in both themes
+   - [ ] Light mode reads as teal/green accented, dark mode stays
+         violet
+   - [ ] Site is usable on your phone in both themes, and scrolling on
+         the login/upload pages no longer visibly resizes the card
 
 ## Ongoing use
 

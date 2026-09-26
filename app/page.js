@@ -54,10 +54,14 @@ export default async function Dashboard() {
     }
   }
 
-  const expiringSoon = permits
-    .filter((p) => p.displayStatus === "EXPIRING_SOON")
-    .sort((a, b) => (a.daysRemaining ?? 99) - (b.daysRemaining ?? 99))
-    .slice(0, 6);
+  const upcomingExpiries = permits
+    .filter(
+      (p) =>
+        (p.displayStatus === "OPEN" || p.displayStatus === "EXPIRING_SOON") &&
+        typeof p.daysRemaining === "number"
+    )
+    .sort((a, b) => a.daysRemaining - b.daysRemaining)
+    .slice(0, 20);
 
   const areaBreakdown = topCounts(permits.map((p) => p.area));
   const typeBreakdown = topCounts(permits.map((p) => p.permitType));
@@ -133,10 +137,10 @@ export default async function Dashboard() {
               <div className="panel" style={styles.panelPad}>
                 <h2 className="panel-title">Expiring soon</h2>
                 <p className="panel-subtitle">
-                  Open permits within 3 days of their Valid To date.
+                  Open permits, soonest expiry first. Scroll for more.
                 </p>
                 <div style={{ marginTop: 12 }}>
-                  <ExpiringWatchlist permits={expiringSoon} />
+                  <ExpiringWatchlist permits={upcomingExpiries} />
                 </div>
               </div>
             </div>

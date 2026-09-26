@@ -12,12 +12,13 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("staff_id, email, role")
     .eq("id", user.id)
     .single();
 
   return Response.json({
-    email: user.email,
+    staffId: profile?.staff_id || null,
+    email: profile?.email || null,
     role: profile?.role || "user",
   });
 }

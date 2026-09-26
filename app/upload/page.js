@@ -34,6 +34,6 @@ export default async function UploadPage() {
 }
 
 const styles = {
-  main: { minHeight: "100dvh" },
+  main: { minHeight: "100svh" },
   body: { maxWidth: 720, margin: "0 auto", padding: "32px 20px" },
 };
