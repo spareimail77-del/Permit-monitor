@@ -1,17 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Icon from "../components/Icon";
-import { createClient } from "../../lib/supabase/client";
 
 export default function UploadForm() {
-  const router = useRouter();
   const [file, setFile] = useState(null);
   const [state, setState] = useState("idle"); // idle | uploading | done | error
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
-  const [signingOut, setSigningOut] = useState(false);
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -44,33 +40,12 @@ export default function UploadForm() {
     }
   }
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    } finally {
-      router.push("/login");
-      router.refresh();
-    }
-  }
-
   return (
     <div className="panel" style={styles.card}>
       <div style={styles.cardHead}>
         <p style={styles.badge}>
           <Icon name="checkCircle" size={14} /> Signed in as admin
         </p>
-        <button
-          type="button"
-          onClick={handleSignOut}
-          disabled={signingOut}
-          className="btn btn-ghost"
-          style={{ padding: "6px 12px", fontSize: "var(--font-size-xs)" }}
-        >
-          <Icon name="logout" size={14} />
-          {signingOut ? "Signing out…" : "Sign out"}
-        </button>
       </div>
 
       <p style={styles.cardText}>

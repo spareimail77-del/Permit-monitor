@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import { staffIdToAuthEmail } from "../../lib/staffAuth";
 import Icon from "../components/Icon";
+
+const NOTICE_TEXT = {
+  confirmed: "Account confirmed — sign in with your staff ID.",
+  reset: "Password updated — sign in with your new password.",
+};
+const ERROR_TEXT = {
+  confirm_failed: "That confirmation link is invalid or expired. Try signing up again.",
+};
 
 export default function LoginForm() {
   const router = useRouter();
@@ -13,6 +22,10 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [state, setState] = useState("idle"); // idle | checking | error
   const [message, setMessage] = useState("");
+
+  const notice =
+    NOTICE_TEXT[searchParams.get("confirmed") ? "confirmed" : searchParams.get("reset") ? "reset" : ""];
+  const urlError = ERROR_TEXT[searchParams.get("error")];
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,6 +66,17 @@ export default function LoginForm() {
         Sign in with your staff ID to view the site.
       </p>
 
+      {notice && (
+        <p style={{ margin: "10px 0 0", color: "var(--color-open)", fontSize: "var(--font-size-sm)" }}>
+          {notice}
+        </p>
+      )}
+      {urlError && (
+        <p className="error-text" style={{ marginBottom: 0, marginTop: 10 }}>
+          {urlError}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10, marginTop: 14 }}>
         <input
           type="text"
@@ -89,6 +113,11 @@ export default function LoginForm() {
           {message}
         </p>
       )}
+
+      <p style={{ margin: "14px 0 0", fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)", display: "flex", justifyContent: "space-between" }}>
+        <Link href="/signup">Create account</Link>
+        <Link href="/forgot-password">Forgot password?</Link>
+      </p>
     </div>
   );
 }

@@ -79,6 +79,13 @@ const PATHS = {
     </>
   ),
   arrowLeft: <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5" />
+    </>
+  ),
+  chevronDown: <path d="M6 9l6 6 6-6" />,
 };
 
 export default function Icon({ name, size = 18, ...props }) {
