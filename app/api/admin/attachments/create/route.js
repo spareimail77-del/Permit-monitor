@@ -1,8 +1,9 @@
 import { createClient } from "../../../../../lib/supabase/server";
 import {
-  ATTACHMENT_KIND_VALUES,
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
+  MAX_LABEL_LENGTH,
+  sanitizeLabel,
 } from "../../../../../lib/attachments";
 
 export async function POST(request) {
@@ -29,7 +30,7 @@ export async function POST(request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { permitReference, kind, fileName, storageKey, contentType, sizeBytes } = body || {};
+  const { permitReference, label, fileName, storageKey, contentType, sizeBytes } = body || {};
 
   if (!permitReference || !fileName || !storageKey) {
     return Response.json(
@@ -37,8 +38,12 @@ export async function POST(request) {
       { status: 400 }
     );
   }
-  if (!ATTACHMENT_KIND_VALUES.includes(kind)) {
-    return Response.json({ error: "Invalid attachment kind." }, { status: 400 });
+  const cleanLabel = sanitizeLabel(label);
+  if (!cleanLabel) {
+    return Response.json(
+      { error: `Enter what this document is (up to ${MAX_LABEL_LENGTH} characters).` },
+      { status: 400 }
+    );
   }
   if (!ALLOWED_CONTENT_TYPES[contentType]) {
     return Response.json({ error: "Invalid content type." }, { status: 400 });
@@ -51,7 +56,7 @@ export async function POST(request) {
     .from("permit_attachments")
     .insert({
       permit_reference: permitReference,
-      kind,
+      label: cleanLabel,
       file_name: fileName,
       storage_key: storageKey,
       content_type: contentType,

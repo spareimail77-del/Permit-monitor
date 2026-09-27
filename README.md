@@ -12,8 +12,9 @@ no password storage or session logic to maintain here.
 
 Staff sign in with their **staff ID** (e.g. `18489`), not an email —
 see "Logging in with a staff ID" below for how that works under the
-hood. Real personal email is stored separately, for communication
-only, and is never used to sign in.
+hood. The app doesn't collect or store anyone's real email at all —
+there's no feature that would use it, and no SMTP configured to send
+anything with it on the free tier anyway.
 
 - **`user` role** — can view the dashboard, the permit list, and permit
   detail pages. No upload access.
@@ -43,13 +44,22 @@ Supabase Auth is built around email + password; it has no separate
 address like `18489@staff.permit-log.internal` — that's what's
 actually stored as the Supabase login email, and the login page
 converts what someone types into that address behind the scenes
-(`lib/staffAuth.js`). Their real email lives in `profiles.email` purely
-for you to contact them; it's disconnected from login entirely.
+(`lib/staffAuth.js`).
 
-One consequence: Supabase's built-in "forgot password" email flow
-won't reach anyone, since the login address isn't real. For now, reset
-a forgotten password yourself from Supabase Dashboard → Authentication
-→ Users → (person) → reset password.
+Two consequences of the login address not being real, both handled by
+you manually rather than by any email flow (which needs SMTP — not set
+up on the free tier):
+- **New accounts:** when adding one in the Supabase dashboard, tick
+  **Auto Confirm User**. Without it, Supabase tries to send that
+  synthetic address a confirmation email, the send fails (no SMTP),
+  and it shows up as an auth error in Supabase's logs even though the
+  account still partly works. Also turn off **Confirm email** once,
+  under Authentication → Settings.
+- **Forgotten passwords:** Supabase's built-in "forgot password" email
+  flow won't reach anyone either, for the same reason. Reset a
+  forgotten password yourself from Supabase Dashboard → Authentication
+  → Users → (person) → reset password. Don't use "Invite user" or
+  "magic link" for these accounts — same SMTP problem.
 
 ## What this update changed
 
@@ -99,10 +109,12 @@ do either in a follow-up.
    For **Email**, enter `<your staff id>@staff.permit-log.internal`
    (e.g. `18489@staff.permit-log.internal`) — this is never emailed to
    anyone, it's just Supabase's required login field. Pick any
-   password. Then in the SQL Editor:
+   password, and **tick "Auto Confirm User"** (no SMTP is configured
+   on the free tier, so without this Supabase will try and fail to
+   send a confirmation email). Then in the SQL Editor:
    ```sql
    update public.profiles
-      set email = 'you@company.com', role = 'admin'
+      set role = 'admin'
     where staff_id = '18489';
    ```
 4. **Get your API keys**: Project Settings → API → copy the Project
@@ -186,7 +198,8 @@ One-time setup:
    re-run — it only adds the new `permit_attachments` table this
    time).
 6. Push the code, redeploy, and test: open a permit as an admin,
-   attach a small PDF under each of "Physical Permit" and "JSA", open
-   it back from the link, then try the same page as a non-admin
-   account — they should see the same files (view/download works)
+   type a document name (e.g. "Physical Permit") and attach a small
+   PDF, open it back from the link, then try the same page as a
+   non-admin account — they should see the same files (view/download
+   works)
    but no upload form and no "Remove" button.

@@ -3,18 +3,18 @@
 
 -- 1. One row per signed-up user, holding app-level identity + role.
 --    - staff_id: what people actually log in with (e.g. "18489").
---    - email: their REAL email, for communication only — never used
---      to sign in, and left blank until you fill it in (step 3).
 --    - display_name: the friendly name shown in the navbar (e.g.
 --      "Jeff") instead of the raw staff_id. Blank until you set it
 --      (step 3b) — the app falls back to showing the staff_id.
 --    - permissions: free-form jsonb, empty for now — room to add
 --      finer-grained flags later (e.g. {"can_export": true}) without
 --      another migration.
+--    There is deliberately no "real email" column — nothing in this
+--    app sends email (no signup confirmation, no password-reset
+--    email, no notifications), so there's nothing to store one for.
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   staff_id text unique,
-  email text,
   display_name text,
   role text not null default 'user' check (role in ('user', 'admin')),
   permissions jsonb not null default '{}'::jsonb,
@@ -25,6 +25,10 @@ create table if not exists public.profiles (
 -- brand-new table, so add it here too — safe to re-run either way.
 alter table public.profiles add column if not exists display_name text;
 
+-- Existing installs from before this step: drop the unused real-email
+-- column. Safe to re-run — does nothing once it's already gone.
+alter table public.profiles drop column if exists email;
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "Users can read their own profile" on public.profiles;
@@ -33,10 +37,10 @@ create policy "Users can read their own profile"
   using (auth.uid() = id);
 
 -- No insert/update/delete policy is defined for regular users on
--- purpose — role and email changes are made by you, the project
--- owner, from the Supabase dashboard or SQL editor, which uses the
--- service role and bypasses RLS. The app's anon/browser client can
--- never grant itself admin.
+-- purpose — role changes are made by you, the project owner, from
+-- the Supabase dashboard or SQL editor, which uses the service role
+-- and bypasses RLS. The app's anon/browser client can never grant
+-- itself admin.
 
 -- 2. Auto-create a 'user'-role profile row whenever an account is
 --    created. staff_id is pulled straight out of the synthetic login
@@ -68,34 +72,51 @@ create trigger on_auth_user_created
 --         emailed to anyone, it's just Supabase's required login ID.
 --       - Password: whatever you assign them (they can change it
 --         later via a "change password" feature if you add one).
---    b) Back here, fill in their real email and, if they're an HSE
---       admin, their role:
+--       - IMPORTANT (free tier, no SMTP configured): tick
+--         "Auto Confirm User" in that same "Add user" dialog. Without
+--         it, Supabase tries to send a confirmation email to the
+--         synthetic address above — that send fails (no SMTP set up)
+--         and shows up as an auth error in Supabase's logs, even
+--         though the account still half-works. Also confirm, once,
+--         under Authentication -> Settings, that "Confirm email" is
+--         turned off — same reason.
+--    b) Back here, set their role if they're an HSE admin:
 --
 -- update public.profiles
---    set email = 'real.person@company.com', role = 'admin'
+--    set role = 'admin'
 --  where staff_id = '18489';
 --
 --    Leave role as the default 'user' for everyone who should only
 --    view the site.
 --
---    b) Give them a friendly display name for the navbar, e.g.:
+--    c) Give them a friendly display name for the navbar, e.g.:
 --
 -- update public.profiles
 --    set display_name = 'Jeff'
 --  where staff_id = '18489';
+--
+--    Never use Supabase's "Invite user", "magic link", or
+--    "send password reset email" actions for these accounts — all
+--    three require SMTP, which the free tier doesn't have configured,
+--    and will error. A forgotten password is reset manually instead:
+--    Authentication -> Users -> (person) -> reset password.
 
--- 4. Attachments (Physical Permit scans, JSAs) — metadata only lives
---    here; the actual file bytes live in Backblaze B2 (set up
---    separately, see README). Keyed by permit_reference (the human
---    "Permit No.", column B) rather than the Excel row number, since
---    row numbers shift on every re-upload but the reference doesn't.
---    Note: if two rows share a duplicate reference (the app already
---    flags this elsewhere), attachments show under both — this
---    mirrors how the app already treats duplicate references.
+-- 4. Attachments (Physical Permit scans, JSAs, or anything else an
+--    admin uploads) — metadata only lives here; the actual file bytes
+--    live in Cloudinary (set up separately, see README). Keyed by
+--    permit_reference (the human "Permit No.", column B) rather than
+--    the Excel row number, since row numbers shift on every re-upload
+--    but the reference doesn't. Note: if two rows share a duplicate
+--    reference (the app already flags this elsewhere), attachments
+--    show under both — this mirrors how the app already treats
+--    duplicate references.
+--    "label" is free text the admin types at upload time (e.g.
+--    "Physical Permit", "JSA", "Risk Assessment") — there's no fixed
+--    list, so no check constraint here.
 create table if not exists public.permit_attachments (
   id uuid primary key default gen_random_uuid(),
   permit_reference text not null,
-  kind text not null check (kind in ('physical_permit', 'jsa')),
+  label text not null,
   file_name text not null,
   storage_key text not null,
   content_type text not null,
@@ -103,6 +124,21 @@ create table if not exists public.permit_attachments (
   uploaded_by uuid references public.profiles (id) on delete set null,
   uploaded_at timestamptz not null default now()
 );
+
+-- Existing installs from before this step: rename the old fixed-list
+-- "kind" column to free-text "label" and drop its check constraint,
+-- carrying over any existing values as-is. Guarded so it only runs
+-- once, on a table that still has the old column.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'permit_attachments' and column_name = 'kind'
+  ) then
+    alter table public.permit_attachments drop constraint if exists permit_attachments_kind_check;
+    alter table public.permit_attachments rename column kind to label;
+  end if;
+end $$;
 
 create index if not exists permit_attachments_reference_idx
   on public.permit_attachments (permit_reference);

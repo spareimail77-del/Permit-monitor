@@ -2,10 +2,11 @@ import crypto from "node:crypto";
 import { createClient } from "../../../../../lib/supabase/server";
 import { getUploadCredentials } from "../../../../../lib/storage";
 import {
-  ATTACHMENT_KIND_VALUES,
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
+  MAX_LABEL_LENGTH,
   sanitizeForKey,
+  sanitizeLabel,
 } from "../../../../../lib/attachments";
 
 // Middleware already blocks non-admins from reaching /api/admin/*;
@@ -35,7 +36,7 @@ export async function POST(request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { permitReference, kind, fileName, contentType, sizeBytes } = body || {};
+  const { permitReference, label, fileName, contentType, sizeBytes } = body || {};
 
   if (!permitReference || !fileName) {
     return Response.json(
@@ -43,8 +44,12 @@ export async function POST(request) {
       { status: 400 }
     );
   }
-  if (!ATTACHMENT_KIND_VALUES.includes(kind)) {
-    return Response.json({ error: "Invalid attachment kind." }, { status: 400 });
+  const cleanLabel = sanitizeLabel(label);
+  if (!cleanLabel) {
+    return Response.json(
+      { error: `Enter what this document is (up to ${MAX_LABEL_LENGTH} characters).` },
+      { status: 400 }
+    );
   }
   if (!ALLOWED_CONTENT_TYPES[contentType]) {
     return Response.json(
@@ -62,7 +67,7 @@ export async function POST(request) {
   // No extension here — Cloudinary's public_id doesn't carry one; the
   // format is derived from content_type (already stored on the row)
   // whenever we need it again for view/delete.
-  const storageKey = `attachments/${sanitizeForKey(permitReference)}/${kind}/${Date.now()}-${crypto.randomUUID()}`;
+  const storageKey = `attachments/${sanitizeForKey(permitReference)}/${sanitizeForKey(cleanLabel)}/${Date.now()}-${crypto.randomUUID()}`;
 
   let creds;
   try {

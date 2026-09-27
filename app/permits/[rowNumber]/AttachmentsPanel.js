@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Icon from "../../components/Icon";
-import { ATTACHMENT_KINDS, ALLOWED_CONTENT_TYPES, MAX_ATTACHMENT_BYTES } from "../../../lib/attachments";
+import { ALLOWED_CONTENT_TYPES, MAX_ATTACHMENT_BYTES, MAX_LABEL_LENGTH } from "../../../lib/attachments";
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return "";
@@ -12,7 +12,7 @@ function formatSize(bytes) {
 
 export default function AttachmentsPanel({ permitReference, initialAttachments, isAdmin }) {
   const [attachments, setAttachments] = useState(initialAttachments || []);
-  const [kind, setKind] = useState(ATTACHMENT_KINDS[0].value);
+  const [label, setLabel] = useState("");
   const [file, setFile] = useState(null);
   const [state, setState] = useState("idle"); // idle | uploading | error
   const [message, setMessage] = useState("");
@@ -22,6 +22,12 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     e.preventDefault();
     if (!file) return;
 
+    const cleanLabel = label.trim();
+    if (!cleanLabel) {
+      setState("error");
+      setMessage("Write what this document is (e.g. Physical Permit, JSA).");
+      return;
+    }
     if (!ALLOWED_CONTENT_TYPES[file.type]) {
       setState("error");
       setMessage("Only PDF or JPEG files are allowed.");
@@ -42,7 +48,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           permitReference,
-          kind,
+          label: cleanLabel,
           fileName: file.name,
           contentType: file.type,
           sizeBytes: file.size,
@@ -72,7 +78,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           permitReference,
-          kind,
+          label: cleanLabel,
           fileName: file.name,
           storageKey: urlData.storageKey,
           contentType: file.type,
@@ -84,6 +90,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
 
       setAttachments((prev) => [createData.attachment, ...prev]);
       setFile(null);
+      setLabel("");
       setState("idle");
       const input = document.getElementById("attachment-file-input");
       if (input) input.value = "";
@@ -115,57 +122,50 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
         <p style={styles.emptyText}>No files attached yet.</p>
       )}
 
-      {ATTACHMENT_KINDS.map(({ value, label }) => {
-        const items = attachments.filter((a) => a.kind === value);
-        if (items.length === 0) return null;
-        return (
-          <div key={value} style={styles.kindGroup}>
-            <p style={styles.kindLabel}>{label}</p>
-            <ul style={styles.list}>
-              {items.map((a) => (
-                <li key={a.id} style={styles.item}>
-                  <a
-                    href={`/api/attachments/${a.id}/view`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={styles.itemLink}
-                  >
-                    <Icon name="clipboard" size={15} />
-                    {a.file_name}
-                  </a>
-                  <span style={styles.itemMeta}>{formatSize(a.size_bytes)}</span>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(a.id)}
-                      disabled={deletingId === a.id}
-                      className="btn btn-ghost"
-                      style={styles.deleteBtn}
-                    >
-                      <Icon name="xCircle" size={14} />
-                      {deletingId === a.id ? "Removing…" : "Remove"}
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      {attachments.length > 0 && (
+        <ul style={styles.list}>
+          {attachments.map((a) => (
+            <li key={a.id} style={styles.item}>
+              <div style={styles.itemMain}>
+                <p style={styles.itemLabel}>{a.label}</p>
+                <a
+                  href={`/api/attachments/${a.id}/view`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.itemLink}
+                >
+                  <Icon name="clipboard" size={15} />
+                  {a.file_name}
+                </a>
+              </div>
+              <span style={styles.itemMeta}>{formatSize(a.size_bytes)}</span>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(a.id)}
+                  disabled={deletingId === a.id}
+                  className="btn btn-ghost"
+                  style={styles.deleteBtn}
+                >
+                  <Icon name="xCircle" size={14} />
+                  {deletingId === a.id ? "Removing…" : "Remove"}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {isAdmin && (
         <form onSubmit={handleUpload} style={styles.form}>
-          <select
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-            style={styles.select}
-          >
-            {ATTACHMENT_KINDS.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
-              </option>
-            ))}
-          </select>
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="What is this document? (e.g. Physical Permit, JSA)"
+            maxLength={MAX_LABEL_LENGTH}
+            style={styles.labelInput}
+          />
           <input
             id="attachment-file-input"
             type="file"
@@ -176,7 +176,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={!file || state === "uploading"}
+            disabled={!file || !label.trim() || state === "uploading"}
           >
             {state === "uploading" ? "Uploading…" : "Add attachment"}
           </button>
@@ -199,21 +199,21 @@ const styles = {
     marginBottom: 16,
   },
   emptyText: { color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
-  kindGroup: { marginBottom: 14 },
-  kindLabel: {
-    fontSize: "var(--font-size-xs)",
-    fontWeight: 700,
-    color: "var(--color-ink-muted)",
-    margin: "0 0 6px",
-  },
   list: { listStyle: "none", margin: 0, padding: 0 },
   item: {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    padding: "8px 0",
+    padding: "10px 0",
     borderBottom: "1px solid var(--color-rule)",
     flexWrap: "wrap",
+  },
+  itemMain: { display: "flex", flexDirection: "column", gap: 2 },
+  itemLabel: {
+    margin: 0,
+    fontSize: "var(--font-size-xs)",
+    fontWeight: 700,
+    color: "var(--color-ink-muted)",
   },
   itemLink: {
     display: "flex",
@@ -237,7 +237,7 @@ const styles = {
     marginTop: 16,
     flexWrap: "wrap",
   },
-  select: {
+  labelInput: {
     padding: "9px 12px",
     borderRadius: "var(--radius-sm)",
     border: "1px solid var(--color-rule)",
@@ -245,6 +245,8 @@ const styles = {
     color: "var(--color-ink)",
     fontFamily: "inherit",
     fontSize: "var(--font-size-sm)",
+    flex: "1 1 240px",
+    minWidth: 200,
   },
   fileInput: { fontSize: "var(--font-size-sm)", color: "var(--color-ink)" },
 };
