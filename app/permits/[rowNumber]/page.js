@@ -7,6 +7,8 @@ import ErrorScreen from "../../components/ErrorScreen";
 import StatusBadge from "../../components/StatusBadge";
 import DetailField from "../../components/DetailField";
 import Icon from "../../components/Icon";
+import AttachmentsPanel from "./AttachmentsPanel";
+import { createClient } from "../../../lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,25 @@ export default async function PermitDetailPage({ params }) {
   const isDuplicateRef = (data.duplicateReferences || []).includes(
     permit.reference
   );
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.role === "admin";
+  }
+  const { data: attachments } = await supabase
+    .from("permit_attachments")
+    .select("*")
+    .eq("permit_reference", permit.reference)
+    .order("uploaded_at", { ascending: false });
 
   return (
     <main>
@@ -126,6 +147,12 @@ export default async function PermitDetailPage({ params }) {
             <DetailField label="Permit Controller" value={permit.controller} />
           </dl>
         </div>
+
+        <AttachmentsPanel
+          permitReference={permit.reference}
+          initialAttachments={attachments || []}
+          isAdmin={isAdmin}
+        />
       </section>
     </main>
   );

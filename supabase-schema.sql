@@ -83,3 +83,50 @@ create trigger on_auth_user_created
 -- update public.profiles
 --    set display_name = 'Jeff'
 --  where staff_id = '18489';
+
+-- 4. Attachments (Physical Permit scans, JSAs) — metadata only lives
+--    here; the actual file bytes live in Backblaze B2 (set up
+--    separately, see README). Keyed by permit_reference (the human
+--    "Permit No.", column B) rather than the Excel row number, since
+--    row numbers shift on every re-upload but the reference doesn't.
+--    Note: if two rows share a duplicate reference (the app already
+--    flags this elsewhere), attachments show under both — this
+--    mirrors how the app already treats duplicate references.
+create table if not exists public.permit_attachments (
+  id uuid primary key default gen_random_uuid(),
+  permit_reference text not null,
+  kind text not null check (kind in ('physical_permit', 'jsa')),
+  file_name text not null,
+  storage_key text not null,
+  content_type text not null,
+  size_bytes bigint not null,
+  uploaded_by uuid references public.profiles (id) on delete set null,
+  uploaded_at timestamptz not null default now()
+);
+
+create index if not exists permit_attachments_reference_idx
+  on public.permit_attachments (permit_reference);
+
+alter table public.permit_attachments enable row level security;
+
+-- Any signed-in user (admin or not) can see attachment metadata and
+-- therefore view/download the file — per your instructions, "view
+-- only" here means admin-only upload/delete, not a download block.
+drop policy if exists "Signed-in users can read attachments" on public.permit_attachments;
+create policy "Signed-in users can read attachments"
+  on public.permit_attachments for select
+  using (auth.uid() is not null);
+
+drop policy if exists "Admins can add attachments" on public.permit_attachments;
+create policy "Admins can add attachments"
+  on public.permit_attachments for insert
+  with check (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );
+
+drop policy if exists "Admins can delete attachments" on public.permit_attachments;
+create policy "Admins can delete attachments"
+  on public.permit_attachments for delete
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );

@@ -149,3 +149,41 @@ everything else (Expiring Soon, the dashboard widgets) on every page
 load — no rebuild needed for new data. New staff accounts are added
 the same way as your own (step 3 above), left at the default `user`
 role unless they also need upload access.
+
+## Step 12 — Attachments storage setup (Backblaze B2)
+
+Permit attachments (scanned Physical Permit, JSA) are stored in
+Backblaze B2, not Supabase or Vercel Blob — B2's free tier (10GB
+storage, no credit card needed, free egress up to 3x your stored
+data/month) comfortably covers ~300 permits' worth of 10-20MB files,
+which the other two free tiers don't, and unlike Cloudflare R2 it
+doesn't ask for a payment method to activate. Files are never
+publicly linkable: the app generates a short-lived signed link
+(valid 5 minutes) each time someone clicks to open one.
+
+One-time setup:
+1. Create a free account at [backblaze.com/cloud-storage](https://www.backblaze.com/cloud-storage)
+   ("Get Started Free" — no credit card required). Then in the
+   B2 dashboard, **Create a Bucket** (any name, e.g.
+   `permit-attachments`), set it to **Private**.
+2. Open the bucket you just made and note the **Endpoint** shown on
+   its details page — it looks like `s3.us-west-004.backblazeb2.com`
+   (the region code in the middle varies, copy it exactly).
+3. Go to **Application Keys** → **Add a New Application Key**. Name
+   it anything, restrict it to the one bucket you created, allow
+   **Read and Write**. Backblaze shows you a **keyID** and
+   **applicationKey** once — copy both immediately.
+4. In Vercel → your Project → Settings → Environment Variables, add:
+   - `B2_KEY_ID` (the keyID from step 3)
+   - `B2_APPLICATION_KEY` (the applicationKey from step 3)
+   - `B2_BUCKET_NAME` (the bucket name from step 1)
+   - `B2_ENDPOINT` (the endpoint from step 2, e.g.
+     `s3.us-west-004.backblazeb2.com`)
+5. In Supabase SQL Editor, re-run `supabase-schema.sql` (safe to
+   re-run — it only adds the new `permit_attachments` table this
+   time).
+6. Push the code, redeploy, and test: open a permit as an admin,
+   attach a small PDF under each of "Physical Permit" and "JSA", open
+   it back from the link, then try the same page as a non-admin
+   account — they should see the same files (view/download works)
+   but no upload form and no "Remove" button.
