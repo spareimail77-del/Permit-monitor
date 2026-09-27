@@ -177,6 +177,9 @@ One-time setup:
    - `B2_KEY_ID` (the keyID from step 3)
    - `B2_APPLICATION_KEY` (the applicationKey from step 3)
    - `B2_BUCKET_NAME` (the bucket name from step 1)
+   - `B2_BUCKET_ID` (shown on the bucket's page in the B2 dashboard,
+     e.g. `6d0eae8d082fe029a90f0b1f` — a different value from the
+     bucket name, needed for uploads specifically)
    - `B2_ENDPOINT` (the endpoint from step 2, e.g.
      `s3.us-west-004.backblazeb2.com`)
 5. In Supabase SQL Editor, re-run `supabase-schema.sql` (safe to

@@ -51,17 +51,19 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       const urlData = await urlRes.json();
       if (!urlRes.ok) throw new Error(urlData.error || "Could not start upload.");
 
-      // A form POST rather than a raw PUT — a file-carrying form POST
-      // is a browser "simple request" and never triggers a CORS
-      // preflight, unlike a PUT with a Content-Type header, which
-      // Backblaze rejects at the preflight stage.
-      const form = new FormData();
-      Object.entries(urlData.fields).forEach(([k, v]) => form.append(k, v));
-      form.append("file", file);
-
+      // B2's native upload API (bearer-token auth) rather than the
+      // S3-compatible one — Backblaze's S3-compatible layer doesn't
+      // support browser POST uploads at all, and rejects the CORS
+      // preflight for presigned PUT links outright.
       const postRes = await fetch(urlData.uploadUrl, {
         method: "POST",
-        body: form,
+        headers: {
+          Authorization: urlData.uploadAuthToken,
+          "X-Bz-File-Name": urlData.fileNameHeader,
+          "Content-Type": file.type,
+          "X-Bz-Content-Sha1": "do_not_verify",
+        },
+        body: file,
       });
       if (!postRes.ok) throw new Error("Upload to storage failed.");
 
