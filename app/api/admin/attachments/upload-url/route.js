@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { createClient } from "../../../../../lib/supabase/server";
-import { getUploadUrl } from "../../../../../lib/storage";
+import { getUploadPost } from "../../../../../lib/storage";
 import {
   ATTACHMENT_KIND_VALUES,
   ALLOWED_CONTENT_TYPES,
@@ -62,16 +62,20 @@ export async function POST(request) {
 
   const storageKey = `attachments/${sanitizeForKey(permitReference)}/${kind}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-  let uploadUrl;
+  let post;
   try {
-    uploadUrl = getUploadUrl(storageKey, { expiresInSeconds: 300 });
+    post = getUploadPost(storageKey, {
+      contentType,
+      maxBytes: MAX_ATTACHMENT_BYTES,
+      expiresInSeconds: 300,
+    });
   } catch (err) {
-    console.error("R2 presign failed:", err);
+    console.error("B2 presign failed:", err);
     return Response.json(
-      { error: "Storage isn't configured yet. Check R2 env vars." },
+      { error: "Storage isn't configured yet. Check B2 env vars." },
       { status: 500 }
     );
   }
 
-  return Response.json({ uploadUrl, storageKey });
+  return Response.json({ uploadUrl: post.url, fields: post.fields, storageKey });
 }

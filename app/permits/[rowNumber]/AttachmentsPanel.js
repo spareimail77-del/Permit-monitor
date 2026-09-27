@@ -51,12 +51,19 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       const urlData = await urlRes.json();
       if (!urlRes.ok) throw new Error(urlData.error || "Could not start upload.");
 
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      // A form POST rather than a raw PUT — a file-carrying form POST
+      // is a browser "simple request" and never triggers a CORS
+      // preflight, unlike a PUT with a Content-Type header, which
+      // Backblaze rejects at the preflight stage.
+      const form = new FormData();
+      Object.entries(urlData.fields).forEach(([k, v]) => form.append(k, v));
+      form.append("file", file);
+
+      const postRes = await fetch(urlData.uploadUrl, {
+        method: "POST",
+        body: form,
       });
-      if (!putRes.ok) throw new Error("Upload to storage failed.");
+      if (!postRes.ok) throw new Error("Upload to storage failed.");
 
       const createRes = await fetch("/api/admin/attachments/create", {
         method: "POST",
