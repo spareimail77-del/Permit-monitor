@@ -5,6 +5,9 @@
 --    - staff_id: what people actually log in with (e.g. "18489").
 --    - email: their REAL email, for communication only — never used
 --      to sign in, and left blank until you fill it in (step 3).
+--    - display_name: the friendly name shown in the navbar (e.g.
+--      "Jeff") instead of the raw staff_id. Blank until you set it
+--      (step 3b) — the app falls back to showing the staff_id.
 --    - permissions: free-form jsonb, empty for now — room to add
 --      finer-grained flags later (e.g. {"can_export": true}) without
 --      another migration.
@@ -12,10 +15,15 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   staff_id text unique,
   email text,
+  display_name text,
   role text not null default 'user' check (role in ('user', 'admin')),
   permissions jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+-- Existing installs: the line above only creates the column on a
+-- brand-new table, so add it here too — safe to re-run either way.
+alter table public.profiles add column if not exists display_name text;
 
 alter table public.profiles enable row level security;
 
@@ -69,3 +77,9 @@ create trigger on_auth_user_created
 --
 --    Leave role as the default 'user' for everyone who should only
 --    view the site.
+--
+--    b) Give them a friendly display name for the navbar, e.g.:
+--
+-- update public.profiles
+--    set display_name = 'Jeff'
+--  where staff_id = '18489';

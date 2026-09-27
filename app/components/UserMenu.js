@@ -2,42 +2,39 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "../../lib/supabase/client";
 import Icon from "./Icon";
+import { createClient } from "../../lib/supabase/client";
 
-export default function UserMenu({ me }) {
+export default function UserMenu({ name, role }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef(null);
 
   useEffect(() => {
-    function onClickOutside(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    function onClickAway(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        setOpen(false);
+      }
     }
     function onEscape(e) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("mousedown", onClickAway);
     document.addEventListener("keydown", onEscape);
     return () => {
-      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("mousedown", onClickAway);
       document.removeEventListener("keydown", onEscape);
     };
   }, []);
 
   async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    } finally {
-      router.push("/login");
-      router.refresh();
-    }
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
   }
 
-  if (!me?.staffId) return null;
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
 
   return (
     <div ref={rootRef} style={styles.root}>
@@ -47,32 +44,42 @@ export default function UserMenu({ me }) {
         style={styles.trigger}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={me.email ? `${me.email} · ${me.role}` : me.role}
       >
-        <span style={styles.avatar}>
-          <Icon name="user" size={15} />
-        </span>
-        <span style={styles.triggerLabel}>{me.staffId}</span>
-        <Icon name="chevronDown" size={13} style={{ opacity: 0.6 }} />
+        <span style={styles.avatar}>{initial}</span>
+        <span style={styles.name}>{name}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform 0.15s ease",
+            flexShrink: 0,
+          }}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </button>
 
       {open && (
         <div role="menu" style={styles.menu}>
           <div style={styles.menuHead}>
-            <p style={styles.menuStaffId}>{me.staffId}</p>
-            <p style={styles.menuRole}>{me.role === "admin" ? "Admin" : "User"}</p>
-            {me.email && <p style={styles.menuEmail}>{me.email}</p>}
+            <p style={styles.menuName}>{name}</p>
+            <p style={styles.menuRole}>{role === "admin" ? "Admin" : "User"}</p>
           </div>
-          <div style={styles.menuDivider} />
           <button
             type="button"
             role="menuitem"
             onClick={handleSignOut}
-            disabled={signingOut}
             style={styles.menuItem}
           >
-            <Icon name="logout" size={14} />
-            {signingOut ? "Signing out…" : "Sign out"}
+            <Icon name="logout" size={15} />
+            Sign out
           </button>
         </div>
       )}
@@ -85,42 +92,53 @@ const styles = {
   trigger: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    padding: "5px 10px 5px 5px",
-    borderRadius: 999,
-    border: "1px solid var(--color-rule)",
+    gap: 8,
     background: "var(--color-surface-2)",
-    color: "var(--color-ink)",
+    border: "1px solid var(--color-rule)",
+    borderRadius: 999,
+    padding: "5px 12px 5px 5px",
     cursor: "pointer",
+    color: "var(--color-ink)",
     fontFamily: "inherit",
-    fontSize: "var(--font-size-xs)",
-    fontWeight: 700,
   },
   avatar: {
-    display: "inline-flex",
+    display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: "50%",
     background: "linear-gradient(135deg, var(--color-brand-2), var(--color-brand-dark))",
     color: "#fff",
+    fontSize: "var(--font-size-xs)",
+    fontWeight: 700,
+    flexShrink: 0,
   },
-  triggerLabel: { letterSpacing: "0.02em" },
+  name: {
+    fontSize: "var(--font-size-sm)",
+    fontWeight: 600,
+    maxWidth: 120,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
   menu: {
     position: "absolute",
     top: "calc(100% + 8px)",
     right: 0,
-    minWidth: 200,
+    minWidth: 180,
     background: "var(--color-surface)",
     border: "1px solid var(--color-rule)",
-    borderRadius: "var(--radius-md)",
+    borderRadius: "var(--radius-sm)",
     boxShadow: "var(--shadow-pop)",
-    padding: 8,
-    zIndex: 40,
+    overflow: "hidden",
+    zIndex: 30,
   },
-  menuHead: { padding: "6px 10px 10px" },
-  menuStaffId: {
+  menuHead: {
+    padding: "12px 14px",
+    borderBottom: "1px solid var(--color-rule)",
+  },
+  menuName: {
     margin: 0,
     fontSize: "var(--font-size-sm)",
     fontWeight: 700,
@@ -129,32 +147,23 @@ const styles = {
   menuRole: {
     margin: "2px 0 0",
     fontSize: "var(--font-size-xs)",
-    color: "var(--color-brand-2)",
-    fontWeight: 600,
+    color: "var(--color-ink-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.03em",
   },
-  menuEmail: {
-    margin: "6px 0 0",
-    fontSize: "var(--font-size-xs)",
-    color: "var(--color-ink-muted)",
-    wordBreak: "break-all",
-  },
-  menuDivider: { height: 1, background: "var(--color-rule)", margin: "2px 0 6px" },
   menuItem: {
-    width: "100%",
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "8px 10px",
-    background: "transparent",
+    width: "100%",
+    padding: "10px 14px",
+    background: "none",
     border: "none",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--color-expired)",
+    cursor: "pointer",
     fontFamily: "inherit",
     fontSize: "var(--font-size-sm)",
     fontWeight: 600,
-    cursor: "pointer",
+    color: "var(--color-ink)",
     textAlign: "left",
   },
 };

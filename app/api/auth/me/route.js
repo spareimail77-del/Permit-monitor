@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("staff_id, email, role")
+    .select("staff_id, email, role, display_name")
     .eq("id", user.id)
     .single();
 
@@ -20,5 +20,7 @@ export async function GET() {
     staffId: profile?.staff_id || null,
     email: profile?.email || null,
     role: profile?.role || "user",
+    // Falls back to the staff ID when nobody has set a friendly name yet.
+    displayName: profile?.display_name || profile?.staff_id || "User",
   });
 }
