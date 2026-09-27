@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { createClient } from "../../../../../lib/supabase/server";
-import { getUploadCredentials, encodeB2FileName } from "../../../../../lib/storage";
+import { getUploadCredentials } from "../../../../../lib/storage";
 import {
   ATTACHMENT_KIND_VALUES,
   ALLOWED_CONTENT_TYPES,
@@ -46,8 +46,7 @@ export async function POST(request) {
   if (!ATTACHMENT_KIND_VALUES.includes(kind)) {
     return Response.json({ error: "Invalid attachment kind." }, { status: 400 });
   }
-  const ext = ALLOWED_CONTENT_TYPES[contentType];
-  if (!ext) {
+  if (!ALLOWED_CONTENT_TYPES[contentType]) {
     return Response.json(
       { error: "Only PDF or JPEG files are allowed." },
       { status: 400 }
@@ -55,28 +54,30 @@ export async function POST(request) {
   }
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_ATTACHMENT_BYTES) {
     return Response.json(
-      { error: `File must be under ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB.` },
+      { error: `File must be under ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB — compress it and try again.` },
       { status: 400 }
     );
   }
 
-  const storageKey = `attachments/${sanitizeForKey(permitReference)}/${kind}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  // No extension here — Cloudinary's public_id doesn't carry one; the
+  // format is derived from content_type (already stored on the row)
+  // whenever we need it again for view/delete.
+  const storageKey = `attachments/${sanitizeForKey(permitReference)}/${kind}/${Date.now()}-${crypto.randomUUID()}`;
 
   let creds;
   try {
-    creds = await getUploadCredentials();
+    creds = getUploadCredentials({ storageKey, contentType });
   } catch (err) {
-    console.error("B2 upload credentials failed:", err);
+    console.error("Cloudinary upload credentials failed:", err);
     return Response.json(
-      { error: "Storage isn't configured yet. Check B2 env vars." },
+      { error: "Storage isn't configured yet. Check the CLOUDINARY_* env vars." },
       { status: 500 }
     );
   }
 
   return Response.json({
     uploadUrl: creds.uploadUrl,
-    uploadAuthToken: creds.uploadAuthToken,
-    fileNameHeader: encodeB2FileName(storageKey),
+    params: creds.params,
     storageKey,
   });
 }

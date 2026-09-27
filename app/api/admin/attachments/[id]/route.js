@@ -26,7 +26,7 @@ export async function DELETE(request, { params }) {
 
   const { data: attachment } = await supabase
     .from("permit_attachments")
-    .select("storage_key")
+    .select("storage_key, content_type")
     .eq("id", params.id)
     .single();
 
@@ -35,9 +35,9 @@ export async function DELETE(request, { params }) {
   }
 
   try {
-    await deleteObject(attachment.storage_key);
+    await deleteObject(attachment.storage_key, { contentType: attachment.content_type });
   } catch (err) {
-    console.error("R2 delete failed:", err);
+    console.error("Cloudinary delete failed:", err);
     return Response.json({ error: "Could not delete file from storage." }, { status: 500 });
   }
 

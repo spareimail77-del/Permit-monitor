@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
 
   const { data: attachment } = await supabase
     .from("permit_attachments")
-    .select("storage_key")
+    .select("storage_key, content_type")
     .eq("id", params.id)
     .single();
 
@@ -26,9 +26,12 @@ export async function GET(request, { params }) {
 
   let url;
   try {
-    url = getViewUrl(attachment.storage_key, { expiresInSeconds: 300 });
+    url = getViewUrl(attachment.storage_key, {
+      contentType: attachment.content_type,
+      expiresInSeconds: 300,
+    });
   } catch (err) {
-    console.error("R2 presign failed:", err);
+    console.error("Cloudinary signed URL failed:", err);
     return Response.json({ error: "Storage isn't configured." }, { status: 500 });
   }
 

@@ -51,19 +51,19 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       const urlData = await urlRes.json();
       if (!urlRes.ok) throw new Error(urlData.error || "Could not start upload.");
 
-      // B2's native upload API (bearer-token auth) rather than the
-      // S3-compatible one — Backblaze's S3-compatible layer doesn't
-      // support browser POST uploads at all, and rejects the CORS
-      // preflight for presigned PUT links outright.
+      // Plain multipart/form-data POST, straight to Cloudinary. No
+      // custom headers, so the browser never even sends a CORS
+      // preflight for this one — unlike Backblaze, which rejected the
+      // preflight outright on every path we tried.
+      const cloudinaryForm = new FormData();
+      Object.entries(urlData.params).forEach(([key, value]) => {
+        cloudinaryForm.append(key, value);
+      });
+      cloudinaryForm.append("file", file);
+
       const postRes = await fetch(urlData.uploadUrl, {
         method: "POST",
-        headers: {
-          Authorization: urlData.uploadAuthToken,
-          "X-Bz-File-Name": urlData.fileNameHeader,
-          "Content-Type": file.type,
-          "X-Bz-Content-Sha1": "do_not_verify",
-        },
-        body: file,
+        body: cloudinaryForm,
       });
       if (!postRes.ok) throw new Error("Upload to storage failed.");
 
