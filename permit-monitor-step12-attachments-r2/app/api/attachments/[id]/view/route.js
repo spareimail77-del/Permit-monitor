@@ -1,0 +1,36 @@
+import { createClient } from "../../../../../lib/supabase/server";
+import { getViewUrl } from "../../../../../lib/r2";
+
+export async function GET(request, { params }) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return Response.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const { data: attachment } = await supabase
+    .from("permit_attachments")
+    .select("r2_key")
+    .eq("id", params.id)
+    .single();
+
+  if (!attachment) {
+    return Response.json({ error: "Attachment not found." }, { status: 404 });
+  }
+
+  // Step 14 hook: this is where a "viewed attachment" activity-log
+  // entry will be written once that table exists.
+
+  let url;
+  try {
+    url = getViewUrl(attachment.r2_key, { expiresInSeconds: 300 });
+  } catch (err) {
+    console.error("R2 presign failed:", err);
+    return Response.json({ error: "Storage isn't configured." }, { status: 500 });
+  }
+
+  return Response.redirect(url, 302);
+}
