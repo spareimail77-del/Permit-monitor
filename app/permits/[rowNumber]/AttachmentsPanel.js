@@ -22,6 +22,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const [state, setState] = useState("idle"); // idle | uploading | error
   const [message, setMessage] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -105,6 +106,37 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     }
   }
 
+  // Saves the file under "Permit number - Document name.ext" by
+  // fetching it as a blob and letting the browser save that blob with
+  // our own name. Goes straight from Cloudinary to the device (nothing
+  // passes through Vercel). If the browser can't read the file this
+  // way (e.g. a CORS restriction), fall back to the normal link so the
+  // person still gets their file, just under Cloudinary's default name.
+  async function handleDownload(a) {
+    const viewUrl = `/api/attachments/${a.id}/view`;
+    setDownloadingId(a.id);
+    try {
+      const res = await fetch(viewUrl);
+      if (!res.ok) throw new Error("Download failed.");
+      const blob = await res.blob();
+      const name = displayFileName(permitReference, a.label, a.content_type)
+        .replace(/[\\/:*?"<>|]/g, "-");
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    } catch (err) {
+      console.error("Renamed download failed, using plain link:", err);
+      window.location.href = viewUrl;
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   async function handleDelete(id) {
     setDeletingId(id);
     try {
@@ -148,6 +180,14 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                   </span>
                 </span>
               </a>
+              <button
+                type="button"
+                onClick={() => handleDownload(a)}
+                disabled={downloadingId === a.id}
+                className="btn btn-ghost attach-remove"
+              >
+                {downloadingId === a.id ? "Saving…" : "Download"}
+              </button>
               {isAdmin && (
                 <button
                   type="button"
