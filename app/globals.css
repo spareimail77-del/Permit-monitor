@@ -952,3 +952,43 @@ a.stat-card:hover {
     width: 100%;
   }
 }
+
+/* ---------------------------------------------------------
+   Activity page (step 25)
+   --------------------------------------------------------- */
+.act-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.act-stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.act-stat__label { font-size: var(--font-size-xs); color: var(--color-ink-muted); }
+.act-stat__value { font-size: var(--font-size-xl); color: var(--color-ink); line-height: 1.2; }
+.act-stat__value--text { font-size: var(--font-size-base); overflow-wrap: anywhere; }
+.act-stat__sub { font-size: var(--font-size-xs); color: var(--color-ink-faint); }
+.act-chart { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding: 12px 16px; margin-bottom: 16px; }
+.act-chart__col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; }
+.act-chart__bar { width: 100%; max-width: 44px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--color-brand-2), var(--color-brand-dark)); min-height: 3px; }
+.act-chart__n, .act-chart__day { font-size: 10px; color: var(--color-ink-muted); line-height: 1; }
+.act-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.act-filters select { padding: 8px 11px; border: 1px solid var(--color-rule-strong); border-radius: var(--radius-sm); font-size: var(--font-size-sm); font-family: var(--font-sans); background: var(--color-surface); color: var(--color-ink); }
+.act-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.act-chip { border: 1px solid var(--color-rule-strong); background: var(--color-surface); color: var(--color-ink-muted); border-radius: 999px; padding: 6px 12px; font-size: var(--font-size-xs); font-weight: 600; font-family: inherit; cursor: pointer; }
+.act-chip:hover { background: var(--color-surface-hover); }
+.act-chip.is-on { background: var(--color-brand-tint); border-color: var(--color-brand-2); color: var(--color-ink); }
+.act-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-sm); color: var(--color-ink-muted); cursor: pointer; }
+.act-day { margin-bottom: 18px; }
+.act-day__title { margin: 0 0 8px; font-size: var(--font-size-sm); color: var(--color-ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.act-session { margin-bottom: 8px; overflow: hidden; }
+.act-session__head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: none; border: none; color: inherit; font-family: inherit; font-size: var(--font-size-sm); text-align: left; cursor: pointer; }
+.act-session__head:hover { background: var(--color-surface-hover); }
+.act-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--color-brand-2), var(--color-brand-dark)); color: #fff; font-weight: 700; font-size: var(--font-size-xs); }
+.act-session__who { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+.act-session__meta { flex-basis: 100%; font-size: var(--font-size-xs); color: var(--color-ink-muted); margin-top: 2px; }
+.act-session__ago { font-size: var(--font-size-xs); color: var(--color-ink-muted); white-space: nowrap; }
+.act-caret { color: var(--color-ink-faint); transition: transform 0.15s ease; }
+.act-faint { color: var(--color-ink-faint); font-size: var(--font-size-xs); }
+.act-timeline { list-style: none; margin: 0; padding: 4px 14px 12px 58px; border-top: 1px solid var(--color-rule); }
+.act-timeline__item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: var(--font-size-sm); flex-wrap: wrap; }
+.act-timeline__time { color: var(--color-ink-muted); width: 44px; flex-shrink: 0; }
+.act-timeline__icon { display: flex; color: var(--color-brand-2); }
+@media (max-width: 560px) {
+  .act-session__ago { display: none; }
+  .act-timeline { padding-left: 14px; }
+}

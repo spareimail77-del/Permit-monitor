@@ -245,7 +245,9 @@ alter table public.rate_limits enable row level security;
 -- 8. Activity log (step 24). One tiny row per page visit, written by
 --    touch_activity() (called from middleware, at most once per page
 --    change or every 3 minutes). Old rows are purged inside that same
---    function now and then, so no cron job is needed. Only Root reads.
+--    function now and then, so no cron job is needed. The tables stay Root-only
+--    at database level; Root and HSE see them on the Activity page, which
+--    reads with the server key after checking view_activity (step 25).
 -- ---------------------------------------------------------------
 alter table public.profiles add column if not exists last_seen_at timestamptz;
 alter table public.profiles add column if not exists last_path text;

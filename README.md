@@ -17,7 +17,7 @@ keep the policies in `supabase-schema.sql` in step.
 |---|---|
 | Root | Everything, incl. password resets and the activity log |
 | Manager | View everything (incl. archive); approve or reject account requests |
-| HSE | View, upload Excel, add/remove attachments, view archive |
+| HSE | View, upload Excel, add/remove attachments, view archive, view the activity log (read-only) |
 | Permit holder | View dashboard and permits |
 | Permit applicant | View dashboard and permits |
 
@@ -66,11 +66,16 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   on the server: you cannot change, disable or delete your own account, and
   the last active Root can never be demoted, disabled or deleted.
 
-- **Activity log (Admin → Activity, Root only):** one small row per page
+- **Activity log (Admin → Activity; Root and HSE can view, only Root can change retention):** one small row per page
   visit (staff ID, page path, time; no IP or form contents). A visit is
   written only when someone opens a different page or 3+ minutes have passed;
   prefetches and API calls are ignored. Kept for 3, 5 or 7 days (Root
   chooses); expired rows are deleted by the database function itself, no cron.
+  The page groups visits by the same person less than 30 minutes apart into
+  sessions (click one for its timeline), with friendly page names, day
+  headings, a summary strip, a visits-per-day bar chart and filters (date,
+  page type, person, hide my own visits). It reads the newest 2,000 rows in
+  one query; everything else runs in the browser, no polling.
   Admin → Users shows a green check for anyone active in the last 5 minutes,
   otherwise "last seen …". Nothing refreshes by itself (no heartbeat): use
   **Check again**.

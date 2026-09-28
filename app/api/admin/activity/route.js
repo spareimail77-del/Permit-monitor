@@ -12,7 +12,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: "Not authenticated." }, { status: 401 });
 
   const access = await getAccess(supabase, user.id);
-  if (!hasPermission(access, "view_activity")) {
+  if (!hasPermission(access, "manage_activity")) {
     return Response.json({ error: "You do not have permission to do that." }, { status: 403 });
   }
 

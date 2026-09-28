@@ -3,23 +3,16 @@ import Link from "next/link";
 import Header from "../../components/Header";
 import RetentionForm from "./RetentionForm";
 import { createClient } from "../../../lib/supabase/server";
+import { createAdminClient } from "../../../lib/supabase/admin";
 import { getAccess, hasPermission } from "../../../lib/authz";
-import { cleanStaffId } from "../../../lib/authRules";
+import ActivityView from "./ActivityView";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 50;
-const MAX_PAGE = 200;
+// One bounded read: the newest rows only (the log keeps at most ~7 days).
+const MAX_ROWS = 2000;
 
-function fmt(iso) {
-  return new Date(iso).toLocaleString("en-GB", {
-    timeZone: "Asia/Muscat",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-export default async function ActivityPage({ searchParams }) {
+export default async function ActivityPage() {
   const supabase = createClient();
   const {
     data: { user },
@@ -29,20 +22,22 @@ export default async function ActivityPage({ searchParams }) {
   const access = await getAccess(supabase, user.id);
   if (!hasPermission(access, "view_activity")) redirect("/");
 
-  const staff = cleanStaffId(searchParams?.staff);
-  const page = Math.min(MAX_PAGE, Math.max(1, parseInt(searchParams?.page, 10) || 1));
-  const from = (page - 1) * PAGE_SIZE;
+  // The log tables are locked to Root by the database, so after the
+  // permission check above (Root or HSE) the server reads them with the
+  // service key. Nothing here can change the log.
+  const db = createAdminClient();
+  const canManage = hasPermission(access, "manage_activity");
 
-  let query = supabase
+  const { data, count } = await db
     .from("user_activity")
-    .select("id, staff_id, path, at", { count: "exact" })
+    .select("staff_id, path, at", { count: "exact" })
     .order("at", { ascending: false })
-    .range(from, from + PAGE_SIZE - 1);
-  if (staff) query = query.eq("staff_id", staff);
-  const { data, count } = await query;
-  const rows = data || [];
+    .limit(MAX_ROWS);
+  const rows = (data || []).map((r) => ({ s: r.staff_id, p: r.path, t: Date.parse(r.at) }));
 
-  const { data: setting } = await supabase
+  const { data: mine } = await db.from("profiles").select("staff_id").eq("id", user.id).single();
+
+  const { data: setting } = await db
     .from("activity_settings")
     .select("retention_days")
     .eq("id", 1)
@@ -50,24 +45,14 @@ export default async function ActivityPage({ searchParams }) {
 
   // Names for the staff IDs on this page (root can read all profiles).
   const names = {};
-  const ids = [...new Set(rows.map((r) => r.staff_id))];
+  const ids = [...new Set(rows.map((r) => r.s))];
   if (ids.length) {
-    const { data: profiles } = await supabase
+    const { data: profiles } = await db
       .from("profiles")
       .select("staff_id, display_name")
       .in("staff_id", ids);
     for (const p of profiles || []) names[p.staff_id] = p.display_name || "";
   }
-
-  const total = count || 0;
-  const hasNext = from + PAGE_SIZE < total && page < MAX_PAGE;
-  const href = (n) => {
-    const qs = new URLSearchParams();
-    if (staff) qs.set("staff", staff);
-    if (n > 1) qs.set("page", String(n));
-    const s = qs.toString();
-    return s ? `/admin/activity?${s}` : "/admin/activity";
-  };
 
   return (
     <main style={{ minHeight: "100svh" }}>
@@ -80,65 +65,30 @@ export default async function ActivityPage({ searchParams }) {
           Activity log
         </h2>
         <p style={{ margin: "6px 0 16px", color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" }}>
-          Pages people opened, newest first. Times are Oman time. Refreshing the same page
+          Visits by the same person less than 30 minutes apart are grouped into one session.
+          Click a session to see its pages. Times are Oman time. Refreshing the same page
           within 3 minutes is not logged again.
         </p>
 
         <div style={{ marginBottom: 16 }}>
-          <RetentionForm initialDays={setting?.retention_days ?? 7} />
-        </div>
-
-        <form method="get" action="/admin/activity" className="filter-bar">
-          <input
-            type="search"
-            name="staff"
-            placeholder="Filter by staff ID"
-            defaultValue={staff || ""}
-            aria-label="Filter by staff ID"
-          />
-          <button type="submit" className="btn btn-ghost">Filter</button>
-          {staff && (
-            <Link href="/admin/activity" className="btn btn-ghost">Clear</Link>
+          {canManage ? (
+            <RetentionForm initialDays={setting?.retention_days ?? 7} />
+          ) : (
+            <p style={{ margin: 0, fontSize: "var(--font-size-sm)", color: "var(--color-ink-muted)" }}>
+              The log is kept for {setting?.retention_days ?? 7} days (only Root can change this).
+            </p>
           )}
-          <span className="result-count">{total} entries</span>
-        </form>
+        </div>
 
         {rows.length === 0 ? (
           <p style={{ color: "var(--color-ink-muted)" }}>No activity recorded.</p>
         ) : (
-          <div className="panel" style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-sm)" }}>
-              <thead>
-                <tr style={{ textAlign: "left", color: "var(--color-ink-muted)" }}>
-                  <th style={{ padding: "10px 14px" }}>When</th>
-                  <th style={{ padding: "10px 14px" }}>Staff ID</th>
-                  <th style={{ padding: "10px 14px" }}>Name</th>
-                  <th style={{ padding: "10px 14px" }}>Page</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} style={{ borderTop: "1px solid var(--color-rule)" }}>
-                    <td style={{ padding: "8px 14px", whiteSpace: "nowrap" }}>{fmt(r.at)}</td>
-                    <td className="mono" style={{ padding: "8px 14px" }}>{r.staff_id}</td>
-                    <td style={{ padding: "8px 14px" }}>{names[r.staff_id] || ""}</td>
-                    <td className="mono" style={{ padding: "8px 14px" }}>{r.path}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ActivityView rows={rows} names={names} me={mine?.staff_id || null} now={Date.now()} />
         )}
-
-        {(page > 1 || hasNext) && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            {page > 1 && (
-              <Link href={href(page - 1)} className="btn btn-ghost">Newer</Link>
-            )}
-            {hasNext && (
-              <Link href={href(page + 1)} className="btn btn-ghost">Older</Link>
-            )}
-          </div>
+        {(count || 0) > MAX_ROWS && (
+          <p style={{ marginTop: 14, fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
+            Showing the newest {MAX_ROWS} of {count} entries.
+          </p>
         )}
       </section>
     </main>
