@@ -3,12 +3,13 @@ import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
 import { fetchPermitData, parsePermitsFromBuffer } from "../../../lib/parsePermits";
 import { findRemovedPermits, archivePermits } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../../lib/authz";
 
 // This route ONLY writes the raw Excel file to blob storage.
 // It never reads, edits, or modifies the workbook's content —
 // it's a byte-for-byte copy of whatever file you upload.
 //
-// Middleware already blocks non-admins from reaching this route, but
+// Middleware already blocks users without permission from reaching this route, but
 // this check runs independently so the lock still holds even if
 // middleware config ever changes.
 export async function POST(request) {
@@ -24,15 +25,11 @@ export async function POST(request) {
     );
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const access = await getAccess(supabase, user.id);
 
-  if (profile?.role !== "admin") {
+  if (!hasPermission(access, "upload_excel")) {
     return Response.json(
-      { error: "Not authorized. Only HSE admins can upload." },
+      { error: "Not authorized. You do not have permission to upload." },
       { status: 403 }
     );
   }

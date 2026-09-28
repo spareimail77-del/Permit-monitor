@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Header from "../components/Header";
 import UploadForm from "./UploadForm";
 import { createClient } from "../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,9 @@ export default async function UploadPage() {
   // Next.js recommends keeping alongside it, not a replacement for it.
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const access = await getAccess(supabase, user.id);
 
-  if (profile?.role !== "admin") redirect("/");
+  if (!hasPermission(access, "upload_excel")) redirect("/");
 
   return (
     <main style={styles.main}>

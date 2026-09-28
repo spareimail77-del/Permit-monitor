@@ -9,6 +9,7 @@ import DetailField from "../../components/DetailField";
 import Icon from "../../components/Icon";
 import AttachmentsPanel from "./AttachmentsPanel";
 import { createClient } from "../../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../../lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -54,14 +55,10 @@ export default async function PermitDetailPage({ params }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  let isAdmin = false;
+  let isAdmin = false; // can add/remove attachments
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    isAdmin = profile?.role === "admin";
+    const access = await getAccess(supabase, user.id);
+    isAdmin = hasPermission(access, "manage_attachments");
   }
   const { data: attachments } = await supabase
     .from("permit_attachments")

@@ -1,226 +1,79 @@
-# Permit Log Register — Web Dashboard
+# Permit Log Register
 
-Read-only work permit monitoring site for the SWWS Salalah permit log.
-Excel remains the master record. This site never writes back to it.
+Read-only work permit dashboard for the SWWS Salalah permit log. Excel stays
+the master record; this site never writes back to it. HSE re-uploads the
+`.xlsm` whenever the data changes, and the site recalculates everything
+(dashboard, Expiring Soon, breakdowns) on each page load.
 
-## Step 20 / 20.1 — Menu fix and permit archive
+**Stack (all free tiers):** Next.js on Vercel · Supabase (login + database) ·
+Vercel Blob (the current Excel) · Cloudinary (attachment files).
 
-- **Mobile user menu:** the dropdown is positioned against the screen
-  (clamped 8px inside both edges, scrolls if short), so it no longer
-  opens off-screen on phones.
-- **Permit archive (20.1):** on every upload the app compares the file
-  currently on the site with the new one. Any permit number that was in
-  the old file but is missing from the new one is saved to the
-  `archived_permits` table (one row per permit number, so daily uploads
-  never duplicate). Only removed permits are stored; the whole Excel is
-  not copied. A file with no permits in it is rejected before anything
-  is archived.
-- **Viewing:** Admin → Permit Archive (search + paging, with links to each
-  permit's attachments). Admin-only for now; becomes Root + HSE in step 21.
-- Attachments are unchanged: they stay in Supabase/Cloudinary against the
-  permit number, so archived permits keep theirs.
-- Limits: if a permit comes back in a later Excel it stays in the archive
-  too (it is not auto-removed); permits are matched by permit number only.
-- **You must run the new section 5 of `supabase-schema.sql`** in the
-  Supabase SQL Editor before deploying.
+## Roles
 
-## Authentication & roles
+Defined in one file: `lib/permissions.js`. Change a role's rights there, and
+keep the policies in `supabase-schema.sql` in step.
 
-The whole site now requires a real login — there is no public page
-anymore, including the dashboard. Accounts and sessions are handled
-by **Supabase Auth** (free tier), not by this app's own code, so there's
-no password storage or session logic to maintain here.
+| Role | Can do |
+|---|---|
+| Root | Everything |
+| Manager | View everything (incl. archive); approve requests (later step) |
+| HSE | View, upload Excel, add/remove attachments, view archive |
+| Permit holder | View dashboard and permits |
+| Permit applicant | View dashboard and permits |
 
-Staff sign in with their **staff ID** (e.g. `18489`), not an email —
-see "Logging in with a staff ID" below for how that works under the
-hood. The app doesn't collect or store anyone's real email at all —
-there's no feature that would use it, and no SMTP configured to send
-anything with it on the free tier anyway.
+Each account also has a **status**: `pending`, `active` or `disabled`. Only
+`active` accounts can sign in; pending/disabled ones are refused at login and
+signed out on their next request.
 
-- **`user` role** — can view the dashboard, the permit list, and permit
-  detail pages. No upload access.
-- **`admin` role** — everything a `user` can do, plus `/upload`.
+People sign in with **Staff ID + password**. Supabase needs an email, so each
+staff ID maps to a never-emailed address such as
+`18489@staff.permit-log.internal` (`lib/staffAuth.js`). No SMTP is used.
 
-Roles live in a `profiles` table in Supabase Postgres (see
-`supabase-schema.sql`), one row per account, with a `role` column and
-an empty `permissions` jsonb column reserved for finer-grained flags
-you add later — adding a new permission won't require touching the
-auth flow again, just checking that field where it matters.
+## Setup
 
-There is **no self-signup** — accounts are created by you from the
-Supabase dashboard, and default to `role = 'user'` via a database
-trigger. Promote an account to admin with one SQL statement (see
-`supabase-schema.sql`, step 3).
+1. **Supabase:** create a project; in SQL Editor run all of
+   `supabase-schema.sql` (safe to re-run). Under Authentication, turn off
+   "Allow new users to sign up" and "Confirm email".
+2. **Create your account:** Authentication → Users → Add user, email
+   `<staff id>@staff.permit-log.internal`, any password, tick **Auto Confirm
+   User**. Then make yourself root (statement is in the schema file):
+   `update public.profiles set role = 'root' where staff_id = '<staff id>';`
+3. **Vercel Blob:** create a Blob store in your Vercel project (it adds
+   `BLOB_READ_WRITE_TOKEN` automatically).
+4. **Cloudinary:** create a free account and copy its credentials.
+5. **Vercel environment variables:**
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     (Supabase → Project Settings → API)
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+6. Push this folder to your GitHub repo; Vercel redeploys automatically.
 
-Enforcement happens in two places, deliberately redundant:
-`middleware.js` (blocks every request before it reaches a page or
-API route) and the `/upload` page and `/api/upload` route themselves
-(re-check independently, so the lock holds even if the middleware
-config ever changes).
+**Adding a user by hand:** Authentication → Users → Add user (same email
+pattern, Auto Confirm), then set `role` and `display_name` in the
+`profiles` table. New accounts default to `permit_holder`, `active`.
 
-### Logging in with a staff ID
+## How it works
 
-Supabase Auth is built around email + password; it has no separate
-"username" field. So each staff ID maps to a synthetic, never-emailed
-address like `18489@staff.permit-log.internal` — that's what's
-actually stored as the Supabase login email, and the login page
-converts what someone types into that address behind the scenes
-(`lib/staffAuth.js`).
+- **Upload (Admin → Upload Data):** replaces the single current Excel in
+  Vercel Blob. Root and HSE only.
+- **Permit archive:** on each upload the new file is compared with the one on
+  the site. Any permit number that disappeared is saved to `archived_permits`
+  (one row per permit number, so daily uploads never duplicate; only removed
+  permits are stored). A file with no permits is rejected. Viewable at
+  Admin → Permit Archive by Root, HSE and Manager. A permit that later
+  returns to the Excel also stays in the archive.
+- **Attachments:** files (Physical Permit, JSA, etc.) are stored in
+  Cloudinary and linked to the permit number in Supabase, so they survive
+  re-uploads and remain visible on archived permits. Opened through short-lived
+  signed links. Root and HSE add/remove; everyone signed in can view.
 
-Two consequences of the login address not being real, both handled by
-you manually rather than by any email flow (which needs SMTP — not set
-up on the free tier):
-- **New accounts:** when adding one in the Supabase dashboard, tick
-  **Auto Confirm User**. Without it, Supabase tries to send that
-  synthetic address a confirmation email, the send fails (no SMTP),
-  and it shows up as an auth error in Supabase's logs even though the
-  account still partly works. Also turn off **Confirm email** once,
-  under Authentication → Settings.
-- **Forgotten passwords:** Supabase's built-in "forgot password" email
-  flow won't reach anyone either, for the same reason. Reset a
-  forgotten password yourself from Supabase Dashboard → Authentication
-  → Users → (person) → reset password. Don't use "Invite user" or
-  "magic link" for these accounts — same SMTP problem.
+## Known caveat
 
-## What this update changed
+The Blob store is public: the raw `.xlsm` can be fetched by anyone who has its
+exact URL, independent of the login. Fixing it means a new private store or
+moving the file to Supabase Storage.
 
-**1. Theme — dark by default, with a light/dark switch**
-Violet-accented dark theme (soft glow behind the header, rounded
-cards, icon chips) with a working switch in the header nav. Choice is
-remembered per-browser (`localStorage`), and a small inline script in
-`app/layout.js` applies it before first paint so there's no flash of
-the wrong theme. Status colors (open/expiring/expired/closed/canceled)
-stay distinct from the violet accent so they're never ambiguous.
+## Roadmap
 
-**2. A fuller dashboard**
-Beyond the 6 status cards: a hero "Total Permits" card, a status
-distribution donut (pure SVG, no chart library), an "Expiring Soon"
-watchlist, and Area / Permit Type breakdown bars. All computed from
-columns already in your workbook — no new data required.
-
-**3. Supabase-backed login, with user/admin roles**
-Replaces the earlier shared-passcode gate. Every page now requires
-signing in; only `admin` accounts see and can use `/upload`. See
-"Authentication & roles" above.
-
-**4. Housekeeping**
-Bumped `next` from `14.2.5` → `^14.2.35` (the `14.2.5` line had
-several CVEs patched in Next.js's December 2025 security update).
-
-## Known caveat carried over from before
-
-Your Blob store is on **public** access, meaning the raw `.xlsm` file
-itself is fetchable by anyone with its exact blob URL, independent of
-the login above. Vercel Blob access mode can't be changed after a
-store is created, so fixing that means creating a new **private**
-store and pointing `lib/blob.js` at it, or moving the file to Supabase
-Storage (private buckets by default) when you set that up — happy to
-do either in a follow-up.
-
-## Deploy checklist
-
-1. **Create a Supabase project** at supabase.com (free tier is fine).
-   In the SQL Editor, paste and run the contents of
-   `supabase-schema.sql` from this folder.
-2. **Turn off public signups**: Supabase Dashboard → Authentication →
-   Providers/Settings → disable "Allow new users to sign up" (name may
-   vary slightly by Supabase's current UI). Accounts are created by
-   you only.
-3. **Create your own account**: Authentication → Users → Add user.
-   For **Email**, enter `<your staff id>@staff.permit-log.internal`
-   (e.g. `18489@staff.permit-log.internal`) — this is never emailed to
-   anyone, it's just Supabase's required login field. Pick any
-   password, and **tick "Auto Confirm User"** (no SMTP is configured
-   on the free tier, so without this Supabase will try and fail to
-   send a confirmation email). Then in the SQL Editor:
-   ```sql
-   update public.profiles
-      set role = 'admin'
-    where staff_id = '18489';
-   ```
-4. **Get your API keys**: Project Settings → API → copy the Project
-   URL and the `anon` `public` key.
-5. **Replace your GitHub repo's files** with everything in this
-   folder (keep the same repo/project so your existing Blob store
-   stays connected). `node_modules` and `.next` are intentionally not
-   included — Vercel builds those itself.
-6. **Add environment variables** in Vercel → your Project → Settings →
-   Environment Variables (apply to Production, and Preview/Development
-   if you use them):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-   You can delete the old `HSE_UPLOAD_PASSWORD` and `AUTH_SECRET`
-   variables — they're no longer used.
-7. **Push to GitHub.** Vercel will redeploy automatically if it's
-   connected to the repo.
-8. **Re-test the checklist:**
-   - [ ] Visiting the site in a private/incognito window redirects to
-         `/login`, not the dashboard
-   - [ ] Wrong staff ID/password is rejected; your admin account signs
-         in with its staff ID
-   - [ ] Signed in as `admin`: the "Upload" link is visible, `/upload`
-         shows the upload form, and uploading a fresh `.xlsm` updates
-         the dashboard
-   - [ ] A second account with `role = 'user'` (create one the same
-         way, leave its role as `user`) can see the dashboard/permit
-         list but has no "Upload" link, and `/upload` redirects it away
-   - [ ] "Sign out" returns you to `/login` and re-locks everything
-   - [ ] Calling `/api/upload` directly while signed in as a `user`
-         (not admin) returns a 403, confirming the API-level lock
-   - [ ] Light mode reads as teal/green accented, dark mode stays
-         violet
-   - [ ] Site is usable on your phone in both themes, and scrolling on
-         the login/upload pages no longer visibly resizes the card
-
-## Ongoing use
-
-Nothing else to maintain: Excel (and your existing VBA) stays the
-master record, an HSE admin re-uploads the latest `.xlsm` at `/upload`
-whenever they want the site refreshed, and the site recalculates
-everything else (Expiring Soon, the dashboard widgets) on every page
-load — no rebuild needed for new data. New staff accounts are added
-the same way as your own (step 3 above), left at the default `user`
-role unless they also need upload access.
-
-## Step 12 — Attachments storage setup (Backblaze B2)
-
-Permit attachments (scanned Physical Permit, JSA) are stored in
-Backblaze B2, not Supabase or Vercel Blob — B2's free tier (10GB
-storage, no credit card needed, free egress up to 3x your stored
-data/month) comfortably covers ~300 permits' worth of 10-20MB files,
-which the other two free tiers don't, and unlike Cloudflare R2 it
-doesn't ask for a payment method to activate. Files are never
-publicly linkable: the app generates a short-lived signed link
-(valid 5 minutes) each time someone clicks to open one.
-
-One-time setup:
-1. Create a free account at [backblaze.com/cloud-storage](https://www.backblaze.com/cloud-storage)
-   ("Get Started Free" — no credit card required). Then in the
-   B2 dashboard, **Create a Bucket** (any name, e.g.
-   `permit-attachments`), set it to **Private**.
-2. Open the bucket you just made and note the **Endpoint** shown on
-   its details page — it looks like `s3.us-west-004.backblazeb2.com`
-   (the region code in the middle varies, copy it exactly).
-3. Go to **Application Keys** → **Add a New Application Key**. Name
-   it anything, restrict it to the one bucket you created, allow
-   **Read and Write**. Backblaze shows you a **keyID** and
-   **applicationKey** once — copy both immediately.
-4. In Vercel → your Project → Settings → Environment Variables, add:
-   - `B2_KEY_ID` (the keyID from step 3)
-   - `B2_APPLICATION_KEY` (the applicationKey from step 3)
-   - `B2_BUCKET_NAME` (the bucket name from step 1)
-   - `B2_BUCKET_ID` (shown on the bucket's page in the B2 dashboard,
-     e.g. `6d0eae8d082fe029a90f0b1f` — a different value from the
-     bucket name, needed for uploads specifically)
-   - `B2_ENDPOINT` (the endpoint from step 2, e.g.
-     `s3.us-west-004.backblazeb2.com`)
-5. In Supabase SQL Editor, re-run `supabase-schema.sql` (safe to
-   re-run — it only adds the new `permit_attachments` table this
-   time).
-6. Push the code, redeploy, and test: open a permit as an admin,
-   type a document name (e.g. "Physical Permit") and attach a small
-   PDF, open it back from the link, then try the same page as a
-   non-admin account — they should see the same files (view/download
-   works)
-   but no upload form and no "Remove" button.
+- Step 22: Create account and Forgot password (no email), Change password.
+- Step 23: User management in Admin (approve/reject, roles, disable, reset,
+  delete).

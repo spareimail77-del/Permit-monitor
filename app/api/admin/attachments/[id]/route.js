@@ -1,5 +1,6 @@
 import { createClient } from "../../../../../lib/supabase/server";
 import { deleteObject } from "../../../../../lib/storage";
+import { getAccess, hasPermission } from "../../../../../lib/authz";
 
 export async function DELETE(request, { params }) {
   const supabase = createClient();
@@ -11,15 +12,11 @@ export async function DELETE(request, { params }) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const access = await getAccess(supabase, user.id);
 
-  if (profile?.role !== "admin") {
+  if (!hasPermission(access, "manage_attachments")) {
     return Response.json(
-      { error: "Not authorized. Only HSE admins can remove attachments." },
+      { error: "Not authorized. You do not have permission to remove attachments." },
       { status: 403 }
     );
   }

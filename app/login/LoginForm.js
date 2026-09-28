@@ -6,13 +6,19 @@ import { createClient } from "../../lib/supabase/client";
 import { staffIdToAuthEmail } from "../../lib/staffAuth";
 import Icon from "../components/Icon";
 
+const REASON_MESSAGES = {
+  pending: "Your account is waiting for approval.",
+  disabled: "This account is disabled. Contact HSE.",
+};
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
-  const [state, setState] = useState("idle"); // idle | checking | error
-  const [message, setMessage] = useState("");
+  const reason = searchParams.get("reason");
+  const [state, setState] = useState(REASON_MESSAGES[reason] ? "error" : "idle"); // idle | checking | error
+  const [message, setMessage] = useState(REASON_MESSAGES[reason] || "");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,6 +39,20 @@ export default function LoginForm() {
           ? "Wrong staff ID or password."
           : error.message
       );
+      return;
+    }
+
+    // Pending and disabled accounts may not sign in.
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", userData?.user?.id)
+      .single();
+    if (profile?.status !== "active") {
+      await supabase.auth.signOut();
+      setState("error");
+      setMessage(REASON_MESSAGES[profile?.status] || REASON_MESSAGES.disabled);
       return;
     }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
+import { can } from "../../lib/permissions";
 
 const BASE_NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -31,7 +32,7 @@ export default function Header({ uploadedAt, today }) {
   }, [pathname]);
 
   const navItems =
-    me?.role === "admin"
+    can(me?.role, "view_admin_page")
       ? [...BASE_NAV_ITEMS, { href: "/admin", label: "Admin" }]
       : BASE_NAV_ITEMS;
 

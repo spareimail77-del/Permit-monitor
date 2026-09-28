@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Header from "../../components/Header";
 import { createClient } from "../../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../../lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,8 @@ export default async function ArchivePage({ searchParams }) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "admin") redirect("/");
+  const access = await getAccess(supabase, user.id);
+  if (!hasPermission(access, "view_archive")) redirect("/");
 
   // Strip characters that have special meaning inside a PostgREST
   // filter so a search can't break the query.

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { createClient } from "../../../../../lib/supabase/server";
 import { getUploadCredentials } from "../../../../../lib/storage";
 import {
+import { getAccess, hasPermission } from "../../../../../lib/authz";
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
   MAX_LABEL_LENGTH,
@@ -9,7 +10,7 @@ import {
   sanitizeLabel,
 } from "../../../../../lib/attachments";
 
-// Middleware already blocks non-admins from reaching /api/admin/*;
+// Middleware already blocks users without permission from reaching /api/admin/*;
 // this check runs independently so the lock still holds even if
 // middleware config ever changes.
 export async function POST(request) {
@@ -22,15 +23,11 @@ export async function POST(request) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const access = await getAccess(supabase, user.id);
 
-  if (profile?.role !== "admin") {
+  if (!hasPermission(access, "manage_attachments")) {
     return Response.json(
-      { error: "Not authorized. Only HSE admins can add attachments." },
+      { error: "Not authorized. You do not have permission to add attachments." },
       { status: 403 }
     );
   }

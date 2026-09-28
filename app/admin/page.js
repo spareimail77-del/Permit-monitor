@@ -3,6 +3,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Icon from "../components/Icon";
 import { createClient } from "../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -16,23 +17,20 @@ export default async function AdminPage() {
   // recommendation, not as a replacement for it.
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const access = await getAccess(supabase, user.id);
 
-  if (profile?.role !== "admin") redirect("/");
+  if (!hasPermission(access, "view_admin_page")) redirect("/");
 
   return (
     <main style={styles.main}>
       <Header />
       <section style={styles.body}>
         <h2 style={styles.heading}>Admin</h2>
-        <p style={styles.subheading}>Tools only HSE admins can see.</p>
+        <p style={styles.subheading}>Tools for HSE and management.</p>
 
         <div style={styles.grid}>
-          <Link href="/upload" className="panel" style={styles.tile}>
+          {hasPermission(access, "upload_excel") && (
+            <Link href="/upload" className="panel" style={styles.tile}>
             <span style={styles.tileIcon}>
               <Icon name="archive" size={20} />
             </span>
@@ -43,6 +41,8 @@ export default async function AdminPage() {
               </span>
             </span>
           </Link>
+          )}
+          {hasPermission(access, "view_archive") && (
           <Link href="/admin/archive" className="panel" style={styles.tile}>
             <span style={styles.tileIcon}>
               <Icon name="archive" size={20} />
@@ -54,6 +54,7 @@ export default async function AdminPage() {
               </span>
             </span>
           </Link>
+          )}
         </div>
       </section>
     </main>

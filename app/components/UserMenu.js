@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { ROLE_LABELS } from "../../lib/permissions";
 import Icon from "./Icon";
 import { createClient } from "../../lib/supabase/client";
 
@@ -10,6 +12,7 @@ export default function UserMenu({ name, role }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const [pos, setPos] = useState(null); // { top, left, width, maxHeight }
 
   // Position the menu against the viewport (position: fixed) instead of
@@ -45,9 +48,9 @@ export default function UserMenu({ name, role }) {
 
   useEffect(() => {
     function onClickAway(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      const inside =
+        rootRef.current?.contains(e.target) || menuRef.current?.contains(e.target);
+      if (!inside) setOpen(false);
     }
     function onEscape(e) {
       if (e.key === "Escape") setOpen(false);
@@ -100,8 +103,9 @@ export default function UserMenu({ name, role }) {
         </svg>
       </button>
 
-      {open && pos && (
+      {open && pos && createPortal(
         <div
+          ref={menuRef}
           role="menu"
           style={{
             ...styles.menu,
@@ -113,7 +117,7 @@ export default function UserMenu({ name, role }) {
         >
           <div style={styles.menuHead}>
             <p style={styles.menuName}>{name}</p>
-            <p style={styles.menuRole}>{role === "admin" ? "Admin" : "User"}</p>
+            <p style={styles.menuRole}>{ROLE_LABELS[role] || "User"}</p>
           </div>
           <button
             type="button"
@@ -124,7 +128,8 @@ export default function UserMenu({ name, role }) {
             <Icon name="logout" size={15} />
             Sign out
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -172,7 +177,7 @@ const styles = {
     borderRadius: "var(--radius-sm)",
     boxShadow: "var(--shadow-pop)",
     overflowY: "auto",
-    zIndex: 60,
+    zIndex: 1000,
   },
   menuHead: {
     padding: "12px 14px",
