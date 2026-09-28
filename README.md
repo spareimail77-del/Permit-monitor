@@ -15,7 +15,7 @@ keep the policies in `supabase-schema.sql` in step.
 
 | Role | Can do |
 |---|---|
-| Root | Everything |
+| Root | Everything, incl. password resets |
 | Manager | View everything (incl. archive); approve requests (later step) |
 | HSE | View, upload Excel, add/remove attachments, view archive |
 | Permit holder | View dashboard and permits |
@@ -25,7 +25,11 @@ Each account also has a **status**: `pending`, `active` or `disabled`. Only
 `active` accounts can sign in; pending/disabled ones are refused at login and
 signed out on their next request.
 
-People sign in with **Staff ID + password**. Supabase needs an email, so each
+People sign in with **Staff ID + password**. New people use **Create account**
+(status `pending` until approved); forgotten passwords go through **Forgot
+password** (no email: the request appears in Admin → Password requests, and
+Root sets a temporary password that must be changed at next sign-in). Anyone
+signed in can use **Change password** from the user menu. Supabase needs an email, so each
 staff ID maps to a never-emailed address such as
 `18489@staff.permit-log.internal` (`lib/staffAuth.js`). No SMTP is used.
 
@@ -45,7 +49,12 @@ staff ID maps to a never-emailed address such as
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
      (Supabase → Project Settings → API)
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+   - `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API →
+     `service_role`). **Server only, secret** — never add `NEXT_PUBLIC_`.
 6. Push this folder to your GitHub repo; Vercel redeploys automatically.
+
+**Approving requests (until step 23 adds a screen):** in Supabase SQL Editor,
+`update public.profiles set status = 'active' where staff_id = '<staff id>';`
 
 **Adding a user by hand:** Authentication → Users → Add user (same email
 pattern, Auto Confirm), then set `role` and `display_name` in the
@@ -66,6 +75,10 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   re-uploads and remain visible on archived permits. Opened through short-lived
   signed links. Root and HSE add/remove; everyone signed in can view.
 
+- **Abuse protection:** account requests and forgot-password requests are
+  rate-limited per IP and per day (table `rate_limits`), capped at 40 pending
+  requests, and use a hidden bot-trap field. Nothing here sends email.
+
 ## Known caveat
 
 The Blob store is public: the raw `.xlsm` can be fetched by anyone who has its
@@ -74,6 +87,5 @@ moving the file to Supabase Storage.
 
 ## Roadmap
 
-- Step 22: Create account and Forgot password (no email), Change password.
 - Step 23: User management in Admin (approve/reject, roles, disable, reset,
   delete).

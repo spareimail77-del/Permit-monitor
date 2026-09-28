@@ -21,6 +21,15 @@ export default async function AdminPage() {
 
   if (!hasPermission(access, "view_admin_page")) redirect("/");
 
+  let openRequests = 0;
+  if (hasPermission(access, "reset_passwords")) {
+    const { count } = await supabase
+      .from("password_reset_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open");
+    openRequests = count || 0;
+  }
+
   return (
     <main style={styles.main}>
       <Header />
@@ -54,6 +63,19 @@ export default async function AdminPage() {
               </span>
             </span>
           </Link>
+          )}
+          {hasPermission(access, "reset_passwords") && (
+            <Link href="/admin/password-requests" className="panel" style={styles.tile}>
+              <span style={styles.tileIcon}>
+                <Icon name="lock" size={20} />
+              </span>
+              <span>
+                <span style={styles.tileTitle}>Password requests</span>
+                <span style={styles.tileText}>
+                  {openRequests} open. Set a temporary password for people who forgot theirs.
+                </span>
+              </span>
+            </Link>
           )}
         </div>
       </section>

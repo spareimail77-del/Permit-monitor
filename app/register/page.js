@@ -1,12 +1,12 @@
-import ForgotForm from "./ForgotForm";
+import RegisterForm from "./RegisterForm";
 
 export const dynamic = "force-dynamic";
 
-export default function ForgotPasswordPage() {
+export default function RegisterPage() {
   return (
     <main style={styles.main}>
       <div style={styles.center}>
-        <ForgotForm />
+        <RegisterForm />
       </div>
     </main>
   );

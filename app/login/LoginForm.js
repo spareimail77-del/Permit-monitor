@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import { staffIdToAuthEmail } from "../../lib/staffAuth";
@@ -109,6 +110,23 @@ export default function LoginForm() {
           {message}
         </p>
       )}
+
+      <p
+        style={{
+          margin: "14px 0 0",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          fontSize: "var(--font-size-sm)",
+        }}
+      >
+        <Link href="/register" style={{ color: "var(--color-brand-2)" }}>
+          Create account
+        </Link>
+        <Link href="/forgot-password" style={{ color: "var(--color-brand-2)" }}>
+          Forgot password?
+        </Link>
+      </p>
     </div>
   );
 }

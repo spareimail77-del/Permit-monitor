@@ -23,6 +23,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists display_name text;
 alter table public.profiles add column if not exists status text not null default 'active';
+alter table public.profiles add column if not exists must_change_password boolean not null default false;
 alter table public.profiles drop column if exists email;
 
 -- Role upgrade (step 21). Order matters: drop the old rule, convert the
@@ -55,14 +56,28 @@ create policy "Users can read their own profile"
 -- 2. New account -> profile row (staff_id comes from the login address,
 --    e.g. 18489@staff.permit-log.internal -> '18489')
 -- ---------------------------------------------------------------
+-- Accounts created from the app's "Create account" page carry
+-- status / requested_role / display_name in app_metadata (writable only
+-- from the server), so they start as 'pending' with the requested role.
+-- Root can never be requested here. Accounts you add in the dashboard
+-- have no such metadata and start 'active' as permit_holder.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  meta jsonb := coalesce(new.raw_app_meta_data, '{}'::jsonb);
 begin
-  insert into public.profiles (id, staff_id)
-  values (new.id, split_part(new.email, '@', 1))
+  insert into public.profiles (id, staff_id, display_name, role, status)
+  values (
+    new.id,
+    split_part(new.email, '@', 1),
+    nullif(meta->>'display_name', ''),
+    case when meta->>'requested_role' in ('manager', 'hse', 'permit_holder', 'permit_applicant')
+         then meta->>'requested_role' else 'permit_holder' end,
+    case when meta->>'status' = 'pending' then 'pending' else 'active' end
+  )
   on conflict (id) do nothing;
   return new;
 end;
@@ -93,6 +108,12 @@ security definer set search_path = public
 as $$
   select role from public.profiles where id = auth.uid() and status = 'active'
 $$;
+
+-- Root can read every profile (needed for the admin pages).
+drop policy if exists "Root can read all profiles" on public.profiles;
+create policy "Root can read all profiles"
+  on public.profiles for select
+  using (public.active_role() = 'root');
 
 -- ---------------------------------------------------------------
 -- 4. Attachments (metadata here, file bytes in Cloudinary), keyed by
@@ -177,3 +198,42 @@ drop policy if exists "HSE and root can update archive" on public.archived_permi
 create policy "HSE and root can update archive"
   on public.archived_permits for update
   using (public.active_role() in ('root', 'hse'));
+
+-- ---------------------------------------------------------------
+-- 6. Forgot-password requests (no email: they show up in Admin ->
+--    Password requests). Only one open request per Staff ID.
+--    Written by the server (service key); only Root can read them.
+-- ---------------------------------------------------------------
+create table if not exists public.password_reset_requests (
+  id uuid primary key default gen_random_uuid(),
+  staff_id text not null,
+  status text not null default 'open' check (status in ('open', 'done', 'dismissed')),
+  requested_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  resolved_by uuid references public.profiles (id) on delete set null
+);
+
+create unique index if not exists password_reset_one_open_per_staff
+  on public.password_reset_requests (staff_id) where status = 'open';
+
+alter table public.password_reset_requests enable row level security;
+
+drop policy if exists "Root can read password requests" on public.password_reset_requests;
+create policy "Root can read password requests"
+  on public.password_reset_requests for select
+  using (public.active_role() = 'root');
+
+-- ---------------------------------------------------------------
+-- 7. Rate limiting for the public forms (service key only: RLS is on
+--    and no policy exists, so browsers can never touch this table).
+-- ---------------------------------------------------------------
+create table if not exists public.rate_limits (
+  id bigserial primary key,
+  bucket text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists rate_limits_bucket_idx
+  on public.rate_limits (bucket, created_at);
+
+alter table public.rate_limits enable row level security;
