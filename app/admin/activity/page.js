@@ -28,11 +28,20 @@ export default async function ActivityPage() {
   const db = createAdminClient();
   const canManage = hasPermission(access, "manage_activity");
 
-  const { data, count } = await db
+  // Root's own visits are private to Root: anyone else (HSE) never gets
+  // those rows, so they can't show up in the list, names, dropdown or
+  // summary numbers.
+  let query = db
     .from("user_activity")
     .select("staff_id, path, at", { count: "exact" })
     .order("at", { ascending: false })
     .limit(MAX_ROWS);
+  if (access.role !== "root") {
+    const { data: roots } = await db.from("profiles").select("staff_id").eq("role", "root");
+    const rootIds = (roots || []).map((r) => r.staff_id).filter((id) => /^[a-z0-9]{3,12}$/.test(id));
+    if (rootIds.length) query = query.not("staff_id", "in", `(${rootIds.join(",")})`);
+  }
+  const { data, count } = await query;
   const rows = (data || []).map((r) => ({ s: r.staff_id, p: r.path, t: Date.parse(r.at) }));
 
   const { data: mine } = await db.from("profiles").select("staff_id").eq("id", user.id).single();

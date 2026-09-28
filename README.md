@@ -17,7 +17,7 @@ keep the policies in `supabase-schema.sql` in step.
 |---|---|
 | Root | Everything, incl. password resets and the activity log |
 | Manager | View everything (incl. archive); approve or reject account requests |
-| HSE | View, upload Excel, add/remove attachments, view archive, view the activity log (read-only) |
+| HSE | View, upload Excel, add/remove attachments, view archive, view the activity log (read-only; Root's own visits are hidden from HSE) |
 | Permit holder | View dashboard and permits |
 | Permit applicant | View dashboard and permits |
 

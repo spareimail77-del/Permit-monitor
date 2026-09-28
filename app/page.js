@@ -69,7 +69,9 @@ export default async function Dashboard() {
   // meta.color is a var(--color-open) reference, which SVG's `stroke`
   // attribute resolves fine at render time against the current theme.
   const resolvedSegments = Object.entries(STATUS_META).map(([key, meta]) => ({
-    label: meta.label,
+    // Slices must not overlap, so the donut keeps Expiring Soon apart from
+    // the rest of the open permits (the Active / Open card adds them together).
+    label: key === "OPEN" ? "Open (not expiring)" : meta.label,
     value: counts[key] || 0,
     color: meta.color,
   }));
@@ -108,7 +110,7 @@ export default async function Dashboard() {
                 <StatCard
                   key={key}
                   label={meta.label}
-                  value={counts[key]}
+                  value={key === "OPEN" ? counts.OPEN + counts.EXPIRING_SOON : counts[key]}
                   color={meta.color}
                   icon={meta.icon}
                   href={`/permits?status=${key}`}

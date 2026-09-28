@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import Icon from "./Icon";
-import { STATUS_META } from "../../lib/statusMeta";
+import { STATUS_META, matchesStatusFilter } from "../../lib/statusMeta";
 
 function uniqueSorted(values) {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
@@ -34,8 +34,7 @@ export default function PermitTable({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return permits.filter((p) => {
-      if (statusFilter !== "ALL" && p.displayStatus !== statusFilter)
-        return false;
+      if (!matchesStatusFilter(p.displayStatus, statusFilter)) return false;
       if (areaFilter !== "ALL" && p.area !== areaFilter) return false;
       if (typeFilter !== "ALL" && p.permitType !== typeFilter) return false;
       if (!q) return true;
@@ -73,7 +72,7 @@ export default function PermitTable({
           <option value="ALL">All statuses</option>
           {Object.entries(STATUS_META).map(([key, meta]) => (
             <option key={key} value={key}>
-              {meta.label}
+              {key === "OPEN" ? "Active / Open (incl. expiring soon)" : meta.label}
             </option>
           ))}
         </select>
