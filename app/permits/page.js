@@ -4,6 +4,7 @@ import { STATUS_META, normalizeStatus } from "../../lib/statusMeta";
 import Header from "../components/Header";
 import ErrorScreen from "../components/ErrorScreen";
 import PermitTable from "../components/PermitTable";
+import { createClient } from "../../lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,24 @@ export default async function PermitListPage({ searchParams }) {
   const initialStatus =
     requestedStatus && STATUS_META[requestedStatus] ? requestedStatus : "ALL";
 
+  // One lightweight query for every attachment's permit reference, so
+  // the list can show which permits have files attached. Metadata only
+  // (no file bytes), and a failure just means no indicators — never an
+  // error page.
+  const attachmentCounts = {};
+  try {
+    const supabase = createClient();
+    const { data: rows } = await supabase
+      .from("permit_attachments")
+      .select("permit_reference");
+    (rows || []).forEach((r) => {
+      attachmentCounts[r.permit_reference] =
+        (attachmentCounts[r.permit_reference] || 0) + 1;
+    });
+  } catch (err) {
+    console.error("Could not load attachment counts:", err);
+  }
+
   const today = todayInMuscat();
   const permits = data.permits.map((permit) => {
     const { displayStatus, daysRemaining } = computeDisplayStatus(
@@ -30,6 +49,7 @@ export default async function PermitListPage({ searchParams }) {
       ...permit,
       displayStatus: normalizeStatus(displayStatus),
       daysRemaining,
+      attachmentCount: attachmentCounts[permit.reference] || 0,
     };
   });
 

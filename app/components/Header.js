@@ -112,13 +112,13 @@ const styles = {
     fontSize: "var(--font-size-2xl)",
     color: "var(--color-ink)",
   },
-  nav: { display: "flex", gap: 6, alignItems: "center" },
+  nav: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
   navLink: {
     color: "var(--color-ink-muted)",
     textDecoration: "none",
     fontSize: "var(--font-size-sm)",
     fontWeight: 600,
-    padding: "8px 14px",
+    padding: "8px 12px",
     borderRadius: 999,
   },
   navLinkActive: {

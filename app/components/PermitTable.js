@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
+import Icon from "./Icon";
 import { STATUS_META } from "../../lib/statusMeta";
 
 function uniqueSorted(values) {
@@ -118,6 +119,7 @@ export default function PermitTable({
               <th>Days</th>
               <th>Valid To</th>
               <th>Holder</th>
+              <th title="Attachments">Files</th>
             </tr>
           </thead>
           <tbody>
@@ -154,11 +156,14 @@ export default function PermitTable({
                 </td>
                 <td className="mono">{p.validTo || "—"}</td>
                 <td>{p.holder || "—"}</td>
+                <td>
+                  <AttachBadge count={p.attachmentCount} />
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
                   No permits match your search/filters.
                 </td>
               </tr>
@@ -166,6 +171,71 @@ export default function PermitTable({
           </tbody>
         </table>
       </div>
+
+      <div className="permit-cards">
+        {filtered.map((p) => (
+          <div
+            key={p.reference + p.rowNumber}
+            className="permit-card"
+            onClick={() => router.push(`/permits/${p.rowNumber}`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") router.push(`/permits/${p.rowNumber}`);
+            }}
+            tabIndex={0}
+            role="link"
+          >
+            <div className="permit-card__top">
+              <span className="mono permit-card__ref">
+                {p.reference}
+                {duplicateReferences.includes(p.reference) && " ⚠"}
+              </span>
+              <StatusBadge status={p.displayStatus} />
+            </div>
+            <p className="permit-card__where">
+              {[p.location, p.area].filter(Boolean).join(" · ") || "—"}
+            </p>
+            <p className="permit-card__type">{p.permitType || "—"}</p>
+            <div className="permit-card__meta">
+              <span>
+                Days left{" "}
+                <strong className="mono">
+                  {p.daysRemaining !== null ? p.daysRemaining : "—"}
+                </strong>
+              </span>
+              <span>
+                Valid to <strong className="mono">{p.validTo || "—"}</strong>
+              </span>
+            </div>
+            <div className="permit-card__foot">
+              <span>{p.holder || "—"}</span>
+              <AttachBadge count={p.attachmentCount} showNone />
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="permit-cards__empty">
+            No permits match your search/filters.
+          </p>
+        )}
+      </div>
     </div>
+  );
+}
+
+function AttachBadge({ count, showNone = false }) {
+  if (!count) {
+    return showNone ? (
+      <span className="attach-badge attach-badge--none">No files</span>
+    ) : (
+      <span className="attach-badge attach-badge--none" title="No attachments">
+        —
+      </span>
+    );
+  }
+  return (
+    <span className="attach-badge" title={`${count} attachment${count > 1 ? "s" : ""}`}>
+      <Icon name="paperclip" size={13} />
+      {count}
+    </span>
   );
 }

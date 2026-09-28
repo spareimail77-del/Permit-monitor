@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import Icon from "../../components/Icon";
-import { ALLOWED_CONTENT_TYPES, MAX_ATTACHMENT_BYTES, MAX_LABEL_LENGTH } from "../../../lib/attachments";
+import {
+  ALLOWED_CONTENT_TYPES,
+  MAX_ATTACHMENT_BYTES,
+  MAX_LABEL_LENGTH,
+  displayFileName,
+} from "../../../lib/attachments";
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return "";
@@ -123,29 +128,32 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       )}
 
       {attachments.length > 0 && (
-        <ul style={styles.list}>
+        <ul className="attach-list">
           {attachments.map((a) => (
-            <li key={a.id} style={styles.item}>
-              <div style={styles.itemMain}>
-                <p style={styles.itemLabel}>{a.label}</p>
-                <a
-                  href={`/api/attachments/${a.id}/view`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={styles.itemLink}
-                >
-                  <Icon name="clipboard" size={15} />
-                  {a.file_name}
-                </a>
-              </div>
-              <span style={styles.itemMeta}>{formatSize(a.size_bytes)}</span>
+            <li key={a.id} className="attach-item">
+              <a
+                href={`/api/attachments/${a.id}/view`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="attach-link"
+              >
+                <Icon name="clipboard" size={18} />
+                <span className="attach-text">
+                  <span className="attach-name">
+                    {displayFileName(permitReference, a.label, a.content_type)}
+                  </span>
+                  <span className="attach-meta">
+                    {formatSize(a.size_bytes)}
+                    {a.file_name ? ` · ${a.file_name}` : ""}
+                  </span>
+                </span>
+              </a>
               {isAdmin && (
                 <button
                   type="button"
                   onClick={() => handleDelete(a.id)}
                   disabled={deletingId === a.id}
-                  className="btn btn-ghost"
-                  style={styles.deleteBtn}
+                  className="btn btn-ghost attach-remove"
                 >
                   <Icon name="xCircle" size={14} />
                   {deletingId === a.id ? "Removing…" : "Remove"}
@@ -157,25 +165,39 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       )}
 
       {isAdmin && (
-        <form onSubmit={handleUpload} style={styles.form}>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="What is this document? (e.g. Physical Permit, JSA)"
-            maxLength={MAX_LABEL_LENGTH}
-            style={styles.labelInput}
-          />
-          <input
-            id="attachment-file-input"
-            type="file"
-            accept=".pdf,.jpg,.jpeg"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            style={styles.fileInput}
-          />
+        <form onSubmit={handleUpload} className="attach-form">
+          <label className="attach-field">
+            <span className="attach-field-label">Document name</span>
+            <input
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="e.g. Physical Permit, JSA, Certificate"
+              maxLength={MAX_LABEL_LENGTH}
+              className="attach-input"
+            />
+          </label>
+          <label className="attach-field">
+            <span className="attach-field-label">File (PDF or JPEG)</span>
+            <input
+              id="attachment-file-input"
+              type="file"
+              accept=".pdf,.jpg,.jpeg"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="attach-file"
+            />
+          </label>
+          {label.trim() && (
+            <p className="attach-preview">
+              Will be saved as{" "}
+              <strong>
+                {permitReference} - {label.trim()}
+              </strong>
+            </p>
+          )}
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary attach-submit"
             disabled={!file || !label.trim() || state === "uploading"}
           >
             {state === "uploading" ? "Uploading…" : "Add attachment"}
@@ -199,54 +221,4 @@ const styles = {
     marginBottom: 16,
   },
   emptyText: { color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
-  list: { listStyle: "none", margin: 0, padding: 0 },
-  item: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "10px 0",
-    borderBottom: "1px solid var(--color-rule)",
-    flexWrap: "wrap",
-  },
-  itemMain: { display: "flex", flexDirection: "column", gap: 2 },
-  itemLabel: {
-    margin: 0,
-    fontSize: "var(--font-size-xs)",
-    fontWeight: 700,
-    color: "var(--color-ink-muted)",
-  },
-  itemLink: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    color: "var(--color-brand-2)",
-    fontWeight: 600,
-    fontSize: "var(--font-size-sm)",
-    textDecoration: "none",
-  },
-  itemMeta: {
-    fontSize: "var(--font-size-xs)",
-    color: "var(--color-ink-muted)",
-    marginLeft: "auto",
-  },
-  deleteBtn: { padding: "4px 10px", fontSize: "var(--font-size-xs)" },
-  form: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    marginTop: 16,
-    flexWrap: "wrap",
-  },
-  labelInput: {
-    padding: "9px 12px",
-    borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--color-rule)",
-    background: "var(--color-surface-2)",
-    color: "var(--color-ink)",
-    fontFamily: "inherit",
-    fontSize: "var(--font-size-sm)",
-    flex: "1 1 240px",
-    minWidth: 200,
-  },
-  fileInput: { fontSize: "var(--font-size-sm)", color: "var(--color-ink)" },
 };
