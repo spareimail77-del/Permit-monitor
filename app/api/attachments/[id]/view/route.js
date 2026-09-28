@@ -26,13 +26,16 @@ export async function GET(request, { params }) {
 
   let url;
   try {
-    url = getViewUrl(attachment.storage_key, {
+    url = await getViewUrl(attachment.storage_key, {
       contentType: attachment.content_type,
       expiresInSeconds: 300,
     });
   } catch (err) {
     console.error("Cloudinary signed URL failed:", err);
-    return Response.json({ error: "Storage isn't configured." }, { status: 500 });
+    return Response.json(
+      { error: "Could not open this file.", detail: String(err.message || err) },
+      { status: 500 }
+    );
   }
 
   return Response.redirect(url, 302);
