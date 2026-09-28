@@ -57,10 +57,10 @@ create policy "Users can read their own profile"
 --    e.g. 18489@staff.permit-log.internal -> '18489')
 -- ---------------------------------------------------------------
 -- Accounts created from the app's "Create account" page carry
--- status / requested_role / display_name in app_metadata (writable only
--- from the server), so they start as 'pending' with the requested role.
--- Root can never be requested here. Accounts you add in the dashboard
--- have no such metadata and start 'active' as permit_holder.
+-- status / display_name in app_metadata (writable only from the server),
+-- so they start as 'pending'. Every new account is a permit_holder; only
+-- Root can change a role later. Accounts you add in the dashboard have no
+-- such metadata and start 'active'.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -74,14 +74,17 @@ begin
     new.id,
     split_part(new.email, '@', 1),
     nullif(meta->>'display_name', ''),
-    case when meta->>'requested_role' in ('manager', 'hse', 'permit_holder', 'permit_applicant')
-         then meta->>'requested_role' else 'permit_holder' end,
+    'permit_holder',
     case when meta->>'status' = 'pending' then 'pending' else 'active' end
   )
   on conflict (id) do nothing;
   return new;
 end;
 $$;
+
+-- Step 22.1: requests made before roles were removed from the form may
+-- carry a role; reset pending accounts to the ordinary role.
+update public.profiles set role = 'permit_holder' where status = 'pending';
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

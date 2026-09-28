@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { PASSWORD_MIN } from "../../lib/authRules";
 
 export default function ChangePasswordForm({ forced }) {
-  const router = useRouter();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -34,8 +32,10 @@ export default function ChangePasswordForm({ forced }) {
         return;
       }
       setState("done");
-      router.replace("/");
-      router.refresh();
+      // Full page load (not router.replace): the app router may have
+      // cached the earlier "go to /change-password" redirect for "/",
+      // which would bounce the person straight back here.
+      window.location.assign("/");
     } catch {
       setState("error");
       setMessage("Network error. Try again.");
@@ -88,6 +88,12 @@ export default function ChangePasswordForm({ forced }) {
           {state === "saving" ? "Saving…" : "Change password"}
         </button>
       </form>
+
+      {state === "done" && (
+        <p style={{ marginBottom: 0, marginTop: 10, fontSize: "var(--font-size-sm)" }}>
+          Password changed. Opening the dashboard…
+        </p>
+      )}
 
       {state === "error" && (
         <p className="error-text" style={{ marginBottom: 0, marginTop: 10 }}>

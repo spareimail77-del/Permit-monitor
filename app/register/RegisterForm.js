@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Icon from "../components/Icon";
-import { ROLE_LABELS, REQUESTABLE_ROLES } from "../../lib/permissions";
 import { PASSWORD_MIN } from "../../lib/authRules";
 
 export default function RegisterForm() {
   const [staffId, setStaffId] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("permit_holder");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [website, setWebsite] = useState(""); // honeypot, left empty by people
@@ -29,7 +27,7 @@ export default function RegisterForm() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staffId, name, role, password, website }),
+        body: JSON.stringify({ staffId, name, password, website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -90,18 +88,6 @@ export default function RegisterForm() {
           aria-label="Name"
           maxLength={40}
         />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="passcode-input"
-          aria-label="Role"
-        >
-          {REQUESTABLE_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
         <input
           type="password"
           autoComplete="new-password"

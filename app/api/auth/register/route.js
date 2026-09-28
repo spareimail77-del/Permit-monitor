@@ -1,6 +1,6 @@
 import { createAdminClient } from "../../../../lib/supabase/admin";
 import { staffIdToAuthEmail } from "../../../../lib/staffAuth";
-import { REQUESTABLE_ROLES } from "../../../../lib/permissions";
+import { DEFAULT_ROLE } from "../../../../lib/permissions";
 import { cleanStaffId, cleanName, passwordProblem } from "../../../../lib/authRules";
 import { clientIp, isRateLimited } from "../../../../lib/rateLimit";
 
@@ -17,16 +17,12 @@ export async function POST(request) {
 
   const staffId = cleanStaffId(body.staffId);
   const name = cleanName(body.name);
-  const role = body.role;
   const problem = passwordProblem(body.password);
 
   if (!staffId) {
     return Response.json({ error: "Enter a valid Staff ID (3-12 letters or numbers)." }, { status: 400 });
   }
   if (!name) return Response.json({ error: "Enter your name (2-40 characters)." }, { status: 400 });
-  if (!REQUESTABLE_ROLES.includes(role)) {
-    return Response.json({ error: "Choose a role from the list." }, { status: 400 });
-  }
   if (problem) return Response.json({ error: problem }, { status: 400 });
 
   try {
@@ -51,13 +47,13 @@ export async function POST(request) {
     }
 
     // app_metadata can only be written from the server, so the database
-    // trigger can trust it to create the profile as pending with the
-    // requested role (never root).
+    // trigger can trust it to create the profile as pending. The role is
+    // always the ordinary user role; only Root can change it later.
     const { data, error } = await admin.auth.admin.createUser({
       email: staffIdToAuthEmail(staffId),
       password: body.password,
       email_confirm: true,
-      app_metadata: { status: "pending", requested_role: role, display_name: name },
+      app_metadata: { status: "pending", display_name: name },
     });
 
     if (error) {
@@ -72,11 +68,12 @@ export async function POST(request) {
       );
     }
 
-    // Belt and braces: make sure the profile is pending with the right
-    // role/name even if the trigger ran before app_metadata was readable.
+    // Belt and braces: make sure the profile is pending with the ordinary
+    // role and the right name even if the trigger ran before app_metadata
+    // was readable.
     await admin
       .from("profiles")
-      .update({ status: "pending", role, display_name: name })
+      .update({ status: "pending", role: DEFAULT_ROLE, display_name: name })
       .eq("id", data.user.id);
 
     return Response.json({ ok: true });

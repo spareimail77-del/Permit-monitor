@@ -26,7 +26,7 @@ Each account also has a **status**: `pending`, `active` or `disabled`. Only
 signed out on their next request.
 
 People sign in with **Staff ID + password**. New people use **Create account**
-(status `pending` until approved); forgotten passwords go through **Forgot
+(ordinary user, status `pending` until approved; Root sets any higher role); forgotten passwords go through **Forgot
 password** (no email: the request appears in Admin → Password requests, and
 Root sets a temporary password that must be changed at next sign-in). Anyone
 signed in can use **Change password** from the user menu. Supabase needs an email, so each
