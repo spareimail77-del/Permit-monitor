@@ -1,6 +1,6 @@
+import { getAccess, hasPermission } from "../../../../../lib/authz";
 import { createClient } from "../../../../../lib/supabase/server";
 import {
-import { getAccess, hasPermission } from "../../../../../lib/authz";
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
   MAX_LABEL_LENGTH,
