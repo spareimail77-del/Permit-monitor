@@ -16,7 +16,7 @@ keep the policies in `supabase-schema.sql` in step.
 | Role | Can do |
 |---|---|
 | Root | Everything, incl. password resets |
-| Manager | View everything (incl. archive); approve requests (later step) |
+| Manager | View everything (incl. archive); approve or reject account requests |
 | HSE | View, upload Excel, add/remove attachments, view archive |
 | Permit holder | View dashboard and permits |
 | Permit applicant | View dashboard and permits |
@@ -26,7 +26,7 @@ Each account also has a **status**: `pending`, `active` or `disabled`. Only
 signed out on their next request.
 
 People sign in with **Staff ID + password**. New people use **Create account**
-(ordinary user, status `pending` until approved; Root sets any higher role); forgotten passwords go through **Forgot
+(ordinary user, status `pending` until approved; only Root can give a higher role); forgotten passwords go through **Forgot
 password** (no email: the request appears in Admin → Password requests, and
 Root sets a temporary password that must be changed at next sign-in). Anyone
 signed in can use **Change password** from the user menu. Supabase needs an email, so each
@@ -53,14 +53,18 @@ staff ID maps to a never-emailed address such as
      `service_role`). **Server only, secret** — never add `NEXT_PUBLIC_`.
 6. Push this folder to your GitHub repo; Vercel redeploys automatically.
 
-**Approving requests (until step 23 adds a screen):** in Supabase SQL Editor,
-`update public.profiles set status = 'active' where staff_id = '<staff id>';`
-
 **Adding a user by hand:** Authentication → Users → Add user (same email
 pattern, Auto Confirm), then set `role` and `display_name` in the
 `profiles` table. New accounts default to `permit_holder`, `active`.
 
 ## How it works
+
+- **Users (Admin → Users):** Root sees everyone and can approve/reject
+  requests, change roles, disable/enable, reset a password (temporary
+  password shown once, changed at next sign-in) and delete accounts. Manager
+  sees only pending requests and can approve or reject them. Rules enforced
+  on the server: you cannot change, disable or delete your own account, and
+  the last active Root can never be demoted, disabled or deleted.
 
 - **Upload (Admin → Upload Data):** replaces the single current Excel in
   Vercel Blob. Root and HSE only.
@@ -87,5 +91,4 @@ moving the file to Supabase Storage.
 
 ## Roadmap
 
-- Step 23: User management in Admin (approve/reject, roles, disable, reset,
-  delete).
+Nothing planned.

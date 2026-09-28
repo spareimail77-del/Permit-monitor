@@ -3,6 +3,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Icon from "../components/Icon";
 import { createClient } from "../../lib/supabase/server";
+import { createAdminClient } from "../../lib/supabase/admin";
 import { getAccess, hasPermission } from "../../lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,15 @@ export default async function AdminPage() {
       .select("id", { count: "exact", head: true })
       .eq("status", "open");
     openRequests = count || 0;
+  }
+
+  let pendingUsers = 0;
+  if (hasPermission(access, "approve_requests")) {
+    const { count } = await createAdminClient()
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    pendingUsers = count || 0;
   }
 
   return (
@@ -63,6 +73,22 @@ export default async function AdminPage() {
               </span>
             </span>
           </Link>
+          )}
+          {hasPermission(access, "approve_requests") && (
+            <Link href="/admin/users" className="panel" style={styles.tile}>
+              <span style={styles.tileIcon}>
+                <Icon name="users" size={20} />
+              </span>
+              <span>
+                <span style={styles.tileTitle}>Users</span>
+                <span style={styles.tileText}>
+                  {pendingUsers} waiting for approval.{" "}
+                  {hasPermission(access, "manage_users")
+                    ? "Roles, disable, reset, delete."
+                    : "Approve or reject requests."}
+                </span>
+              </span>
+            </Link>
           )}
           {hasPermission(access, "reset_passwords") && (
             <Link href="/admin/password-requests" className="panel" style={styles.tile}>

@@ -53,7 +53,11 @@ export async function POST(request) {
 
   try {
     const admin = createAdminClient();
-    await admin.from("profiles").update({ must_change_password: false }).eq("id", user.id);
+    const { error: flagError } = await admin
+      .from("profiles")
+      .update({ must_change_password: false })
+      .eq("id", user.id);
+    if (flagError) throw flagError;
   } catch (err) {
     console.error("Could not clear must_change_password:", err);
     return Response.json(

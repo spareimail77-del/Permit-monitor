@@ -1,17 +1,7 @@
-import crypto from "node:crypto";
 import { createClient } from "../../../../../lib/supabase/server";
 import { createAdminClient } from "../../../../../lib/supabase/admin";
 import { getAccess, hasPermission } from "../../../../../lib/authz";
-
-// No look-alike characters (0/O, 1/l/I) so a temporary password can be
-// read out or typed without mistakes.
-const ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-function generateTempPassword(length = 10) {
-  let out = "";
-  for (let i = 0; i < length; i++) out += ALPHABET[crypto.randomInt(ALPHABET.length)];
-  return out;
-}
+import { generateTempPassword } from "../../../../../lib/tempPassword";
 
 // Body: { action: "reset" } sets a temporary password and forces a change
 // at next login; { action: "dismiss" } closes the request without a reset.
