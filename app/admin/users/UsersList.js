@@ -2,12 +2,23 @@
 
 import { useState, useMemo } from "react";
 import { ROLE_LABELS, ALL_ROLES } from "../../../lib/permissions";
+import Icon from "../../components/Icon";
 
 const STATUS_STYLE = {
   pending: { background: "var(--color-brand-tint)", color: "var(--color-brand-2)" },
   active: { background: "var(--color-rule)", color: "var(--color-ink)" },
   disabled: { background: "var(--color-rule)", color: "var(--color-ink-faint)" },
 };
+
+const ONLINE_MINUTES = 5;
+
+function agoText(min) {
+  if (min === null || min === undefined) return "never seen";
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  if (min < 1440) return `${Math.floor(min / 60)} h ago`;
+  return `${Math.floor(min / 1440)} d ago`;
+}
 
 export default function UsersList({ initial, meId, canManage, canReset }) {
   const [rows, setRows] = useState(initial);
@@ -111,6 +122,41 @@ export default function UsersList({ initial, meId, canManage, canReset }) {
                 <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
                   {ROLE_LABELS[r.role] || r.role}
                 </span>
+              )}
+              {canManage && r.status !== "pending" && (
+                r.seenMin !== null && r.seenMin < ONLINE_MINUTES ? (
+                  <span
+                    title="Active in the last 5 minutes"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: "var(--font-size-xs)",
+                      color: "#1a7f45",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        background: "#1a7f45",
+                        color: "#fff",
+                      }}
+                    >
+                      <Icon name="check" size={11} strokeWidth={3} />
+                    </span>
+                    Online
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-faint)" }}>
+                    Last seen {agoText(r.seenMin)}
+                  </span>
+                )
               )}
               <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
                 Requested{" "}
@@ -244,6 +290,9 @@ export default function UsersList({ initial, meId, canManage, canReset }) {
             aria-label="Search users"
           />
           <span className="result-count">{visible.length} shown</span>
+          <button type="button" className="btn btn-ghost" onClick={() => window.location.reload()}>
+            Check again
+          </button>
         </div>
       )}
 

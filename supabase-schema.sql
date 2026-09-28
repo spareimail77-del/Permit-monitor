@@ -240,3 +240,86 @@ create index if not exists rate_limits_bucket_idx
   on public.rate_limits (bucket, created_at);
 
 alter table public.rate_limits enable row level security;
+
+-- ---------------------------------------------------------------
+-- 8. Activity log (step 24). One tiny row per page visit, written by
+--    touch_activity() (called from middleware, at most once per page
+--    change or every 3 minutes). Old rows are purged inside that same
+--    function now and then, so no cron job is needed. Only Root reads.
+-- ---------------------------------------------------------------
+alter table public.profiles add column if not exists last_seen_at timestamptz;
+alter table public.profiles add column if not exists last_path text;
+
+create table if not exists public.user_activity (
+  id bigserial primary key,
+  staff_id text not null,
+  path text not null,
+  at timestamptz not null default now()
+);
+
+create index if not exists user_activity_at_idx on public.user_activity (at desc);
+create index if not exists user_activity_staff_idx on public.user_activity (staff_id, at desc);
+
+alter table public.user_activity enable row level security;
+
+drop policy if exists "Root can read activity" on public.user_activity;
+create policy "Root can read activity"
+  on public.user_activity for select
+  using (public.active_role() = 'root');
+
+-- One row: how many days of log to keep (3, 5 or 7). Root changes it on
+-- the Activity page (saved by the server with the service key).
+create table if not exists public.activity_settings (
+  id int primary key check (id = 1),
+  retention_days int not null default 7 check (retention_days in (3, 5, 7))
+);
+
+insert into public.activity_settings (id, retention_days) values (1, 7)
+  on conflict (id) do nothing;
+
+alter table public.activity_settings enable row level security;
+
+drop policy if exists "Root can read activity settings" on public.activity_settings;
+create policy "Root can read activity settings"
+  on public.activity_settings for select
+  using (public.active_role() = 'root');
+
+-- Records the caller's own visit (auth.uid() only, so nobody can log or
+-- change anything for someone else) and occasionally purges old rows.
+create or replace function public.touch_activity(p_path text)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_staff text;
+  v_days int;
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+
+  update public.profiles
+     set last_seen_at = now(), last_path = left(p_path, 200)
+   where id = auth.uid() and status = 'active'
+  returning staff_id into v_staff;
+
+  if v_staff is null then
+    return;
+  end if;
+
+  insert into public.user_activity (staff_id, path)
+  values (v_staff, left(p_path, 200));
+
+  -- About 1 visit in 50 also deletes expired rows.
+  if random() < 0.02 then
+    select retention_days into v_days from public.activity_settings where id = 1;
+    delete from public.user_activity
+     where at < now() - make_interval(days => coalesce(v_days, 7));
+  end if;
+end;
+$$;
+
+revoke all on function public.touch_activity(text) from public;
+revoke all on function public.touch_activity(text) from anon;
+grant execute on function public.touch_activity(text) to authenticated;

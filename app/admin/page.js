@@ -90,6 +90,19 @@ export default async function AdminPage() {
               </span>
             </Link>
           )}
+          {hasPermission(access, "view_activity") && (
+            <Link href="/admin/activity" className="panel" style={styles.tile}>
+              <span style={styles.tileIcon}>
+                <Icon name="clock" size={20} />
+              </span>
+              <span>
+                <span style={styles.tileTitle}>Activity</span>
+                <span style={styles.tileText}>
+                  Which pages people opened, and when.
+                </span>
+              </span>
+            </Link>
+          )}
           {hasPermission(access, "reset_passwords") && (
             <Link href="/admin/password-requests" className="panel" style={styles.tile}>
               <span style={styles.tileIcon}>

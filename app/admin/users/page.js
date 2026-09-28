@@ -26,12 +26,13 @@ export default async function UsersPage() {
   const admin = createAdminClient();
   let query = admin
     .from("profiles")
-    .select("id, staff_id, display_name, role, status, created_at")
+    .select("id, staff_id, display_name, role, status, created_at, last_seen_at")
     .order("created_at", { ascending: false })
     .limit(500);
   if (!canManage) query = query.eq("status", "pending");
   const { data } = await query;
 
+  const nowMs = Date.now();
   const rows = (data || []).map((p) => ({
     id: p.id,
     staffId: p.staff_id || "",
@@ -39,6 +40,11 @@ export default async function UsersPage() {
     role: p.role,
     status: p.status,
     createdAt: p.created_at,
+    // Minutes since the last page visit (null = never seen). Worked out
+    // here on the server; the page does not update by itself.
+    seenMin: p.last_seen_at
+      ? Math.max(0, Math.floor((nowMs - Date.parse(p.last_seen_at)) / 60000))
+      : null,
   }));
 
   return (
