@@ -43,6 +43,17 @@ export default async function AdminPage() {
               </span>
             </span>
           </Link>
+          <Link href="/admin/archive" className="panel" style={styles.tile}>
+            <span style={styles.tileIcon}>
+              <Icon name="archive" size={20} />
+            </span>
+            <span>
+              <span style={styles.tileTitle}>Permit Archive</span>
+              <span style={styles.tileText}>
+                Permits removed from the Excel file, kept for reference.
+              </span>
+            </span>
+          </Link>
         </div>
       </section>
     </main>

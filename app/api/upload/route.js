@@ -1,5 +1,7 @@
 import { put } from "@vercel/blob";
 import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
+import { fetchPermitData, parsePermitsFromBuffer } from "../../../lib/parsePermits";
+import { findRemovedPermits, archivePermits } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
 
 // This route ONLY writes the raw Excel file to blob storage.
@@ -52,6 +54,39 @@ export async function POST(request) {
       );
     }
 
+    // Compare the file currently on the site with the new one. Any
+    // permit that was in the old file but is missing from the new one
+    // is saved to the archive table (upsert by permit number, so a
+    // daily upload never duplicates anything). Only the removed rows
+    // are written, so this costs almost no storage. A failure here
+    // never blocks the upload; it is reported back instead.
+    let archivedCount = 0;
+    let archiveWarning = null;
+    try {
+      const newParsed = parsePermitsFromBuffer(await file.arrayBuffer());
+      if (newParsed.error || newParsed.permits.length === 0) {
+        return Response.json(
+          {
+            error:
+              newParsed.message ||
+              "No permits were found in this file. Check that it is the permit log.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const old = await fetchPermitData();
+      if (!old.error) {
+        const removed = findRemovedPermits(old.permits, newParsed.permits);
+        const result = await archivePermits(supabase, user.id, removed);
+        archivedCount = result.count;
+      }
+    } catch (err) {
+      console.error("Archiving removed permits failed:", err);
+      archiveWarning =
+        "Removed permits could not be archived this time. The new file was still uploaded.";
+    }
+
     const blob = await put(PERMIT_FILE_PATHNAME, file, {
       access: "public",
       addRandomSuffix: false,
@@ -66,6 +101,8 @@ export async function POST(request) {
       size: file.size,
       uploadedAt: new Date().toISOString(),
       url: blob.url,
+      archivedCount,
+      archiveWarning,
     });
   } catch (err) {
     console.error("Upload failed:", err);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { createClient } from "../../lib/supabase/client";
@@ -9,6 +9,39 @@ export default function UserMenu({ name, role }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const [pos, setPos] = useState(null); // { top, left, width, maxHeight }
+
+  // Position the menu against the viewport (position: fixed) instead of
+  // the trigger's box, so it can never spill off either screen edge on
+  // a narrow phone. It is clamped 8px inside the screen and scrolls
+  // internally if the screen is too short to show it all.
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    function place() {
+      const r = triggerRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = Math.min(220, window.innerWidth - margin * 2);
+      const left = Math.max(
+        margin,
+        Math.min(r.right - width, window.innerWidth - width - margin)
+      );
+      const top = r.bottom + 8;
+      setPos({
+        top,
+        left,
+        width,
+        maxHeight: Math.max(120, window.innerHeight - top - margin),
+      });
+    }
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     function onClickAway(e) {
@@ -39,6 +72,7 @@ export default function UserMenu({ name, role }) {
   return (
     <div ref={rootRef} style={styles.root}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         style={styles.trigger}
@@ -66,8 +100,17 @@ export default function UserMenu({ name, role }) {
         </svg>
       </button>
 
-      {open && (
-        <div role="menu" style={styles.menu}>
+      {open && pos && (
+        <div
+          role="menu"
+          style={{
+            ...styles.menu,
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            maxHeight: pos.maxHeight,
+          }}
+        >
           <div style={styles.menuHead}>
             <p style={styles.menuName}>{name}</p>
             <p style={styles.menuRole}>{role === "admin" ? "Admin" : "User"}</p>
@@ -123,16 +166,13 @@ const styles = {
     whiteSpace: "nowrap",
   },
   menu: {
-    position: "absolute",
-    top: "calc(100% + 8px)",
-    right: 0,
-    minWidth: 180,
+    position: "fixed",
     background: "var(--color-surface)",
     border: "1px solid var(--color-rule)",
     borderRadius: "var(--radius-sm)",
     boxShadow: "var(--shadow-pop)",
-    overflow: "hidden",
-    zIndex: 30,
+    overflowY: "auto",
+    zIndex: 60,
   },
   menuHead: {
     padding: "12px 14px",

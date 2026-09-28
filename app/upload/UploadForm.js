@@ -86,6 +86,18 @@ export default function UploadForm() {
             <strong>Stored at:</strong>{" "}
             {new Date(result.uploadedAt).toLocaleString()}
           </p>
+          {result.archivedCount > 0 && (
+            <p style={styles.resultLine}>
+              <strong>Archived:</strong> {result.archivedCount} permit
+              {result.archivedCount === 1 ? "" : "s"} no longer in this
+              file
+            </p>
+          )}
+          {result.archiveWarning && (
+            <p className="error-text" style={styles.resultLine}>
+              {result.archiveWarning}
+            </p>
+          )}
         </div>
       )}
     </div>

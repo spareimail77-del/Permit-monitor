@@ -3,6 +3,27 @@
 Read-only work permit monitoring site for the SWWS Salalah permit log.
 Excel remains the master record. This site never writes back to it.
 
+## Step 20 / 20.1 — Menu fix and permit archive
+
+- **Mobile user menu:** the dropdown is positioned against the screen
+  (clamped 8px inside both edges, scrolls if short), so it no longer
+  opens off-screen on phones.
+- **Permit archive (20.1):** on every upload the app compares the file
+  currently on the site with the new one. Any permit number that was in
+  the old file but is missing from the new one is saved to the
+  `archived_permits` table (one row per permit number, so daily uploads
+  never duplicate). Only removed permits are stored; the whole Excel is
+  not copied. A file with no permits in it is rejected before anything
+  is archived.
+- **Viewing:** Admin → Permit Archive (search + paging, with links to each
+  permit's attachments). Admin-only for now; becomes Root + HSE in step 21.
+- Attachments are unchanged: they stay in Supabase/Cloudinary against the
+  permit number, so archived permits keep theirs.
+- Limits: if a permit comes back in a later Excel it stays in the archive
+  too (it is not auto-removed); permits are matched by permit number only.
+- **You must run the new section 5 of `supabase-schema.sql`** in the
+  Supabase SQL Editor before deploying.
+
 ## Authentication & roles
 
 The whole site now requires a real login — there is no public page

@@ -166,3 +166,53 @@ create policy "Admins can delete attachments"
   using (
     exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
   );
+
+-- 5. Permit archive (step 20.1). When an uploaded Excel no longer
+--    contains a permit the previous Excel had, that permit's row is
+--    saved here. One row per permit number (unique), so uploading
+--    daily never duplicates. Only admins can read or write it for now;
+--    in step 21 this becomes Root + HSE.
+create table if not exists public.archived_permits (
+  id uuid primary key default gen_random_uuid(),
+  reference text not null unique,
+  area text,
+  location text,
+  permit_type text,
+  job_description text,
+  holder text,
+  applicant text,
+  valid_from date,
+  valid_to date,
+  excel_status text,
+  data jsonb not null default '{}'::jsonb,
+  archived_at timestamptz not null default now(),
+  archived_by uuid references public.profiles (id) on delete set null
+);
+
+create index if not exists archived_permits_archived_at_idx
+  on public.archived_permits (archived_at desc);
+
+alter table public.archived_permits enable row level security;
+
+drop policy if exists "Admins can read archive" on public.archived_permits;
+create policy "Admins can read archive"
+  on public.archived_permits for select
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );
+
+drop policy if exists "Admins can add to archive" on public.archived_permits;
+create policy "Admins can add to archive"
+  on public.archived_permits for insert
+  with check (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Needed because the app saves with "upsert" (insert, or update if
+-- that permit number is already archived).
+drop policy if exists "Admins can update archive" on public.archived_permits;
+create policy "Admins can update archive"
+  on public.archived_permits for update
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );
