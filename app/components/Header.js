@@ -51,10 +51,7 @@ export default function Header({ uploadedAt, today }) {
               <Link
                 key={item.href}
                 href={item.href}
-                style={{
-                  ...styles.navLink,
-                  ...(active ? styles.navLinkActive : null),
-                }}
+                className={`nav-link${active ? " is-active" : ""}`}
               >
                 {item.label}
               </Link>
@@ -114,18 +111,6 @@ const styles = {
     color: "var(--color-ink)",
   },
   nav: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
-  navLink: {
-    color: "var(--color-ink-muted)",
-    textDecoration: "none",
-    fontSize: "var(--font-size-sm)",
-    fontWeight: 600,
-    padding: "8px 12px",
-    borderRadius: 999,
-  },
-  navLinkActive: {
-    color: "var(--color-ink)",
-    background: "var(--color-surface-2)",
-  },
   meta: {
     borderTop: "1px solid var(--color-rule)",
   },

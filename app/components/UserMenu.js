@@ -78,7 +78,7 @@ export default function UserMenu({ name, role }) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        style={styles.trigger}
+        className="user-menu-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -126,7 +126,7 @@ export default function UserMenu({ name, role }) {
               setOpen(false);
               router.push("/change-password");
             }}
-            style={styles.menuItem}
+            className="user-menu-item"
           >
             <Icon name="lock" size={15} />
             Change password
@@ -135,7 +135,7 @@ export default function UserMenu({ name, role }) {
             type="button"
             role="menuitem"
             onClick={handleSignOut}
-            style={styles.menuItem}
+            className="user-menu-item"
           >
             <Icon name="logout" size={15} />
             Sign out
@@ -149,18 +149,6 @@ export default function UserMenu({ name, role }) {
 
 const styles = {
   root: { position: "relative" },
-  trigger: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    background: "var(--color-surface-2)",
-    border: "1px solid var(--color-rule)",
-    borderRadius: 999,
-    padding: "5px 12px 5px 5px",
-    cursor: "pointer",
-    color: "var(--color-ink)",
-    fontFamily: "inherit",
-  },
   avatar: {
     display: "flex",
     alignItems: "center",
@@ -207,20 +195,5 @@ const styles = {
     color: "var(--color-ink-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.03em",
-  },
-  menuItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    width: "100%",
-    padding: "10px 14px",
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: "var(--font-size-sm)",
-    fontWeight: 600,
-    color: "var(--color-ink)",
-    textAlign: "left",
   },
 };

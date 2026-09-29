@@ -58,10 +58,17 @@
   --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 40px -16px rgba(139, 92, 246, 0.35);
   --shadow-btn-primary: 0 8px 20px -10px rgba(139, 92, 246, 0.7);
 
-  /* login / auth-page smoke */
+  /* login / auth-page smoke (light theme) */
   --smoke-1: rgba(139, 92, 246, 0.55);
   --smoke-2: rgba(109, 40, 217, 0.5);
   --smoke-3: rgba(192, 38, 211, 0.3);
+
+  /* login / auth-page waves (dark theme), violet through deep indigo so the
+     back-most wave is calmer and less saturated than the front-most one */
+  --wave-1: #7c3aed;
+  --wave-2: #6d28d9;
+  --wave-3: #5b21b6;
+  --wave-4: #4c1d95;
 
   color-scheme: dark;
 }
@@ -210,6 +217,85 @@ h3 {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.theme-switch:hover {
+  border-color: var(--color-brand-2);
+  background: var(--color-surface-hover);
+}
+
+/* ---------------------------------------------------------
+   Header nav links
+--------------------------------------------------------- */
+
+.nav-link {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-hover);
+}
+
+.nav-link.is-active {
+  color: var(--color-ink);
+  background: var(--color-surface-2);
+}
+
+.nav-link.is-active:hover {
+  background: var(--color-surface-hover);
+}
+
+/* ---------------------------------------------------------
+   Account menu (Header)
+--------------------------------------------------------- */
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  padding: 5px 12px 5px 5px;
+  cursor: pointer;
+  color: var(--color-ink);
+  font-family: inherit;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-hover);
+  border-color: var(--color-brand-2);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.user-menu-item:hover {
+  background: var(--color-surface-hover);
 }
 
 .theme-switch__thumb {
@@ -254,12 +340,32 @@ h3 {
   cursor: pointer;
   text-decoration: none;
   line-height: 1.2;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, filter 0.15s ease;
+}
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(0);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-brand-2), var(--color-brand-dark));
   color: #fff;
   box-shadow: var(--shadow-btn-primary);
+}
+
+.btn-primary:not(:disabled):hover {
+  filter: brightness(1.08);
+  box-shadow: 0 10px 24px -10px rgba(139, 92, 246, 0.85);
+}
+
+.btn-primary:not(:disabled):active {
+  filter: brightness(0.98);
+  box-shadow: 0 4px 12px -8px rgba(139, 92, 246, 0.7);
 }
 
 .btn-primary:disabled {
@@ -274,10 +380,28 @@ h3 {
   border: 1px solid var(--color-rule-strong);
 }
 
+.btn-ghost:not(:disabled):hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-brand-2);
+}
+
+.btn-ghost:not(:disabled):active {
+  background: var(--color-surface-2);
+}
+
 .btn-danger {
   background: var(--color-expired);
   color: #2a0a0a;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.btn-danger:not(:disabled):hover {
+  filter: brightness(1.08);
+  box-shadow: 0 8px 18px -10px rgba(248, 113, 113, 0.75);
+}
+
+.btn-danger:not(:disabled):active {
+  filter: brightness(0.96);
 }
 
 .btn-danger:disabled {
@@ -1691,71 +1815,50 @@ a.stat-card:hover {
   display: block;
 }
 
-/* Dark theme: fireflies. Two animated layers per dot, both transform/opacity
-   only: .firefly wanders along a looping path, .firefly__dot twinkles. */
-.auth-flies {
+/* Dark theme: slow gradient waves. Four stacked SVG bands sit along the
+   bottom edge, each drifting sideways at its own speed (a real water-wave
+   surface never moves as one flat sheet). Each wave's SVG path is the same
+   shape drawn twice back to back (2880 units for a 1440-unit viewport), so
+   sliding the whole element left by exactly half its width loops with no
+   visible seam. Opacity is kept low (0.10–0.16, set inline per wave) so nothing
+   competes with the form in front of it. */
+.auth-waves {
   position: absolute;
   inset: 0;
-  /* barely-there violet glow so the page is not flat black */
-  background: radial-gradient(ellipse 80% 50% at 50% 115%, rgba(109, 40, 217, 0.13), transparent 70%);
+  overflow: hidden;
+  /* barely-there violet glow so the page is not flat black above the waves */
+  background: radial-gradient(ellipse 80% 55% at 50% 115%, rgba(109, 40, 217, 0.12), transparent 70%);
 }
 
-[data-theme="light"] .auth-flies {
+[data-theme="light"] .auth-waves {
   display: none;
 }
 
-.firefly {
+.wave {
   position: absolute;
-  width: 0;
-  height: 0;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  height: 40vh;
+  min-height: 220px;
   will-change: transform;
-  animation: firefly-wander var(--dur) ease-in-out var(--delay) infinite;
-  --ff-core: 255, 240, 140;
+  animation: wave-drift var(--wave-dur) linear var(--wave-delay) infinite;
 }
 
-.firefly--green { --ff-core: 200, 240, 110; }
-.firefly--amber { --ff-core: 255, 226, 120; }
-.firefly--violet { --ff-core: 190, 165, 255; }
+.wave--1 path { fill: var(--wave-1); }
+.wave--2 path { fill: var(--wave-2); }
+.wave--3 path { fill: var(--wave-3); }
+.wave--4 path { fill: var(--wave-4); }
 
-.firefly__dot {
-  position: absolute;
-  /* glow area is 7x the bright core */
-  width: calc(var(--s) * 7);
-  height: calc(var(--s) * 7);
-  margin: calc(var(--s) * -3.5) 0 0 calc(var(--s) * -3.5);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(var(--ff-core), 0.95) 0%,
-    rgba(var(--ff-core), 0.85) 14%,
-    rgba(var(--ff-core), 0.22) 32%,
-    rgba(var(--ff-core), 0) 62%
-  );
-  opacity: 0.1;
-  animation: firefly-twinkle var(--tw) ease-in-out var(--twd) infinite;
-}
+/* Each layer sits a little lower than the one in front, like a real
+   shoreline: closer waves are taller and higher on the screen. */
+.wave--2 { height: 34vh; }
+.wave--3 { height: 30vh; }
+.wave--4 { height: 26vh; }
 
-@keyframes firefly-wander {
-  0%   { transform: translate3d(0, 0, 0); }
-  25%  { transform: translate3d(var(--x1), var(--y1), 0); }
-  50%  { transform: translate3d(var(--x2), var(--y2), 0); }
-  75%  { transform: translate3d(var(--x3), var(--y3), 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
-
-@keyframes firefly-twinkle {
-  0%   { opacity: 0.08; transform: scale(0.7); }
-  18%  { opacity: 0.95; transform: scale(1); }
-  38%  { opacity: 0.3;  transform: scale(0.8); }
-  58%  { opacity: 0.85; transform: scale(0.95); }
-  80%  { opacity: 0.15; transform: scale(0.72); }
-  100% { opacity: 0.08; transform: scale(0.7); }
-}
-
-@media (max-width: 640px) {
-  .firefly--extra {
-    display: none;
-  }
+@keyframes wave-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
 .auth-vignette {
@@ -1891,8 +1994,7 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
 
 @media (prefers-reduced-motion: reduce) {
   .auth-blob,
-  .firefly,
-  .firefly__dot,
+  .wave,
   .auth-center > .panel,
   .passcode-card.is-leaving,
   .veil,
@@ -1901,5 +2003,5 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
     animation: none !important;
   }
   .veil { display: none; }
-  .firefly__dot { opacity: 0.4; }
+  .wave { opacity: 0.08 !important; }
 }

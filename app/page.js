@@ -76,37 +76,23 @@ export default async function Dashboard() {
   const areaBreakdown = withLink(topCounts(permits.map((p) => p.area)), "area");
   const typeBreakdown = withLink(topCounts(permits.map((p) => p.permitType)), "type");
 
-  // Expiring Soon is still an open permit, so the donut has one "Open" slice
-  // (Open + Expiring Soon) and shows Expiring Soon as a sub-part of it (thin
-  // inner ring). meta.color is a var(--color-open) reference, which SVG's
-  // `stroke` attribute resolves fine at render time against the current theme.
-  const openTotal = counts.OPEN + counts.EXPIRING_SOON;
-  const resolvedSegments = [
-    {
-      key: "OPEN",
-      label: "Open",
-      value: openTotal,
-      color: STATUS_META.OPEN.color,
-      href: "/permits?status=OPEN",
-      children: [
-        {
-          key: "EXPIRING_SOON",
-          label: "Expiring soon",
-          legendLabel: "of which Expiring soon",
-          value: counts.EXPIRING_SOON,
-          color: STATUS_META.EXPIRING_SOON.color,
-          href: "/permits?status=EXPIRING_SOON",
-        },
-      ],
-    },
-    ...["EXPIRED", "CLOSED", "CANCELED"].map((key) => ({
-      key,
-      label: STATUS_META[key].label,
-      value: counts[key] || 0,
-      color: STATUS_META[key].color,
-      href: `/permits?status=${key}`,
-    })),
-  ];
+  // Every status is its own flat slice — Open and Expiring Soon are mutually
+  // exclusive counts (computeDisplayStatus returns one or the other), so this
+  // adds up to `total` on its own with no inner ring or "of which" nesting.
+  // The Active/Open *stat card* above still adds Open + Expiring Soon
+  // together; only this chart shows them apart. meta.color is a
+  // var(--color-open)-style reference, which SVG's `stroke` attribute
+  // resolves fine at render time against the current theme.
+  const resolvedSegments = Object.entries(STATUS_META).map(([key, meta]) => ({
+    key,
+    // The stat card above uses meta.label ("Active / Open") since it also
+    // covers Expiring Soon; this chart splits them, so the plain "Open" is
+    // the correct standalone label for that one slice.
+    label: key === "OPEN" ? "Open" : meta.label,
+    value: counts[key] || 0,
+    color: meta.color,
+    href: `/permits?status=${key}`,
+  }));
 
   return (
     <main>
