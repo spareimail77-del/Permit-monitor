@@ -7,6 +7,7 @@ import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
 import ExpiringWatchlist from "./components/ExpiringWatchlist";
 import ErrorScreen from "./components/ErrorScreen";
+import EnterEffect from "./components/EnterEffect";
 
 // Always read fresh from Blob — the dashboard should never show
 // stale counts from a cached build.
@@ -75,21 +76,41 @@ export default async function Dashboard() {
   const areaBreakdown = withLink(topCounts(permits.map((p) => p.area)), "area");
   const typeBreakdown = withLink(topCounts(permits.map((p) => p.permitType)), "type");
 
-  // meta.color is a var(--color-open) reference, which SVG's `stroke`
-  // attribute resolves fine at render time against the current theme.
-  const resolvedSegments = Object.entries(STATUS_META).map(([key, meta]) => ({
-    key,
-    // Slices must not overlap, so the donut keeps Expiring Soon apart from
-    // the rest of the open permits (the Active / Open card adds them together).
-    label: key === "OPEN" ? "Open" : meta.label,
-    value: counts[key] || 0,
-    color: meta.color,
-    // "Open" here excludes expiring-soon, so it uses its own list filter.
-    href: `/permits?status=${key === "OPEN" ? "OPEN_ONLY" : key}`,
-  }));
+  // Expiring Soon is still an open permit, so the donut has one "Open" slice
+  // (Open + Expiring Soon) and shows Expiring Soon as a sub-part of it (thin
+  // inner ring). meta.color is a var(--color-open) reference, which SVG's
+  // `stroke` attribute resolves fine at render time against the current theme.
+  const openTotal = counts.OPEN + counts.EXPIRING_SOON;
+  const resolvedSegments = [
+    {
+      key: "OPEN",
+      label: "Open",
+      value: openTotal,
+      color: STATUS_META.OPEN.color,
+      href: "/permits?status=OPEN",
+      children: [
+        {
+          key: "EXPIRING_SOON",
+          label: "Expiring soon",
+          legendLabel: "of which Expiring soon",
+          value: counts.EXPIRING_SOON,
+          color: STATUS_META.EXPIRING_SOON.color,
+          href: "/permits?status=EXPIRING_SOON",
+        },
+      ],
+    },
+    ...["EXPIRED", "CLOSED", "CANCELED"].map((key) => ({
+      key,
+      label: STATUS_META[key].label,
+      value: counts[key] || 0,
+      color: STATUS_META[key].color,
+      href: `/permits?status=${key}`,
+    })),
+  ];
 
   return (
     <main>
+      <EnterEffect />
       <Header uploadedAt={data.uploadedAt} today={today} />
       <section style={styles.body}>
         {data.duplicateReferences.length > 0 && (
@@ -123,11 +144,6 @@ export default async function Dashboard() {
                   key={key}
                   label={meta.label}
                   value={key === "OPEN" ? counts.OPEN + counts.EXPIRING_SOON : counts[key]}
-                  caption={
-                    key === "OPEN" && counts.EXPIRING_SOON > 0
-                      ? `incl. ${counts.EXPIRING_SOON} expiring soon`
-                      : undefined
-                  }
                   color={meta.color}
                   icon={meta.icon}
                   href={`/permits?status=${key}`}

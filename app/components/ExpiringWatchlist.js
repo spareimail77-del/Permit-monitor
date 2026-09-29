@@ -26,6 +26,15 @@ function groupLabel(days) {
   return `In ${days} days`;
 }
 
+// Heading colour fades with urgency: red = past Valid To, strong amber = today
+// or tomorrow, soft amber = 2-3 days (still "Expiring soon"), calm brand = later.
+function groupTone(days) {
+  if (days < 0) return "overdue";
+  if (days <= 1) return "urgent";
+  if (days <= 3) return "soon";
+  return "calm";
+}
+
 export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) {
   if (permits.length === 0) {
     return (
@@ -50,7 +59,7 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) 
     <>
       <div className="watchlist watchlist-scroll">
         {groups.map((g) => (
-          <section key={`${g.validTo}-${g.days}`} className="watchlist-group">
+          <section key={`${g.validTo}-${g.days}`} className={`watchlist-group watchlist-group--${groupTone(g.days)}`}>
             <h3 className="watchlist-group__head">
               <span>
                 {groupLabel(g.days)}

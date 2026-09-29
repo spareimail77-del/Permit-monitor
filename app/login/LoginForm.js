@@ -58,13 +58,32 @@ export default function LoginForm() {
       return;
     }
 
+    // Modern hand-off: the card lifts away under a glowing veil, then the
+    // dashboard fades the veil out while its cards rise in (see EnterEffect).
+    // Skipped for people who prefer reduced motion.
     const next = searchParams.get("next") || "/";
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      setState("success");
+      document.documentElement.dataset.enter = "1";
+      // Safety net: clear the flag even if the dashboard never mounts
+      // (e.g. the person was sent to another page).
+      setTimeout(() => {
+        delete document.documentElement.dataset.enter;
+      }, 10000);
+      await new Promise((resolve) => setTimeout(resolve, 520));
+    }
     router.replace(next);
     router.refresh();
   }
 
   return (
-    <div className="panel passcode-card">
+    <>
+    {state === "success" && <div className="veil veil--in" aria-hidden="true" />}
+    <div className={`panel passcode-card${state === "success" ? " is-leaving" : ""}`}>
       <span className="passcode-icon">
         <Icon name="lock" />
       </span>
@@ -97,10 +116,10 @@ export default function LoginForm() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!staffId || !password || state === "checking"}
+          disabled={!staffId || !password || state === "checking" || state === "success"}
           style={{ width: "100%", justifyContent: "center" }}
         >
-          {state === "checking" ? "Signing in…" : "Sign in"}
+          {state === "checking" || state === "success" ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
@@ -127,5 +146,6 @@ export default function LoginForm() {
         </Link>
       </p>
     </div>
+    </>
   );
 }

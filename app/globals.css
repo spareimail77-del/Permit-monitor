@@ -58,6 +58,11 @@
   --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 40px -16px rgba(139, 92, 246, 0.35);
   --shadow-btn-primary: 0 8px 20px -10px rgba(139, 92, 246, 0.7);
 
+  /* login / auth-page smoke */
+  --smoke-1: rgba(139, 92, 246, 0.55);
+  --smoke-2: rgba(109, 40, 217, 0.5);
+  --smoke-3: rgba(192, 38, 211, 0.3);
+
   color-scheme: dark;
 }
 
@@ -93,6 +98,10 @@
   --shadow-card: 0 1px 2px rgba(30, 20, 60, 0.05), 0 10px 24px -16px rgba(30, 20, 60, 0.18);
   --shadow-pop: 0 1px 2px rgba(30, 20, 60, 0.06), 0 20px 36px -18px rgba(13, 148, 136, 0.22);
   --shadow-btn-primary: 0 8px 20px -10px rgba(13, 148, 136, 0.45);
+
+  --smoke-1: rgba(20, 184, 166, 0.34);
+  --smoke-2: rgba(94, 234, 212, 0.4);
+  --smoke-3: rgba(125, 170, 240, 0.3);
 
   color-scheme: light;
 }
@@ -418,12 +427,6 @@ a.stat-card:hover {
   color: var(--color-ink-muted);
 }
 
-.stat-card__caption {
-  margin: -10px 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-ink-faint);
-}
-
 .stat-card--hero {
   background:
     radial-gradient(400px circle at 100% 0%, var(--color-glow-1), transparent 65%),
@@ -473,7 +476,23 @@ a.stat-card:hover {
   stroke-width: 34px;
 }
 
-.donut-svg.has-active .donut-slice:not(.is-active) {
+/* Thin inner ring: the sub-part of one slice (Expiring soon inside Open). */
+.donut-inner {
+  stroke-width: 10px;
+  cursor: pointer;
+  outline: none;
+  transition: stroke-width 0.18s ease, opacity 0.18s ease;
+  animation: donut-draw 0.8s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+.donut-inner.is-active,
+.donut-inner:focus-visible {
+  stroke-width: 14px;
+}
+
+.donut-svg.has-active .donut-slice:not(.is-active):not(.is-related),
+.donut-svg.has-active .donut-inner:not(.is-active):not(.is-related) {
   opacity: 0.3;
 }
 
@@ -558,6 +577,22 @@ a.stat-card:hover {
   opacity: 0.55;
 }
 
+.donut-legend__row--sub {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 26px;
+  font-size: var(--font-size-xs);
+}
+
+.donut-legend__row--sub .legend-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.donut-legend__row--sub .donut-legend__label {
+  color: var(--color-ink-muted);
+}
+
 .donut-legend__label {
   color: var(--color-ink);
 }
@@ -585,6 +620,7 @@ a.stat-card:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .donut-slice,
+  .donut-inner,
   .donut-center {
     animation: none;
     transition: none;
@@ -750,32 +786,70 @@ a.stat-card:hover {
   white-space: nowrap;
 }
 
+.watchlist-group {
+  --tone: var(--color-brand-2);
+  --tone-tint: var(--color-brand-tint);
+}
+
+.watchlist-group--overdue {
+  --tone: var(--color-expired);
+  --tone-tint: var(--color-expired-tint);
+}
+
+.watchlist-group--urgent {
+  --tone: var(--color-expiring);
+  --tone-tint: var(--color-expiring-tint);
+}
+
+.watchlist-group--soon {
+  --tone: var(--color-expiring);
+  --tone-tint: color-mix(in srgb, var(--color-expiring) 7%, transparent);
+}
+
+/* Sticky day heading: a tinted bar with a coloured edge. The opaque surface
+   underneath keeps rows from showing through while the list scrolls. */
 .watchlist-group__head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin: 0;
-  padding: 10px 0 6px;
-  font-size: var(--font-size-xs);
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 2px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--tone);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-ink-muted);
+  color: var(--color-ink);
+  background:
+    linear-gradient(var(--tone-tint), var(--tone-tint)),
+    var(--color-surface);
   position: sticky;
   top: 0;
-  background: var(--color-surface);
   z-index: 1;
 }
 
+.watchlist-group:first-child .watchlist-group__head {
+  margin-top: 0;
+}
+
 .watchlist-group__date {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
+  color: var(--color-ink-muted);
 }
 
 .watchlist-group__count {
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  text-align: center;
   font-family: var(--font-mono), ui-monospace, monospace;
-  color: var(--color-ink-faint);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--tone);
+  background: var(--tone-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent);
 }
 
 .watchlist-viewall {
@@ -1557,4 +1631,200 @@ a.stat-card:hover {
 
 .permit-table tr.is-selected td {
   background: var(--color-expired-tint);
+}
+
+
+/* ---------------------------------------------------------
+   Auth pages: drifting smoke background (CSS gradients only,
+   transform/opacity animation = cheap on phones)
+--------------------------------------------------------- */
+
+.auth-shell {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.auth-blob {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.auth-blob--1 {
+  top: -25vmax;
+  left: -20vmax;
+  background: radial-gradient(circle at center, var(--smoke-1), transparent 65%);
+  animation: smoke-a 28s ease-in-out infinite alternate;
+}
+
+.auth-blob--2 {
+  bottom: -30vmax;
+  right: -22vmax;
+  background: radial-gradient(circle at center, var(--smoke-2), transparent 65%);
+  animation: smoke-b 34s ease-in-out infinite alternate;
+}
+
+.auth-blob--3 {
+  top: 20vh;
+  left: 30vw;
+  width: 50vmax;
+  height: 50vmax;
+  background: radial-gradient(circle at center, var(--smoke-3), transparent 65%);
+  animation: smoke-c 40s ease-in-out infinite alternate;
+}
+
+.auth-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, var(--color-bg) 100%);
+  opacity: 0.55;
+}
+
+@keyframes smoke-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(22vw, 16vh, 0) scale(1.18); }
+}
+
+@keyframes smoke-b {
+  from { transform: translate3d(0, 0, 0) scale(1.1); }
+  to   { transform: translate3d(-24vw, -14vh, 0) scale(0.95); }
+}
+
+@keyframes smoke-c {
+  from { transform: translate3d(-12vw, 6vh, 0) scale(0.9); }
+  to   { transform: translate3d(14vw, -12vh, 1px) scale(1.2); }
+}
+
+.auth-shell > *:not(.auth-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header on change-password must stay above the form for its dropdown. */
+.auth-shell > .hero {
+  z-index: 5;
+}
+
+.auth-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+}
+
+.auth-shell--below .auth-center {
+  align-items: flex-start;
+  padding-top: 32px;
+}
+
+.auth-center > .panel {
+  width: 100%;
+  max-width: 380px;
+  animation: auth-card-in 0.6s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.auth-shell--below .auth-center > .panel {
+  max-width: 420px;
+}
+
+/* Frosted card; falls back to the normal solid panel where unsupported. */
+.auth-center .panel {
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  border-color: color-mix(in srgb, var(--color-rule-strong) 70%, transparent);
+  box-shadow: var(--shadow-pop);
+}
+
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------------------
+   Sign-in -> dashboard hand-off
+   1. login card lifts away while a glowing veil fades in
+   2. dashboard mounts under the same veil, which fades out
+      while cards rise in (html[data-enter], set by LoginForm)
+--------------------------------------------------------- */
+
+.passcode-card.is-leaving {
+  animation: card-leave 0.45s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes card-leave {
+  to { opacity: 0; transform: translateY(-16px) scale(0.97); }
+}
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, var(--color-glow-1), transparent 55%),
+    var(--color-bg);
+}
+
+.veil--in {
+  animation: veil-in 0.5s ease-in forwards;
+}
+
+.veil--out {
+  animation: veil-out 0.7s ease-out forwards;
+}
+
+@keyframes veil-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes veil-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes enter-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+html[data-enter] .stat-card,
+html[data-enter] .dash-panel {
+  animation: enter-up 0.6s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+}
+
+html[data-enter] .stat-card:nth-child(1) { animation-delay: 0.15s; }
+html[data-enter] .stat-card:nth-child(2) { animation-delay: 0.21s; }
+html[data-enter] .stat-card:nth-child(3) { animation-delay: 0.27s; }
+html[data-enter] .stat-card:nth-child(4) { animation-delay: 0.33s; }
+html[data-enter] .stat-card:nth-child(5) { animation-delay: 0.39s; }
+html[data-enter] .stat-card:nth-child(6) { animation-delay: 0.45s; }
+html[data-enter] .dash-panel { animation-delay: 0.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-blob,
+  .auth-center > .panel,
+  .passcode-card.is-leaving,
+  .veil,
+  html[data-enter] .stat-card,
+  html[data-enter] .dash-panel {
+    animation: none !important;
+  }
+  .veil { display: none; }
 }

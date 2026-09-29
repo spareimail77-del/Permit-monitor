@@ -1,18 +1,12 @@
+import AuthShell from "../components/AuthShell";
 import ForgotForm from "./ForgotForm";
 
 export const dynamic = "force-dynamic";
 
 export default function ForgotPasswordPage() {
   return (
-    <main style={styles.main}>
-      <div style={styles.center}>
-        <ForgotForm />
-      </div>
-    </main>
+    <AuthShell>
+      <ForgotForm />
+    </AuthShell>
   );
 }
-
-const styles = {
-  main: { minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center" },
-  center: { width: "100%", maxWidth: 380, padding: "20px" },
-};
