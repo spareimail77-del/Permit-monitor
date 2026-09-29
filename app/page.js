@@ -54,26 +54,38 @@ export default async function Dashboard() {
     }
   }
 
-  const upcomingExpiries = permits
+  const allUpcoming = permits
     .filter(
       (p) =>
         (p.displayStatus === "OPEN" || p.displayStatus === "EXPIRING_SOON") &&
         typeof p.daysRemaining === "number"
     )
-    .sort((a, b) => a.daysRemaining - b.daysRemaining)
-    .slice(0, 20);
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+  const upcomingExpiries = allUpcoming.slice(0, 30);
 
-  const areaBreakdown = topCounts(permits.map((p) => p.area));
-  const typeBreakdown = topCounts(permits.map((p) => p.permitType));
+  // Bars link to the Permit List filtered by that area / type.
+  const withLink = (rows, param) =>
+    rows.map((r) => ({
+      ...r,
+      href:
+        r.label === "Unspecified"
+          ? undefined
+          : `/permits?${param}=${encodeURIComponent(r.label)}`,
+    }));
+  const areaBreakdown = withLink(topCounts(permits.map((p) => p.area)), "area");
+  const typeBreakdown = withLink(topCounts(permits.map((p) => p.permitType)), "type");
 
   // meta.color is a var(--color-open) reference, which SVG's `stroke`
   // attribute resolves fine at render time against the current theme.
   const resolvedSegments = Object.entries(STATUS_META).map(([key, meta]) => ({
+    key,
     // Slices must not overlap, so the donut keeps Expiring Soon apart from
     // the rest of the open permits (the Active / Open card adds them together).
-    label: key === "OPEN" ? "Open (not expiring)" : meta.label,
+    label: key === "OPEN" ? "Open" : meta.label,
     value: counts[key] || 0,
     color: meta.color,
+    // "Open" here excludes expiring-soon, so it uses its own list filter.
+    href: `/permits?status=${key === "OPEN" ? "OPEN_ONLY" : key}`,
   }));
 
   return (
@@ -111,6 +123,11 @@ export default async function Dashboard() {
                   key={key}
                   label={meta.label}
                   value={key === "OPEN" ? counts.OPEN + counts.EXPIRING_SOON : counts[key]}
+                  caption={
+                    key === "OPEN" && counts.EXPIRING_SOON > 0
+                      ? `incl. ${counts.EXPIRING_SOON} expiring soon`
+                      : undefined
+                  }
                   color={meta.color}
                   icon={meta.icon}
                   href={`/permits?status=${key}`}
@@ -121,13 +138,13 @@ export default async function Dashboard() {
               )}
             </div>
 
-            <div style={styles.twoCol}>
-              <div className="panel" style={styles.panelPad}>
+            <div className="dash-row">
+              <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">Status distribution</h2>
                 <p className="panel-subtitle">
-                  Share of every permit currently on record.
+                  Hover a slice for details, click to open that list.
                 </p>
-                <div style={{ marginTop: 18 }}>
+                <div className="dash-panel__body dash-panel__body--center">
                   <DonutChart
                     segments={resolvedSegments}
                     total={permits.length}
@@ -136,30 +153,34 @@ export default async function Dashboard() {
                 </div>
               </div>
 
-              <div className="panel" style={styles.panelPad}>
+              <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">Expiring soon</h2>
                 <p className="panel-subtitle">
-                  Open permits, soonest expiry first. Scroll for more.
+                  Open permits grouped by expiry day, soonest first.
                 </p>
-                <div style={{ marginTop: 12 }}>
-                  <ExpiringWatchlist permits={upcomingExpiries} />
+                <div className="dash-panel__body">
+                  <ExpiringWatchlist
+                    permits={upcomingExpiries}
+                    totalCount={allUpcoming.length}
+                    viewAllHref="/permits?status=OPEN"
+                  />
                 </div>
               </div>
             </div>
 
-            <div style={{ ...styles.twoCol, marginTop: 16 }}>
-              <div className="panel" style={styles.panelPad}>
+            <div className="dash-row" style={{ marginTop: 16 }}>
+              <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">By area</h2>
-                <p className="panel-subtitle">Permit count per work area.</p>
-                <div style={{ marginTop: 18 }}>
+                <p className="panel-subtitle">Permit count per work area. Click a bar to filter.</p>
+                <div className="dash-panel__body">
                   <BreakdownBars rows={areaBreakdown} />
                 </div>
               </div>
 
-              <div className="panel" style={styles.panelPad}>
+              <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">By permit type</h2>
-                <p className="panel-subtitle">Most common permit types.</p>
-                <div style={{ marginTop: 18 }}>
+                <p className="panel-subtitle">Most common permit types. Click a bar to filter.</p>
+                <div className="dash-panel__body">
                   <BreakdownBars rows={typeBreakdown} />
                 </div>
               </div>
@@ -174,9 +195,4 @@ export default async function Dashboard() {
 const styles = {
   body: { maxWidth: 1120, margin: "0 auto", padding: "28px 20px 48px" },
   panelPad: { padding: "20px 24px" },
-  twoCol: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: 16,
-  },
 };

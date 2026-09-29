@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import ErrorScreen from "../components/ErrorScreen";
 import PermitTable from "../components/PermitTable";
 import { createClient } from "../../lib/supabase/server";
+import { getAccess, hasPermission } from "../../lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,25 @@ export default async function PermitListPage({ searchParams }) {
   // else falls back to "show everything" rather than erroring.
   const requestedStatus = searchParams?.status;
   const initialStatus =
-    requestedStatus && STATUS_META[requestedStatus] ? requestedStatus : "ALL";
+    requestedStatus && (STATUS_META[requestedStatus] || requestedStatus === "OPEN_ONLY")
+      ? requestedStatus
+      : "ALL";
 
   // One lightweight query for every attachment's permit reference, so
   // the list can show which permits have files attached. Metadata only
   // (no file bytes), and a failure just means no indicators — never an
   // error page.
   const attachmentCounts = {};
+  let canExport = false;
   try {
     const supabase = createClient();
+    // Export is limited to roles with the export_data permission.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      canExport = hasPermission(await getAccess(supabase, user.id), "export_data");
+    }
     const { data: rows } = await supabase
       .from("permit_attachments")
       .select("permit_reference");
@@ -52,6 +63,12 @@ export default async function PermitListPage({ searchParams }) {
       attachmentCount: attachmentCounts[permit.reference] || 0,
     };
   });
+
+  // Only offered when the area / type from a dashboard link really exists.
+  const areaParam = typeof searchParams?.area === "string" ? searchParams.area : "";
+  const typeParam = typeof searchParams?.type === "string" ? searchParams.type : "";
+  const initialArea = permits.some((p) => p.area === areaParam) ? areaParam : "ALL";
+  const initialType = permits.some((p) => p.permitType === typeParam) ? typeParam : "ALL";
 
   return (
     <main>
@@ -78,6 +95,11 @@ export default async function PermitListPage({ searchParams }) {
             permits={permits}
             duplicateReferences={data.duplicateReferences}
             initialStatus={initialStatus}
+            initialArea={initialArea}
+            initialType={initialType}
+            canExport={canExport}
+            template={canExport ? data.template : null}
+            today={today}
           />
         )}
       </section>

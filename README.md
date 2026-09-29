@@ -15,9 +15,9 @@ keep the policies in `supabase-schema.sql` in step.
 
 | Role | Can do |
 |---|---|
-| Root | Everything, incl. password resets and the activity log |
+| Root | Everything, incl. password resets, the activity log, archive clean-up and Excel export |
 | Manager | View everything (incl. archive); approve or reject account requests |
-| HSE | View, upload Excel, add/remove attachments, view archive, view the activity log (read-only; Root's own visits are hidden from HSE) |
+| HSE | View, upload Excel, add/remove attachments, archive clean-up, Excel export, view the activity log (read-only; Root's own visits are hidden from HSE) |
 | Permit holder | View dashboard and permits |
 | Permit applicant | View dashboard and permits |
 
@@ -87,6 +87,16 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   permits are stored). A file with no permits is rejected. Viewable at
   Admin → Permit Archive by Root, HSE and Manager. A permit that later
   returns to the Excel also stays in the archive.
+  Root and HSE can filter (search, area, type, status, archived date range,
+  valid-to range, sort), tick rows or **select all matching** across pages,
+  and permanently delete them together with their attachments (batches of 25;
+  more than a page needs a typed `DELETE n` confirmation).
+- **Export to Excel (Root and HSE):** a button on the Permit List (rows
+  currently shown) and on the Archive (ticked rows, or everything matching the
+  filters). The `.xlsx` is built in the browser using the master log's header
+  block and column layout, with the site's calculated status and days left; no
+  macros. Exported files carry a marker and the upload refuses them, so a
+  filtered export can't replace the master log by accident.
 - **Attachments:** files (Physical Permit, JSA, etc.) are stored in
   Cloudinary and linked to the permit number in Supabase, so they survive
   re-uploads and remain visible on archived permits. Opened through short-lived

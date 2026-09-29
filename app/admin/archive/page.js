@@ -1,13 +1,36 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Header from "../../components/Header";
+import Icon from "../../components/Icon";
 import ArchiveTable from "./ArchiveTable";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
+import { todayInMuscat } from "../../../lib/status";
+import {
+  ARCHIVE_SORTS,
+  applyArchiveFilters,
+  applyArchiveSort,
+  archivePresets,
+  filtersToParams,
+  hasActiveFilters,
+  parseArchiveFilters,
+  parseSort,
+} from "../../../lib/archiveFilters";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
+
+const CHIP_LABELS = {
+  q: "Search",
+  area: "Area",
+  type: "Type",
+  status: "Status",
+  from: "Archived from",
+  to: "Archived to",
+  vfrom: "Valid to from",
+  vto: "Valid to until",
+};
 
 export default async function ArchivePage({ searchParams }) {
   const supabase = createClient();
@@ -19,21 +42,19 @@ export default async function ArchivePage({ searchParams }) {
   const access = await getAccess(supabase, user.id);
   if (!hasPermission(access, "view_archive")) redirect("/");
   const canDelete = hasPermission(access, "manage_archive");
+  const canExport = hasPermission(access, "export_data");
 
-  // Strip characters that have special meaning inside a PostgREST
-  // filter so a search can't break the query.
-  const q = (searchParams?.q || "").replace(/[,()%*\\]/g, " ").trim();
-  const area = (searchParams?.area || "").trim();
-  const type = (searchParams?.type || "").trim();
-  const status = (searchParams?.status || "").trim();
+  const filters = parseArchiveFilters(searchParams || {});
+  const sort = parseSort(searchParams?.sort);
+  const filtersActive = hasActiveFilters(filters);
   const page = Math.max(1, parseInt(searchParams?.page || "1", 10) || 1);
   const from = (page - 1) * PAGE_SIZE;
+  const today = todayInMuscat();
 
   // Distinct filter options. archived_permits is small text columns
   // only, and this app's archive is a single site's permit log, so
   // one bounded scan for the three filter columns is cheap even on
-  // the free tier — it does not fetch attachments or grow with page
-  // size.
+  // the free tier.
   const { data: optionRows } = await supabase
     .from("archived_permits")
     .select("area, permit_type, excel_status")
@@ -51,20 +72,21 @@ export default async function ArchivePage({ searchParams }) {
       "id, reference, area, permit_type, job_description, holder, valid_to, excel_status, archived_at",
       { count: "exact" }
     )
-    .order("archived_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
-
-  if (q) {
-    query = query.or(
-      `reference.ilike.%${q}%,job_description.ilike.%${q}%,holder.ilike.%${q}%,area.ilike.%${q}%`
-    );
-  }
-  if (area) query = query.eq("area", area);
-  if (type) query = query.eq("permit_type", type);
-  if (status) query = query.eq("excel_status", status);
+  query = applyArchiveFilters(query, filters);
+  query = applyArchiveSort(query, sort);
 
   const { data: rows, count, error } = await query;
   const list = rows || [];
+
+  // Whole-archive size, only needed to say "38 of 212" when filtered.
+  let archiveTotal = count || 0;
+  if (filtersActive) {
+    const { count: all } = await supabase
+      .from("archived_permits")
+      .select("id", { count: "exact", head: true });
+    archiveTotal = all ?? archiveTotal;
+  }
 
   // Attachments stay linked to the permit number, so archived permits
   // keep their scans. One query for just this page's permit numbers.
@@ -81,15 +103,36 @@ export default async function ArchivePage({ searchParams }) {
 
   const total = count || 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const filterParams = {
-    ...(q ? { q } : {}),
-    ...(area ? { area } : {}),
-    ...(type ? { type } : {}),
-    ...(status ? { status } : {}),
+  const sortParam = sort === "archived_desc" ? {} : { sort };
+
+  const hrefWith = (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return qs ? `/admin/archive?${qs}` : "/admin/archive";
   };
   const pageHref = (n) =>
-    `/admin/archive?${new URLSearchParams({ ...filterParams, page: String(n) })}`;
-  const hasActiveFilters = !!(q || area || type || status);
+    hrefWith({ ...filtersToParams(filters), ...sortParam, page: String(n) });
+
+  const chips = Object.entries(filters)
+    .filter(([, v]) => v)
+    .map(([k, v]) => ({
+      key: k,
+      label: CHIP_LABELS[k],
+      value: v,
+      href: hrefWith({ ...filtersToParams({ ...filters, [k]: "" }), ...sortParam }),
+    }));
+
+  const presets = archivePresets(today).map((p) => {
+    // A preset replaces the archived-date range and keeps everything else.
+    const params = { ...filtersToParams({ ...filters, from: "", to: "" }), ...sortParam, ...p.params };
+    const active =
+      Object.entries(p.params).every(([k, v]) => filters[k] === v) &&
+      ["from", "to"].every((k) => (k in p.params ? true : !filters[k]));
+    return { ...p, href: hrefWith(params), active };
+  });
+
+  // Passed to the client so "select all matching" / "export all" use
+  // exactly the filters shown here.
+  const filtersForClient = filtersToParams(filters);
 
   return (
     <main style={styles.main}>
@@ -100,51 +143,131 @@ export default async function ArchivePage({ searchParams }) {
         </p>
         <h2 style={styles.heading}>Permit Archive</h2>
         <p style={styles.subheading}>
-          Permits that were removed from the Excel file. {total} archived.
-          {canDelete && " Select rows to permanently delete a permit and any attachments filed under it."}
+          Permits that were removed from the Excel file. {archiveTotal} archived in total.
+          {canDelete && " Tick rows to permanently delete a permit and any attachments filed under it."}
         </p>
 
-        <form method="get" style={styles.filterForm}>
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search permit no., job, holder or area"
-            style={{ ...styles.input, flex: "1 1 240px" }}
-          />
-          <select name="area" defaultValue={area} style={styles.select}>
-            <option value="">All areas</option>
-            {areaOptions.map((v) => (
-              <option key={v} value={v}>{v}</option>
+        <form method="get" className="archive-filters panel">
+          <div className="archive-filters__row">
+            <input
+              name="q"
+              type="search"
+              defaultValue={filters.q}
+              placeholder="Search permit no., job, holder or area"
+              className="archive-filters__search"
+              aria-label="Search archive"
+            />
+            <button type="submit" className="btn btn-primary">Apply filters</button>
+            {(filtersActive || sort !== "archived_desc") && (
+              <Link href="/admin/archive" className="btn btn-ghost">Reset</Link>
+            )}
+          </div>
+
+          <div className="archive-filters__row">
+            <label className="archive-field">
+              <span>Area</span>
+              <select name="area" defaultValue={filters.area}>
+                <option value="">All areas</option>
+                {areaOptions.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="archive-field">
+              <span>Type</span>
+              <select name="type" defaultValue={filters.type}>
+                <option value="">All types</option>
+                {typeOptions.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="archive-field">
+              <span>Last status</span>
+              <select name="status" defaultValue={filters.status}>
+                <option value="">All statuses</option>
+                {statusOptions.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="archive-field">
+              <span>Sort by</span>
+              <select name="sort" defaultValue={sort}>
+                {Object.entries(ARCHIVE_SORTS).map(([key, s]) => (
+                  <option key={key} value={key}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="archive-filters__row">
+            <fieldset className="archive-range">
+              <legend>Archived between</legend>
+              <input type="date" name="from" defaultValue={filters.from} aria-label="Archived from" />
+              <span>to</span>
+              <input type="date" name="to" defaultValue={filters.to} aria-label="Archived to" />
+            </fieldset>
+            <fieldset className="archive-range">
+              <legend>Permit valid-to between</legend>
+              <input type="date" name="vfrom" defaultValue={filters.vfrom} aria-label="Valid to from" />
+              <span>to</span>
+              <input type="date" name="vto" defaultValue={filters.vto} aria-label="Valid to until" />
+            </fieldset>
+          </div>
+
+          <div className="archive-presets">
+            <span className="archive-presets__label">Quick range (archived):</span>
+            {presets.map((p) => (
+              <Link
+                key={p.key}
+                href={p.href}
+                className={`archive-preset${p.active ? " is-active" : ""}`}
+              >
+                {p.label}
+              </Link>
             ))}
-          </select>
-          <select name="type" defaultValue={type} style={styles.select}>
-            <option value="">All types</option>
-            {typeOptions.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-          <select name="status" defaultValue={status} style={styles.select}>
-            <option value="">All statuses</option>
-            {statusOptions.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-          <button type="submit" className="btn btn-primary">Filter</button>
-          {hasActiveFilters && (
-            <Link href="/admin/archive" className="btn btn-ghost">Clear</Link>
-          )}
+          </div>
         </form>
+
+        {chips.length > 0 && (
+          <div className="archive-chips" aria-label="Active filters">
+            {chips.map((c) => (
+              <Link key={c.key} href={c.href} className="archive-chip" title="Remove this filter">
+                <span className="archive-chip__name">{c.label}:</span> {c.value}
+                <Icon name="x" size={12} />
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <p className="result-count">
+          {filtersActive
+            ? `${total} of ${archiveTotal} archived permits match`
+            : `${total} archived permits`}
+          {total > PAGE_SIZE && ` · page ${page} of ${lastPage}`}
+        </p>
 
         {error && <p className="error-text">Could not load the archive.</p>}
 
         {!error && list.length === 0 && (
           <p style={styles.empty}>
-            {hasActiveFilters ? "No archived permits match your filters." : "Nothing archived yet."}
+            {filtersActive ? "No archived permits match your filters." : "Nothing archived yet."}
           </p>
         )}
 
         {list.length > 0 && (
-          <ArchiveTable rows={list} attachmentsByRef={attachmentsByRef} canDelete={canDelete} />
+          <ArchiveTable
+            key={`${page}|${sort}|${JSON.stringify(filtersForClient)}`}
+            rows={list}
+            attachmentsByRef={attachmentsByRef}
+            canDelete={canDelete}
+            canExport={canExport}
+            total={total}
+            filters={filtersForClient}
+            sort={sort}
+            today={today}
+          />
         )}
 
         {lastPage > 1 && (
@@ -166,25 +289,6 @@ const styles = {
   crumbLink: { color: "var(--color-brand-2)" },
   heading: { margin: "6px 0 0", fontSize: "var(--font-size-xl)", color: "var(--color-ink)" },
   subheading: { margin: "6px 0 20px", color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
-  filterForm: { display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" },
-  input: {
-    padding: "9px 12px",
-    borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--color-rule)",
-    background: "var(--color-surface)",
-    color: "var(--color-ink)",
-    fontFamily: "inherit",
-    fontSize: "var(--font-size-sm)",
-  },
-  select: {
-    padding: "9px 12px",
-    borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--color-rule)",
-    background: "var(--color-surface)",
-    color: "var(--color-ink)",
-    fontFamily: "inherit",
-    fontSize: "var(--font-size-sm)",
-  },
   empty: { color: "var(--color-ink-muted)" },
   pager: { display: "flex", gap: 12, alignItems: "center", marginTop: 16 },
   pageInfo: { fontSize: "var(--font-size-sm)", color: "var(--color-ink-muted)" },

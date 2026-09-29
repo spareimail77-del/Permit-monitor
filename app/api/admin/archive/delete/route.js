@@ -8,7 +8,12 @@ import { getAccess, hasPermission } from "../../../../../lib/authz";
 // undo — the confirmation happens client-side before this is called.
 // Best-effort per permit: one failure doesn't stop the rest.
 
-const MAX_PER_REQUEST = 200;
+// Kept small so one request finishes well inside a serverless time
+// limit; the archive page sends larger selections in several batches.
+const MAX_PER_REQUEST = 50;
+const CONCURRENCY = 5;
+
+export const maxDuration = 60;
 
 export async function POST(request) {
   const supabase = createClient();
@@ -58,7 +63,7 @@ export async function POST(request) {
 
   const results = { deleted: 0, failed: [], missing };
 
-  for (const permit of found) {
+  async function removeOne(permit) {
     try {
       const { data: attachments } = await supabase
         .from("permit_attachments")
@@ -96,6 +101,15 @@ export async function POST(request) {
       results.failed.push(permit.reference);
     }
   }
+
+  // A few permits at a time: much faster than one by one, without
+  // hammering Cloudinary or the database.
+  const queue = [...found];
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (queue.length) await removeOne(queue.shift());
+    })
+  );
 
   return Response.json({ ok: true, ...results });
 }

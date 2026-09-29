@@ -61,6 +61,15 @@ export async function POST(request) {
     let archiveWarning = null;
     try {
       const newParsed = parsePermitsFromBuffer(await file.arrayBuffer());
+      if (newParsed.isExport) {
+        return Response.json(
+          {
+            error:
+              "This file was created by the Export button, so it is not the master permit log. Upload your original Excel file instead.",
+          },
+          { status: 400 }
+        );
+      }
       if (newParsed.error || newParsed.permits.length === 0) {
         return Response.json(
           {

@@ -103,6 +103,13 @@ const PATHS = {
       <path d="M9.9 10.1a3 3 0 0 0 4 4" />
     </>
   ),
+  download: (
+    <>
+      <path d="M12 4v11m0 0-4-4m4 4 4-4" />
+      <path d="M5 19h14" />
+    </>
+  ),
+  x: <path d="M6 6l12 12M18 6 6 18" />,
   trash: (
     <>
       <path d="M4 7h16" />

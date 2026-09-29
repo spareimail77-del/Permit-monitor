@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import Icon from "./Icon";
 import { STATUS_META, matchesStatusFilter } from "../../lib/statusMeta";
+import { downloadPermitWorkbook, listRowToExportPermit } from "../../lib/exportPermits";
 
 function uniqueSorted(values) {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
@@ -16,12 +17,18 @@ export default function PermitTable({
   permits,
   duplicateReferences = [],
   initialStatus = "ALL",
+  initialArea = "ALL",
+  initialType = "ALL",
+  canExport = false,
+  template = null,
+  today = "",
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatus);
-  const [areaFilter, setAreaFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [areaFilter, setAreaFilter] = useState(initialArea);
+  const [typeFilter, setTypeFilter] = useState(initialType);
+  const [exportState, setExportState] = useState("idle"); // idle | working | error
 
   const areas = useMemo(() => uniqueSorted(permits.map((p) => p.area)), [
     permits,
@@ -54,6 +61,21 @@ export default function PermitTable({
     });
   }, [permits, query, statusFilter, areaFilter, typeFilter]);
 
+  async function handleExport() {
+    setExportState("working");
+    try {
+      await downloadPermitWorkbook({
+        permits: filtered.map(listRowToExportPermit),
+        template,
+        filename: `Permit_Log_export_${today || "today"}.xlsx`,
+      });
+      setExportState("idle");
+    } catch (err) {
+      console.error("Export failed:", err);
+      setExportState("error");
+    }
+  }
+
   return (
     <div>
       <div className="filter-bar">
@@ -71,9 +93,14 @@ export default function PermitTable({
         >
           <option value="ALL">All statuses</option>
           {Object.entries(STATUS_META).map(([key, meta]) => (
-            <option key={key} value={key}>
-              {key === "OPEN" ? "Active / Open (incl. expiring soon)" : meta.label}
-            </option>
+            <React.Fragment key={key}>
+              <option value={key}>
+                {key === "OPEN" ? "Active / Open (incl. expiring soon)" : meta.label}
+              </option>
+              {key === "OPEN" && (
+                <option value="OPEN_ONLY">Open only (not expiring)</option>
+              )}
+            </React.Fragment>
           ))}
         </select>
         <select
@@ -102,9 +129,28 @@ export default function PermitTable({
         </select>
       </div>
 
-      <p className="result-count">
-        Showing {filtered.length} of {permits.length} permits
-      </p>
+      <div className="result-row">
+        <p className="result-count">
+          Showing {filtered.length} of {permits.length} permits
+        </p>
+        {canExport && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleExport}
+            disabled={exportState === "working" || filtered.length === 0}
+            title="Download the permits currently shown as an Excel file"
+          >
+            <Icon name="download" size={15} />
+            {exportState === "working"
+              ? "Preparing…"
+              : `Export ${filtered.length} to Excel`}
+          </button>
+        )}
+      </div>
+      {exportState === "error" && (
+        <p className="error-text">Could not create the Excel file. Try again.</p>
+      )}
 
       <div className="table-scroll">
         <table className="permit-table">
