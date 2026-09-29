@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Header from "../../components/Header";
+import ArchiveTable from "./ArchiveTable";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
 
@@ -17,12 +18,32 @@ export default async function ArchivePage({ searchParams }) {
 
   const access = await getAccess(supabase, user.id);
   if (!hasPermission(access, "view_archive")) redirect("/");
+  const canDelete = hasPermission(access, "manage_archive");
 
   // Strip characters that have special meaning inside a PostgREST
   // filter so a search can't break the query.
   const q = (searchParams?.q || "").replace(/[,()%*\\]/g, " ").trim();
+  const area = (searchParams?.area || "").trim();
+  const type = (searchParams?.type || "").trim();
+  const status = (searchParams?.status || "").trim();
   const page = Math.max(1, parseInt(searchParams?.page || "1", 10) || 1);
   const from = (page - 1) * PAGE_SIZE;
+
+  // Distinct filter options. archived_permits is small text columns
+  // only, and this app's archive is a single site's permit log, so
+  // one bounded scan for the three filter columns is cheap even on
+  // the free tier — it does not fetch attachments or grow with page
+  // size.
+  const { data: optionRows } = await supabase
+    .from("archived_permits")
+    .select("area, permit_type, excel_status")
+    .limit(5000);
+
+  const distinct = (key) =>
+    [...new Set((optionRows || []).map((r) => r[key]).filter(Boolean))].sort();
+  const areaOptions = distinct("area");
+  const typeOptions = distinct("permit_type");
+  const statusOptions = distinct("excel_status");
 
   let query = supabase
     .from("archived_permits")
@@ -38,6 +59,9 @@ export default async function ArchivePage({ searchParams }) {
       `reference.ilike.%${q}%,job_description.ilike.%${q}%,holder.ilike.%${q}%,area.ilike.%${q}%`
     );
   }
+  if (area) query = query.eq("area", area);
+  if (type) query = query.eq("permit_type", type);
+  if (status) query = query.eq("excel_status", status);
 
   const { data: rows, count, error } = await query;
   const list = rows || [];
@@ -57,8 +81,15 @@ export default async function ArchivePage({ searchParams }) {
 
   const total = count || 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const filterParams = {
+    ...(q ? { q } : {}),
+    ...(area ? { area } : {}),
+    ...(type ? { type } : {}),
+    ...(status ? { status } : {}),
+  };
   const pageHref = (n) =>
-    `/admin/archive?${new URLSearchParams({ ...(q ? { q } : {}), page: String(n) })}`;
+    `/admin/archive?${new URLSearchParams({ ...filterParams, page: String(n) })}`;
+  const hasActiveFilters = !!(q || area || type || status);
 
   return (
     <main style={styles.main}>
@@ -70,73 +101,50 @@ export default async function ArchivePage({ searchParams }) {
         <h2 style={styles.heading}>Permit Archive</h2>
         <p style={styles.subheading}>
           Permits that were removed from the Excel file. {total} archived.
+          {canDelete && " Select rows to permanently delete a permit and any attachments filed under it."}
         </p>
 
-        <form method="get" style={styles.searchForm}>
+        <form method="get" style={styles.filterForm}>
           <input
             name="q"
             defaultValue={q}
             placeholder="Search permit no., job, holder or area"
-            style={styles.input}
+            style={{ ...styles.input, flex: "1 1 240px" }}
           />
-          <button type="submit" className="btn btn-primary">Search</button>
+          <select name="area" defaultValue={area} style={styles.select}>
+            <option value="">All areas</option>
+            {areaOptions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <select name="type" defaultValue={type} style={styles.select}>
+            <option value="">All types</option>
+            {typeOptions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <select name="status" defaultValue={status} style={styles.select}>
+            <option value="">All statuses</option>
+            {statusOptions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <button type="submit" className="btn btn-primary">Filter</button>
+          {hasActiveFilters && (
+            <Link href="/admin/archive" className="btn btn-ghost">Clear</Link>
+          )}
         </form>
 
         {error && <p className="error-text">Could not load the archive.</p>}
 
         {!error && list.length === 0 && (
           <p style={styles.empty}>
-            {q ? "No archived permits match your search." : "Nothing archived yet."}
+            {hasActiveFilters ? "No archived permits match your filters." : "Nothing archived yet."}
           </p>
         )}
 
         {list.length > 0 && (
-          <div className="table-scroll panel">
-            <table className="permit-table">
-              <thead>
-                <tr>
-                  <th>Permit No.</th>
-                  <th>Area</th>
-                  <th>Type</th>
-                  <th>Job</th>
-                  <th>Holder</th>
-                  <th>Valid to</th>
-                  <th>Last status</th>
-                  <th>Archived</th>
-                  <th>Attachments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((r) => (
-                  <tr key={r.id}>
-                    <td className="mono">{r.reference}</td>
-                    <td>{r.area}</td>
-                    <td>{r.permit_type}</td>
-                    <td>{r.job_description}</td>
-                    <td>{r.holder}</td>
-                    <td className="mono">{r.valid_to}</td>
-                    <td>{r.excel_status}</td>
-                    <td className="mono">
-                      {new Date(r.archived_at).toLocaleDateString("en-GB")}
-                    </td>
-                    <td>
-                      {(attachmentsByRef[r.reference] || []).map((a) => (
-                        <div key={a.id}>
-                          <a
-                            href={`/api/attachments/${a.id}/view`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {a.label}
-                          </a>
-                        </div>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ArchiveTable rows={list} attachmentsByRef={attachmentsByRef} canDelete={canDelete} />
         )}
 
         {lastPage > 1 && (
@@ -158,9 +166,17 @@ const styles = {
   crumbLink: { color: "var(--color-brand-2)" },
   heading: { margin: "6px 0 0", fontSize: "var(--font-size-xl)", color: "var(--color-ink)" },
   subheading: { margin: "6px 0 20px", color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
-  searchForm: { display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" },
+  filterForm: { display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" },
   input: {
-    flex: "1 1 240px",
+    padding: "9px 12px",
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--color-rule)",
+    background: "var(--color-surface)",
+    color: "var(--color-ink)",
+    fontFamily: "inherit",
+    fontSize: "var(--font-size-sm)",
+  },
+  select: {
     padding: "9px 12px",
     borderRadius: "var(--radius-sm)",
     border: "1px solid var(--color-rule)",

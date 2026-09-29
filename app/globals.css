@@ -265,6 +265,51 @@ h3 {
   border: 1px solid var(--color-rule-strong);
 }
 
+.btn-danger {
+  background: var(--color-expired);
+  color: #2a0a0a;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------
+   Archive — bulk select/delete bar
+--------------------------------------------------------- */
+
+.archive-bulkbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-expired-tint);
+  border: 1px solid var(--color-expired);
+}
+
+.archive-bulkbar__count {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--color-ink);
+}
+
+.archive-bulkbar__warn {
+  font-size: var(--font-size-sm);
+  color: var(--color-ink);
+  flex: 1 1 260px;
+}
+
+.archive-bulkbar__result {
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-muted);
+  margin: 0 0 12px;
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -695,6 +740,81 @@ a.stat-card:hover {
   letter-spacing: 0.08em;
   text-align: center;
   margin: 18px 0 12px;
+}
+
+/* ---------------------------------------------------------
+   Password field — show/hide toggle (client-side only)
+--------------------------------------------------------- */
+
+.password-field {
+  position: relative;
+  margin: 18px 0 12px;
+}
+
+.password-field .password-field__input {
+  margin: 0;
+  padding-left: 44px;
+  padding-right: 44px;
+  width: 100%;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.password-field__toggle:hover {
+  color: var(--color-brand-2);
+  background: var(--color-surface-hover);
+}
+
+.password-field__toggle:focus-visible {
+  outline: 2px solid var(--color-brand-2);
+  outline-offset: 2px;
+}
+
+.password-field__icon-stack {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+}
+
+.password-field__icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.55) rotate(-10deg);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.password-field__icon--active {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .password-field__icon {
+    transition: opacity 1ms linear;
+    transform: none;
+  }
 }
 
 /* ---------------------------------------------------------

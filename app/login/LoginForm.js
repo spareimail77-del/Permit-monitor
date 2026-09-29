@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import { staffIdToAuthEmail } from "../../lib/staffAuth";
 import Icon from "../components/Icon";
+import PasswordInput from "../components/PasswordInput";
 
 const REASON_MESSAGES = {
   pending: "Your account is waiting for approval.",
@@ -86,13 +87,11 @@ export default function LoginForm() {
           className="passcode-input"
           aria-label="Staff ID"
         />
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="current-password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="passcode-input"
           aria-label="Password"
         />
         <button

@@ -202,6 +202,13 @@ create policy "HSE and root can update archive"
   on public.archived_permits for update
   using (public.active_role() in ('root', 'hse'));
 
+-- Step 27: manual clean-up of old archived permits (and, in the app
+-- layer, their attachments) so free-tier storage doesn't grow forever.
+drop policy if exists "HSE and root can delete archive" on public.archived_permits;
+create policy "HSE and root can delete archive"
+  on public.archived_permits for delete
+  using (public.active_role() in ('root', 'hse'));
+
 -- ---------------------------------------------------------------
 -- 6. Forgot-password requests (no email: they show up in Admin ->
 --    Password requests). Only one open request per Staff ID.

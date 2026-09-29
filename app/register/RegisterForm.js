@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Icon from "../components/Icon";
+import PasswordInput from "../components/PasswordInput";
 import { PASSWORD_MIN } from "../../lib/authRules";
 
 export default function RegisterForm() {
@@ -88,22 +89,18 @@ export default function RegisterForm() {
           aria-label="Name"
           maxLength={40}
         />
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           placeholder={`Password (min ${PASSWORD_MIN} characters)`}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="passcode-input"
           aria-label="Password"
         />
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           placeholder="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="passcode-input"
           aria-label="Confirm password"
         />
         {/* Honeypot: hidden from people, tempting to bots. */}

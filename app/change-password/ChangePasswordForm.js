@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PasswordInput from "../components/PasswordInput";
 import { PASSWORD_MIN } from "../../lib/authRules";
 
 export default function ChangePasswordForm({ forced }) {
@@ -52,31 +53,25 @@ export default function ChangePasswordForm({ forced }) {
       </p>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="current-password"
           placeholder={forced ? "Temporary password" : "Current password"}
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
-          className="passcode-input"
           aria-label="Current password"
         />
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           placeholder={`New password (min ${PASSWORD_MIN} characters)`}
           value={next}
           onChange={(e) => setNext(e.target.value)}
-          className="passcode-input"
           aria-label="New password"
         />
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           placeholder="Confirm new password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="passcode-input"
           aria-label="Confirm new password"
         />
         <button
