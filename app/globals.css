@@ -478,7 +478,7 @@ a.stat-card:hover {
 
 /* Thin inner ring: the sub-part of one slice (Expiring soon inside Open). */
 .donut-inner {
-  stroke-width: 10px;
+  stroke-width: 6px;
   cursor: pointer;
   outline: none;
   transition: stroke-width 0.18s ease, opacity 0.18s ease;
@@ -488,7 +488,13 @@ a.stat-card:hover {
 
 .donut-inner.is-active,
 .donut-inner:focus-visible {
-  stroke-width: 14px;
+  stroke-width: 9px;
+}
+
+/* The track is wider than the fill's hit area is comfortable, so keep it
+   at the same width; only the fill grows. */
+.donut-inner--track.is-related {
+  stroke-width: 6px;
 }
 
 .donut-svg.has-active .donut-slice:not(.is-active):not(.is-related),
@@ -543,9 +549,9 @@ a.stat-card:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1 1 210px;
-  min-width: 200px;
-  max-width: 300px;
+  flex: 1 1 250px;
+  min-width: 240px;
+  max-width: 320px;
 }
 
 .donut-legend__row {
@@ -580,8 +586,12 @@ a.stat-card:hover {
 .donut-legend__row--sub {
   padding-top: 4px;
   padding-bottom: 4px;
-  padding-left: 26px;
+  padding-left: 22px;
   font-size: var(--font-size-xs);
+}
+
+.donut-legend__row--sub .donut-legend__label {
+  white-space: nowrap;
 }
 
 .donut-legend__row--sub .legend-dot {
