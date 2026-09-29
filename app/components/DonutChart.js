@@ -20,12 +20,11 @@ const RADIUS = SIZE / 2 - STROKE_ACTIVE / 2 - 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const GAP = 2.5; // visual gap between slices, in SVG units
 
-// Thin inner "gauge" ring: a faint track along the parent's arc with the
-// sub-part filled on top. It sits well inside the main ring, clear of the
-// main ring's grown (active) state.
-const INNER_STROKE_ACTIVE = 9;
-const INNER_RADIUS = RADIUS - STROKE_ACTIVE / 2 - 9 - INNER_STROKE_ACTIVE / 2;
+// Inner ring sits inside the main ring, clear of its grown (active) state.
+const INNER_STROKE_ACTIVE = 14;
+const INNER_RADIUS = RADIUS - STROKE_ACTIVE / 2 - 2 - INNER_STROKE_ACTIVE / 2;
 const INNER_CIRCUMFERENCE = 2 * Math.PI * INNER_RADIUS;
+const INNER_GAP = 1.5;
 
 function percentText(value, total) {
   if (!total || !value) return "0%";
@@ -49,29 +48,35 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
     return arc;
   });
 
-  // Inner ring pieces: for each parent arc, a faint track over the parent's
-  // visible angle, and the children filled on top from its start (each child
-  // takes value/parent.value of the track).
+  // Inner ring pieces: one group per parent arc, laid along that arc.
+  // Each child gets a share of the parent's visible angle; whatever is left
+  // of the parent's value (parent - children) is the plain, parent-coloured part.
   const inner = [];
   for (const a of arcs) {
     if (!a.children || a.children.length === 0) continue;
     const span = (a.visible / CIRCUMFERENCE) * INNER_CIRCUMFERENCE;
     const start = (a.offset / CIRCUMFERENCE) * INNER_CIRCUMFERENCE;
-    inner.push({
-      key: `${a.key}__track`,
-      isTrack: true,
-      parentKey: a.key,
-      parentHref: a.href,
-      color: a.color,
-      i: a.i + 1,
-      visible: span,
-      offset: start,
-    });
+    const parts = a.children
+      .filter((c) => c.value > 0)
+      .map((c) => ({ ...c, parentKey: a.key, parentHref: a.href, share: c.value }));
+    const childSum = parts.reduce((n, p) => n + p.share, 0);
+    const rest = Math.max(a.value - childSum, 0);
+    if (rest > 0) {
+      parts.push({
+        key: `${a.key}__rest`,
+        parentKey: a.key,
+        parentHref: a.href,
+        color: a.color,
+        share: rest,
+        isRest: true,
+      });
+    }
+    const g = parts.length > 1 ? INNER_GAP : 0;
     let pos = start;
-    for (const c of a.children) {
-      if (c.value <= 0) continue;
-      const len = Math.min(c.value / a.value, 1) * span;
-      inner.push({ ...c, parentKey: a.key, i: a.i + 1, visible: Math.max(len, 0.5), offset: pos });
+    for (const p of parts) {
+      const len = (p.share / a.value) * span;
+      const visible = Math.max(len - g, 0.5);
+      inner.push({ ...p, i: a.i + 1, visible, offset: pos });
       pos += len;
     }
   }
@@ -153,52 +158,50 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
             />
           ))}
           {inner.map((p) => {
-            const common = {
-              cx: SIZE / 2,
-              cy: SIZE / 2,
-              r: INNER_RADIUS,
-              fill: "none",
-              ...dash(p.visible, INNER_CIRCUMFERENCE),
-              strokeDashoffset: -p.offset,
-              transform: `rotate(-90 ${SIZE / 2} ${SIZE / 2})`,
-              style: {
-                "--len": p.visible,
-                "--circ": INNER_CIRCUMFERENCE,
-                "--rest": INNER_CIRCUMFERENCE - p.visible,
-                "--i": p.i,
-              },
-            };
-            // The track is decoration belonging to its parent arc: hovering
-            // it lights the parent; it is not a separate tab stop.
-            if (p.isTrack) {
-              const lit = activeKey === p.parentKey || relatedKey === p.parentKey;
-              return (
-                <circle
-                  key={p.key}
-                  {...common}
-                  className={`donut-inner donut-inner--track${lit ? " is-related" : ""}`}
-                  stroke={`color-mix(in srgb, ${p.color} 28%, transparent)`}
-                  aria-hidden="true"
-                  onMouseEnter={() => setActiveKey(p.parentKey)}
-                  onMouseLeave={() => setActiveKey(null)}
-                  onClick={() => go({ href: p.parentHref })}
-                />
-              );
-            }
+            const isRest = !!p.isRest;
+            // The plain part is decoration that belongs to its parent arc:
+            // hovering it lights the parent; it is not a separate tab stop.
+            const key = isRest ? p.parentKey : p.key;
+            const parentActive = isRest && activeKey === p.parentKey;
+            const lit = isRest
+              ? parentActive
+              : p.key === activeKey;
+            const inParentFocus = !isRest && activeKey === p.parentKey;
             return (
               <circle
                 key={p.key}
-                {...common}
-                className={`donut-inner${p.key === activeKey ? " is-active" : ""}${
-                  activeKey === p.parentKey ? " is-related" : ""
-                }`}
+                className={`donut-inner${lit && !isRest ? " is-active" : ""}${
+                  isRest && parentActive ? " is-related" : ""
+                }${inParentFocus ? " is-related" : ""}`}
+                cx={SIZE / 2}
+                cy={SIZE / 2}
+                r={INNER_RADIUS}
+                fill="none"
                 stroke={p.color}
-                tabIndex={0}
-                role="link"
-                aria-label={label(p)}
-                {...focusProps(p.key)}
-                onClick={() => go(p)}
-                onKeyDown={keyGo(p)}
+                {...dash(p.visible, INNER_CIRCUMFERENCE)}
+                strokeDashoffset={-p.offset}
+                transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                style={{
+                  "--len": p.visible,
+                  "--circ": INNER_CIRCUMFERENCE,
+                  "--rest": INNER_CIRCUMFERENCE - p.visible,
+                  "--i": p.i,
+                }}
+                {...(isRest
+                  ? {
+                      "aria-hidden": true,
+                      onMouseEnter: () => setActiveKey(key),
+                      onMouseLeave: () => setActiveKey(null),
+                      onClick: () => go({ href: p.parentHref }),
+                    }
+                  : {
+                      tabIndex: 0,
+                      role: "link",
+                      "aria-label": label(p),
+                      ...focusProps(p.key),
+                      onClick: () => go(p),
+                      onKeyDown: keyGo(p),
+                    })}
               />
             );
           })}

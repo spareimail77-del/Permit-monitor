@@ -478,7 +478,7 @@ a.stat-card:hover {
 
 /* Thin inner ring: the sub-part of one slice (Expiring soon inside Open). */
 .donut-inner {
-  stroke-width: 6px;
+  stroke-width: 10px;
   cursor: pointer;
   outline: none;
   transition: stroke-width 0.18s ease, opacity 0.18s ease;
@@ -488,13 +488,7 @@ a.stat-card:hover {
 
 .donut-inner.is-active,
 .donut-inner:focus-visible {
-  stroke-width: 9px;
-}
-
-/* The track is wider than the fill's hit area is comfortable, so keep it
-   at the same width; only the fill grows. */
-.donut-inner--track.is-related {
-  stroke-width: 6px;
+  stroke-width: 14px;
 }
 
 .donut-svg.has-active .donut-slice:not(.is-active):not(.is-related),
@@ -549,9 +543,9 @@ a.stat-card:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1 1 250px;
-  min-width: 240px;
-  max-width: 320px;
+  flex: 1 1 210px;
+  min-width: 200px;
+  max-width: 300px;
 }
 
 .donut-legend__row {
@@ -586,12 +580,8 @@ a.stat-card:hover {
 .donut-legend__row--sub {
   padding-top: 4px;
   padding-bottom: 4px;
-  padding-left: 22px;
+  padding-left: 26px;
   font-size: var(--font-size-xs);
-}
-
-.donut-legend__row--sub .donut-legend__label {
-  white-space: nowrap;
 }
 
 .donut-legend__row--sub .legend-dot {
@@ -1666,6 +1656,7 @@ a.stat-card:hover {
 }
 
 .auth-blob {
+  display: none; /* smoke is the light-theme background only */
   position: absolute;
   width: 70vmax;
   height: 70vmax;
@@ -1694,6 +1685,77 @@ a.stat-card:hover {
   height: 50vmax;
   background: radial-gradient(circle at center, var(--smoke-3), transparent 65%);
   animation: smoke-c 40s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .auth-blob {
+  display: block;
+}
+
+/* Dark theme: fireflies. Two animated layers per dot, both transform/opacity
+   only: .firefly wanders along a looping path, .firefly__dot twinkles. */
+.auth-flies {
+  position: absolute;
+  inset: 0;
+  /* barely-there violet glow so the page is not flat black */
+  background: radial-gradient(ellipse 80% 50% at 50% 115%, rgba(109, 40, 217, 0.13), transparent 70%);
+}
+
+[data-theme="light"] .auth-flies {
+  display: none;
+}
+
+.firefly {
+  position: absolute;
+  width: 0;
+  height: 0;
+  will-change: transform;
+  animation: firefly-wander var(--dur) ease-in-out var(--delay) infinite;
+  --ff-core: 255, 240, 140;
+}
+
+.firefly--green { --ff-core: 200, 240, 110; }
+.firefly--amber { --ff-core: 255, 226, 120; }
+.firefly--violet { --ff-core: 190, 165, 255; }
+
+.firefly__dot {
+  position: absolute;
+  /* glow area is 7x the bright core */
+  width: calc(var(--s) * 7);
+  height: calc(var(--s) * 7);
+  margin: calc(var(--s) * -3.5) 0 0 calc(var(--s) * -3.5);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--ff-core), 0.95) 0%,
+    rgba(var(--ff-core), 0.85) 14%,
+    rgba(var(--ff-core), 0.22) 32%,
+    rgba(var(--ff-core), 0) 62%
+  );
+  opacity: 0.1;
+  animation: firefly-twinkle var(--tw) ease-in-out var(--twd) infinite;
+}
+
+@keyframes firefly-wander {
+  0%   { transform: translate3d(0, 0, 0); }
+  25%  { transform: translate3d(var(--x1), var(--y1), 0); }
+  50%  { transform: translate3d(var(--x2), var(--y2), 0); }
+  75%  { transform: translate3d(var(--x3), var(--y3), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes firefly-twinkle {
+  0%   { opacity: 0.08; transform: scale(0.7); }
+  18%  { opacity: 0.95; transform: scale(1); }
+  38%  { opacity: 0.3;  transform: scale(0.8); }
+  58%  { opacity: 0.85; transform: scale(0.95); }
+  80%  { opacity: 0.15; transform: scale(0.72); }
+  100% { opacity: 0.08; transform: scale(0.7); }
+}
+
+@media (max-width: 640px) {
+  .firefly--extra {
+    display: none;
+  }
 }
 
 .auth-vignette {
@@ -1829,6 +1891,8 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
 
 @media (prefers-reduced-motion: reduce) {
   .auth-blob,
+  .firefly,
+  .firefly__dot,
   .auth-center > .panel,
   .passcode-card.is-leaving,
   .veil,
@@ -1837,4 +1901,5 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
     animation: none !important;
   }
   .veil { display: none; }
+  .firefly__dot { opacity: 0.4; }
 }
