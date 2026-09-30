@@ -107,7 +107,7 @@ export default function CertificateList({ certificates, certificateNo }) {
       </div>
 
       {names.length === 0 && numbers.length === 0 && (
-        <p style={s.empty}>No certificates on file</p>
+        <p style={s.empty}>No certificates for this permit</p>
       )}
 
       {paired && (
