@@ -1812,96 +1812,53 @@ a.stat-card:hover {
   display: block;
 }
 
-/* Dark theme: a still, top-down water surface, like the reference photo —
-   overlapping domes of colour anchored off the top-left corner, brightest
-   and largest at the front, darker and smaller behind it. Each dome
-   "breathes" (a slow, few-percent scale/shift) so the surface never looks
-   frozen, and three thin rings expand outward from the same corner on a
-   loop, like the rings that spread after something drops into water. Both
-   motions are slow (22–46s) and low-opacity, so nothing distracts from the
-   form in front. */
+/* Dark theme: a calm, near-black surface with slow bands of lighter purple
+   light sweeping in from the left edge and corners, like liquid catching
+   light. The base is still and dark; only the bands glow. Five soft bands
+   start at different points (top-left corner, upper-left, mid-left, lower-left,
+   bottom-left corner) and drift inward at different angles, speeds and
+   offsets, so it reads organic rather than symmetric. No blur filter: the
+   soft edges come from the gradient itself, and only transform/opacity
+   animate, so it stays cheap on phones. */
 .auth-waves {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  background: var(--color-bg);
 }
 
 [data-theme="light"] .auth-waves {
   display: none;
 }
 
-.ripple-dome {
+.wave {
   position: absolute;
-  left: -35%;
+  width: 95vmax;
+  height: 24vmax;
   border-radius: 50%;
-  aspect-ratio: 1 / 1;
-  animation: ripple-breathe var(--dur, 30s) ease-in-out var(--delay, 0s) infinite;
-}
-
-.ripple-dome--1 {
-  width: 135%;
-  top: -60%;
-  background: radial-gradient(circle at 32% 30%, #a78bfa 0%, #7c3aed 42%, #4c1d95 68%, transparent 84%);
-  opacity: 0.5;
-  --dur: 24s;
-}
-
-.ripple-dome--2 {
-  width: 108%;
-  top: -34%;
-  left: -30%;
-  background: radial-gradient(circle at 34% 32%, #8b5cf6 0%, #6d28d9 42%, #3b1370 68%, transparent 84%);
-  opacity: 0.42;
-  --dur: 32s;
-  --delay: -8s;
-}
-
-.ripple-dome--3 {
-  width: 82%;
-  top: -10%;
-  left: -22%;
-  background: radial-gradient(circle at 34% 32%, #7c3aed 0%, #5b21b6 42%, #2e1065 68%, transparent 84%);
-  opacity: 0.36;
-  --dur: 38s;
-  --delay: -16s;
-}
-
-.ripple-dome--4 {
-  width: 58%;
-  top: 10%;
-  left: -12%;
-  background: radial-gradient(circle at 34% 32%, #6d28d9 0%, #4c1d95 42%, #1e0b4d 68%, transparent 84%);
-  opacity: 0.3;
-  --dur: 46s;
-  --delay: -4s;
-}
-
-@keyframes ripple-breathe {
-  0%, 100% { transform: scale(1) translate(0, 0); }
-  50% { transform: scale(1.035) translate(1.2%, -1%); }
-}
-
-/* The expanding rings share the domes' corner origin. */
-.ripple-ring {
-  position: absolute;
-  left: -22%;
-  top: -22%;
-  width: 68%;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  border: 1.5px solid rgba(196, 181, 253, 0.3);
-  animation: ripple-expand var(--dur, 14s) ease-out var(--delay, 0s) infinite;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(196, 181, 253, 0.5) 0%,
+    rgba(139, 92, 246, 0.36) 30%,
+    rgba(91, 33, 182, 0.16) 55%,
+    transparent 72%
+  );
   opacity: 0;
+  will-change: transform, opacity;
+  animation: wave-sweep var(--dur, 30s) ease-in-out var(--delay, 0s) infinite;
 }
 
-.ripple-ring--1 { --dur: 14s; --delay: 0s; }
-.ripple-ring--2 { --dur: 14s; --delay: -4.6s; }
-.ripple-ring--3 { --dur: 14s; --delay: -9.2s; }
+.wave--1 { left: -70vmax; top: -6vmax;  --rot: 38deg;  --dx: 62vmax; --dy: 30vmax;  --dur: 32s; --delay: 0s; }
+.wave--2 { left: -78vmax; top: 22vh;    --rot: 12deg;  --dx: 70vmax; --dy: 8vmax;   --dur: 38s; --delay: -11s; }
+.wave--3 { left: -74vmax; top: 48vh;    --rot: -10deg; --dx: 68vmax; --dy: -6vmax;  --dur: 35s; --delay: -22s; }
+.wave--4 { left: -68vmax; bottom: 4vh;  --rot: -32deg; --dx: 60vmax; --dy: -26vmax; --dur: 41s; --delay: -6s; }
+.wave--5 { left: -72vmax; bottom: -8vmax; --rot: -46deg; --dx: 64vmax; --dy: -34vmax; --dur: 45s; --delay: -28s; }
 
-@keyframes ripple-expand {
-  0% { transform: scale(0.55); opacity: 0; }
-  12% { opacity: 0.4; }
-  100% { transform: scale(1.55); opacity: 0; }
+@keyframes wave-sweep {
+  0%   { transform: translate(0, 0) rotate(var(--rot)) scale(0.85); opacity: 0; }
+  25%  { opacity: 0.85; }
+  60%  { opacity: 0.6; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.12); opacity: 0; }
 }
 
 .auth-vignette {
@@ -2037,8 +1994,7 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
 
 @media (prefers-reduced-motion: reduce) {
   .auth-blob,
-  .ripple-dome,
-  .ripple-ring,
+  .wave,
   .auth-center > .panel,
   .passcode-card.is-leaving,
   .veil,
@@ -2047,5 +2003,5 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
     animation: none !important;
   }
   .veil { display: none; }
-  .ripple-ring { opacity: 0.15 !important; }
+  .wave { opacity: 0.35 !important; }
 }
