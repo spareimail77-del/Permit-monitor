@@ -131,13 +131,10 @@ export default async function PermitDetailPage({ params }) {
           <dl className="detail-grid">
             <DetailField label="Job Description" value={permit.jobDescription} />
           </dl>
-          <div className="cert-section">
-            <div className="cert-heading">Certificates</div>
-            <CertificateList
-              certificates={permit.certificates}
-              certificateNo={permit.certificateNo}
-            />
-          </div>
+          <CertificateList
+            certificates={permit.certificates}
+            certificateNo={permit.certificateNo}
+          />
         </div>
 
         <div className="panel" style={styles.card}>
