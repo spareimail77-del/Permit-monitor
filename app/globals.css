@@ -2068,3 +2068,108 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
   .page-transition > main > * { animation: none !important; }
   .skeleton { animation: none; }
 }
+
+/* ---------------------------------------------------------
+   Permit detail — certificates (one per line, number alongside)
+--------------------------------------------------------- */
+
+.cert-section {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-rule);
+}
+
+.cert-heading,
+.cert-sub {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-muted);
+  margin: 0 0 8px;
+}
+
+.cert-count {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  color: var(--color-brand-2);
+  background: var(--color-brand-tint);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: 10px;
+}
+
+.cert-list,
+.cert-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cert-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 10px;
+}
+
+.cert-row + .cert-row {
+  margin-top: 8px;
+}
+
+.cert-name {
+  font-size: var(--font-size-base);
+  color: var(--color-ink);
+  min-width: 0;
+  word-break: break-word;
+}
+
+.cert-no {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.02em;
+}
+
+.cert-no::before {
+  content: "No. ";
+  font-family: inherit;
+  color: var(--color-ink-faint);
+}
+
+.cert-unpaired-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 28px;
+}
+
+.cert-plain li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-rule);
+  word-break: break-word;
+}
+
+.cert-plain li:last-child {
+  border-bottom: 0;
+}
+
+.cert-note {
+  margin: 12px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-expiring);
+}
+
+.cert-empty {
+  margin: 0;
+  color: var(--color-ink-faint);
+}
+
+@media (max-width: 560px) {
+  .cert-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
