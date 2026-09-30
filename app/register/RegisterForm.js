@@ -53,7 +53,7 @@ export default function RegisterForm() {
         <p style={styles.muted}>
           Your account is waiting for approval. You can sign in once it has been approved.
         </p>
-        <Link href="/login" className="btn btn-primary" style={styles.fullBtn}>
+        <Link prefetch={false} href="/login" className="btn btn-primary" style={styles.fullBtn}>
           Back to sign in
         </Link>
       </div>
@@ -130,7 +130,7 @@ export default function RegisterForm() {
         </p>
       )}
       <p style={{ ...styles.muted, marginTop: 14 }}>
-        <Link href="/login" style={styles.link}>Back to sign in</Link>
+        <Link prefetch={false} href="/login" style={styles.link}>Back to sign in</Link>
       </p>
     </div>
   );

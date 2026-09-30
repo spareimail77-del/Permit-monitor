@@ -169,7 +169,7 @@ export default function ActivityView({ rows, names, me, now }) {
                             <span className="act-timeline__icon"><Icon name={d.icon} size={15} /></span>
                             <span>
                               {d.type === "permits" && /^\/permits\/\d+$/.test(d.href) ? (
-                                <Link href={d.href} style={{ color: "var(--color-brand-2)", fontWeight: 600 }}>{d.label}</Link>
+                                <Link prefetch={false} href={d.href} style={{ color: "var(--color-brand-2)", fontWeight: 600 }}>{d.label}</Link>
                               ) : (
                                 <span style={{ fontWeight: 600 }}>{d.label}</span>
                               )}

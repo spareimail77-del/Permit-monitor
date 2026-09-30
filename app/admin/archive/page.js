@@ -139,7 +139,7 @@ export default async function ArchivePage({ searchParams }) {
       <Header />
       <section style={styles.body}>
         <p style={styles.crumb}>
-          <Link href="/admin" style={styles.crumbLink}>Admin</Link> / Archive
+          <Link prefetch={false} href="/admin" style={styles.crumbLink}>Admin</Link> / Archive
         </p>
         <h2 style={styles.heading}>Permit Archive</h2>
         <p style={styles.subheading}>
@@ -159,7 +159,7 @@ export default async function ArchivePage({ searchParams }) {
             />
             <button type="submit" className="btn btn-primary">Apply filters</button>
             {(filtersActive || sort !== "archived_desc") && (
-              <Link href="/admin/archive" className="btn btn-ghost">Reset</Link>
+              <Link prefetch={false} href="/admin/archive" className="btn btn-ghost">Reset</Link>
             )}
           </div>
 
@@ -219,7 +219,7 @@ export default async function ArchivePage({ searchParams }) {
           <div className="archive-presets">
             <span className="archive-presets__label">Quick range (archived):</span>
             {presets.map((p) => (
-              <Link
+              <Link prefetch={false}
                 key={p.key}
                 href={p.href}
                 className={`archive-preset${p.active ? " is-active" : ""}`}
@@ -233,7 +233,7 @@ export default async function ArchivePage({ searchParams }) {
         {chips.length > 0 && (
           <div className="archive-chips" aria-label="Active filters">
             {chips.map((c) => (
-              <Link key={c.key} href={c.href} className="archive-chip" title="Remove this filter">
+              <Link prefetch={false} key={c.key} href={c.href} className="archive-chip" title="Remove this filter">
                 <span className="archive-chip__name">{c.label}:</span> {c.value}
                 <Icon name="x" size={12} />
               </Link>
@@ -272,9 +272,9 @@ export default async function ArchivePage({ searchParams }) {
 
         {lastPage > 1 && (
           <div style={styles.pager}>
-            {page > 1 && <Link href={pageHref(page - 1)} className="btn btn-ghost">Previous</Link>}
+            {page > 1 && <Link prefetch={false} href={pageHref(page - 1)} className="btn btn-ghost">Previous</Link>}
             <span style={styles.pageInfo}>Page {page} of {lastPage}</span>
-            {page < lastPage && <Link href={pageHref(page + 1)} className="btn btn-ghost">Next</Link>}
+            {page < lastPage && <Link prefetch={false} href={pageHref(page + 1)} className="btn btn-ghost">Next</Link>}
           </div>
         )}
       </section>

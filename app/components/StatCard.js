@@ -25,7 +25,7 @@ export default function StatCard({ label, value, color, icon, href, hero }) {
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link prefetch={false} href={href} className={className}>
         {content}
       </Link>
     );

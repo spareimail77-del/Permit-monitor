@@ -52,7 +52,7 @@ export default async function UsersPage() {
       <Header />
       <section style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px" }}>
         <p style={{ margin: 0, fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
-          <Link href="/admin" style={{ color: "var(--color-brand-2)" }}>Admin</Link> / Users
+          <Link prefetch={false} href="/admin" style={{ color: "var(--color-brand-2)" }}>Admin</Link> / Users
         </p>
         <h2 style={{ margin: "6px 0 0", fontSize: "var(--font-size-xl)", color: "var(--color-ink)" }}>
           Users

@@ -16,7 +16,7 @@ export default function ErrorScreen({ message }) {
           </span>
           <h2 style={styles.title}>Data unavailable</h2>
           <p style={styles.text}>{message}</p>
-          <Link href="/upload" className="btn btn-primary" style={{ marginTop: 8 }}>
+          <Link prefetch={false} href="/upload" className="btn btn-primary" style={{ marginTop: 8 }}>
             Go to the upload page
           </Link>
         </div>

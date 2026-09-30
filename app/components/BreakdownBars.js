@@ -23,7 +23,7 @@ export default function BreakdownBars({ rows }) {
           </>
         );
         return r.href ? (
-          <Link key={r.label} href={r.href} className="bar-row bar-row--link">
+          <Link prefetch={false} key={r.label} href={r.href} className="bar-row bar-row--link">
             {inner}
           </Link>
         ) : (

@@ -46,7 +46,7 @@ export default function ForgotForm() {
             If that Staff ID has an active account, an admin has been notified. They will give you
             a temporary password, and you will be asked to choose a new one when you sign in.
           </p>
-          <Link href="/login" className="btn btn-primary" style={styles.fullBtn}>
+          <Link prefetch={false} href="/login" className="btn btn-primary" style={styles.fullBtn}>
             Back to sign in
           </Link>
         </>
@@ -92,7 +92,7 @@ export default function ForgotForm() {
             </p>
           )}
           <p style={{ ...styles.muted, marginTop: 14 }}>
-            <Link href="/login" style={styles.link}>Back to sign in</Link>
+            <Link prefetch={false} href="/login" style={styles.link}>Back to sign in</Link>
           </p>
         </>
       )}

@@ -47,7 +47,7 @@ export default async function PasswordRequestsPage() {
       <Header />
       <section style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px" }}>
         <p style={{ margin: 0, fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
-          <Link href="/admin" style={{ color: "var(--color-brand-2)" }}>Admin</Link> / Password requests
+          <Link prefetch={false} href="/admin" style={{ color: "var(--color-brand-2)" }}>Admin</Link> / Password requests
         </p>
         <h2 style={{ margin: "6px 0 0", fontSize: "var(--font-size-xl)", color: "var(--color-ink)" }}>
           Password requests

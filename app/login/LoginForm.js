@@ -138,10 +138,10 @@ export default function LoginForm() {
           fontSize: "var(--font-size-sm)",
         }}
       >
-        <Link href="/register" style={{ color: "var(--color-brand-2)" }}>
+        <Link prefetch={false} href="/register" style={{ color: "var(--color-brand-2)" }}>
           Create account
         </Link>
-        <Link href="/forgot-password" style={{ color: "var(--color-brand-2)" }}>
+        <Link prefetch={false} href="/forgot-password" style={{ color: "var(--color-brand-2)" }}>
           Forgot password?
         </Link>
       </p>

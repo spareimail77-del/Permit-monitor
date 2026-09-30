@@ -49,7 +49,7 @@ export default async function AdminPage() {
 
         <div style={styles.grid}>
           {hasPermission(access, "upload_excel") && (
-            <Link href="/upload" className="panel admin-tile" style={styles.tile}>
+            <Link prefetch={false} href="/upload" className="panel admin-tile" style={styles.tile}>
             <span style={styles.tileIcon}>
               <Icon name="archive" size={20} />
             </span>
@@ -62,7 +62,7 @@ export default async function AdminPage() {
           </Link>
           )}
           {hasPermission(access, "view_archive") && (
-          <Link href="/admin/archive" className="panel admin-tile" style={styles.tile}>
+          <Link prefetch={false} href="/admin/archive" className="panel admin-tile" style={styles.tile}>
             <span style={styles.tileIcon}>
               <Icon name="archive" size={20} />
             </span>
@@ -75,7 +75,7 @@ export default async function AdminPage() {
           </Link>
           )}
           {hasPermission(access, "approve_requests") && (
-            <Link href="/admin/users" className="panel admin-tile" style={styles.tile}>
+            <Link prefetch={false} href="/admin/users" className="panel admin-tile" style={styles.tile}>
               <span style={styles.tileIcon}>
                 <Icon name="users" size={20} />
               </span>
@@ -91,7 +91,7 @@ export default async function AdminPage() {
             </Link>
           )}
           {hasPermission(access, "view_activity") && (
-            <Link href="/admin/activity" className="panel admin-tile" style={styles.tile}>
+            <Link prefetch={false} href="/admin/activity" className="panel admin-tile" style={styles.tile}>
               <span style={styles.tileIcon}>
                 <Icon name="clock" size={20} />
               </span>
@@ -104,7 +104,7 @@ export default async function AdminPage() {
             </Link>
           )}
           {hasPermission(access, "reset_passwords") && (
-            <Link href="/admin/password-requests" className="panel admin-tile" style={styles.tile}>
+            <Link prefetch={false} href="/admin/password-requests" className="panel admin-tile" style={styles.tile}>
               <span style={styles.tileIcon}>
                 <Icon name="lock" size={20} />
               </span>

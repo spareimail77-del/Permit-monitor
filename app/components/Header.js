@@ -48,7 +48,7 @@ export default function Header({ uploadedAt, today }) {
             const active =
               item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
             return (
-              <Link
+              <Link prefetch={false}
                 key={item.href}
                 href={item.href}
                 className={`nav-link${active ? " is-active" : ""}`}

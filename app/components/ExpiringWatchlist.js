@@ -71,7 +71,7 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) 
               const meta = STATUS_META[p.displayStatus] || STATUS_META.OPEN;
               const where = [p.area, p.location || "No location"].filter(Boolean).join(" · ");
               return (
-                <Link key={p.rowNumber} href={`/permits/${p.rowNumber}`} className="watchlist-row">
+                <Link prefetch={false} key={p.rowNumber} href={`/permits/${p.rowNumber}`} className="watchlist-row">
                   <div style={{ minWidth: 0 }}>
                     <div className="watchlist-row__ref">{p.reference}</div>
                     <div className="watchlist-row__meta">{where}</div>
@@ -94,7 +94,7 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) 
         ))}
       </div>
       {viewAllHref && (
-        <Link href={viewAllHref} className="watchlist-viewall">
+        <Link prefetch={false} href={viewAllHref} className="watchlist-viewall">
           View all {totalCount} in the Permit List →
         </Link>
       )}

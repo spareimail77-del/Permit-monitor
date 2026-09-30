@@ -29,7 +29,7 @@ export default async function PermitDetailPage({ params }) {
       <main>
         <Header uploadedAt={data.uploadedAt} today={today} />
         <section style={styles.body}>
-          <Link href="/permits" className="back-link">
+          <Link prefetch={false} href="/permits" className="back-link">
             <Icon name="arrowLeft" size={15} /> Back to Permit List
           </Link>
           <div className="panel" style={{ ...styles.notFound, padding: "24px 28px" }}>
@@ -70,7 +70,7 @@ export default async function PermitDetailPage({ params }) {
     <main>
       <Header uploadedAt={data.uploadedAt} today={today} />
       <section style={styles.body}>
-        <Link href="/permits" className="back-link">
+        <Link prefetch={false} href="/permits" className="back-link">
           <Icon name="arrowLeft" size={15} /> Back to Permit List
         </Link>
 
