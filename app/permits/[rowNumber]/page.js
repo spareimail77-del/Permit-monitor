@@ -7,6 +7,7 @@ import ErrorScreen from "../../components/ErrorScreen";
 import StatusBadge from "../../components/StatusBadge";
 import DetailField from "../../components/DetailField";
 import Icon from "../../components/Icon";
+import CertificateList from "../../components/CertificateList";
 import AttachmentsPanel from "./AttachmentsPanel";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
@@ -129,9 +130,14 @@ export default async function PermitDetailPage({ params }) {
           <h3 style={styles.groupTitle}>Job Details</h3>
           <dl className="detail-grid">
             <DetailField label="Job Description" value={permit.jobDescription} />
-            <DetailField label="Associated Certificates" value={permit.certificates} />
-            <DetailField label="Certificate No." value={permit.certificateNo} mono />
           </dl>
+          <div className="cert-section">
+            <div className="cert-heading">Certificates</div>
+            <CertificateList
+              certificates={permit.certificates}
+              certificateNo={permit.certificateNo}
+            />
+          </div>
         </div>
 
         <div className="panel" style={styles.card}>
