@@ -7,11 +7,14 @@ import { useRouter } from "next/navigation";
 //   legendLabel?, value, color, href? }] }]
 // Pure SVG + CSS (no chart library). The main ring shows the segments, which
 // add up to `total`. A segment may have `children` (a sub-part of that
-// segment, e.g. Expiring soon inside Open): they are drawn as a thin inner
-// ring that exists only along the parent's arc, and listed under the parent
-// in the legend. Hover or keyboard-focus a slice or a legend row and the two
-// stay in sync: the slice grows, the others dim and the centre shows that
-// item's count and share. Click opens the permit list filtered to it.
+// segment, e.g. Expiring Soon inside Open): drawn as a thin inner ring whose
+// coloured arc covers only the child's own share of the parent's arc (e.g.
+// Expiring Soon's arc covers 17 of Open's 22-wide arc, leaving the rest of
+// that inner track empty) and listed in the legend as its own flat row,
+// right after its parent, styled the same as every other row. Hover or
+// keyboard-focus a slice or a legend row and the two stay in sync: the slice
+// grows, the others dim and the centre shows that item's count and share.
+// Click opens the permit list filtered to it.
 
 const SIZE = 240;
 const STROKE = 26;
@@ -48,9 +51,14 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
     return arc;
   });
 
-  // Inner ring pieces: one group per parent arc, laid along that arc.
-  // Each child gets a share of the parent's visible angle; whatever is left
-  // of the parent's value (parent - children) is the plain, parent-coloured part.
+  // Inner ring pieces: one group per parent arc, laid along that arc. Each
+  // child gets a slice of the parent's visible angle sized to its own share
+  // of the parent's value (e.g. Expiring Soon is 17 of Open's 22, so its
+  // inner arc covers 17/22 of Open's outer arc). Unlike the outer ring,
+  // there is no "leftover" filler drawn in the parent's own colour — that
+  // used to sit right next to the child's colour with only a hairline gap
+  // and read as one arc bleeding into another. Leaving the rest of the
+  // inner track empty instead makes it unambiguous: colour = only children.
   const inner = [];
   for (const a of arcs) {
     if (!a.children || a.children.length === 0) continue;
@@ -58,19 +66,7 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
     const start = (a.offset / CIRCUMFERENCE) * INNER_CIRCUMFERENCE;
     const parts = a.children
       .filter((c) => c.value > 0)
-      .map((c) => ({ ...c, parentKey: a.key, parentHref: a.href, share: c.value }));
-    const childSum = parts.reduce((n, p) => n + p.share, 0);
-    const rest = Math.max(a.value - childSum, 0);
-    if (rest > 0) {
-      parts.push({
-        key: `${a.key}__rest`,
-        parentKey: a.key,
-        parentHref: a.href,
-        color: a.color,
-        share: rest,
-        isRest: true,
-      });
-    }
+      .map((c) => ({ ...c, parentKey: a.key, share: c.value }));
     const g = parts.length > 1 ? INNER_GAP : 0;
     let pos = start;
     for (const p of parts) {
@@ -158,21 +154,13 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
             />
           ))}
           {inner.map((p) => {
-            const isRest = !!p.isRest;
-            // The plain part is decoration that belongs to its parent arc:
-            // hovering it lights the parent; it is not a separate tab stop.
-            const key = isRest ? p.parentKey : p.key;
-            const parentActive = isRest && activeKey === p.parentKey;
-            const lit = isRest
-              ? parentActive
-              : p.key === activeKey;
-            const inParentFocus = !isRest && activeKey === p.parentKey;
+            const inParentFocus = activeKey === p.parentKey;
             return (
               <circle
                 key={p.key}
-                className={`donut-inner${lit && !isRest ? " is-active" : ""}${
-                  isRest && parentActive ? " is-related" : ""
-                }${inParentFocus ? " is-related" : ""}`}
+                className={`donut-inner${p.key === activeKey ? " is-active" : ""}${
+                  inParentFocus ? " is-related" : ""
+                }`}
                 cx={SIZE / 2}
                 cy={SIZE / 2}
                 r={INNER_RADIUS}
@@ -187,21 +175,12 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
                   "--rest": INNER_CIRCUMFERENCE - p.visible,
                   "--i": p.i,
                 }}
-                {...(isRest
-                  ? {
-                      "aria-hidden": true,
-                      onMouseEnter: () => setActiveKey(key),
-                      onMouseLeave: () => setActiveKey(null),
-                      onClick: () => go({ href: p.parentHref }),
-                    }
-                  : {
-                      tabIndex: 0,
-                      role: "link",
-                      "aria-label": label(p),
-                      ...focusProps(p.key),
-                      onClick: () => go(p),
-                      onKeyDown: keyGo(p),
-                    })}
+                tabIndex={0}
+                role="link"
+                aria-label={label(p)}
+                {...focusProps(p.key)}
+                onClick={() => go(p)}
+                onKeyDown={keyGo(p)}
               />
             );
           })}
@@ -228,26 +207,23 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
       </div>
 
       <ul className="donut-legend">
-        {items.map((s) => {
-          const isSub = !!s.parentKey;
-          return (
-            <li key={s.key}>
-              <button
-                type="button"
-                className={`donut-legend__row${isSub ? " donut-legend__row--sub" : ""}${
-                  s.key === activeKey ? " is-active" : ""
-                }${s.value === 0 ? " is-empty" : ""}`}
-                {...focusProps(s.key)}
-                onClick={() => go(s)}
-              >
-                <span className="legend-dot" style={{ background: s.color }} />
-                <span className="donut-legend__label">{s.legendLabel || s.label}</span>
-                <span className="donut-legend__count">{s.value}</span>
-                <span className="donut-legend__pct">{percentText(s.value, total)}</span>
-              </button>
-            </li>
-          );
-        })}
+        {items.map((s) => (
+          <li key={s.key}>
+            <button
+              type="button"
+              className={`donut-legend__row${s.key === activeKey ? " is-active" : ""}${
+                s.value === 0 ? " is-empty" : ""
+              }`}
+              {...focusProps(s.key)}
+              onClick={() => go(s)}
+            >
+              <span className="legend-dot" style={{ background: s.color }} />
+              <span className="donut-legend__label">{s.legendLabel || s.label}</span>
+              <span className="donut-legend__count">{s.value}</span>
+              <span className="donut-legend__pct">{percentText(s.value, total)}</span>
+            </button>
+          </li>
+        ))}
       </ul>
     </div>
   );

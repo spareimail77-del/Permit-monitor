@@ -63,13 +63,6 @@
   --smoke-2: rgba(109, 40, 217, 0.5);
   --smoke-3: rgba(192, 38, 211, 0.3);
 
-  /* login / auth-page waves (dark theme), violet through deep indigo so the
-     back-most wave is calmer and less saturated than the front-most one */
-  --wave-1: #7c3aed;
-  --wave-2: #6d28d9;
-  --wave-3: #5b21b6;
-  --wave-4: #4c1d95;
-
   color-scheme: dark;
 }
 
@@ -521,6 +514,19 @@ a.stat-card:hover {
   box-shadow: var(--shadow-pop);
 }
 
+/* Admin → tool tiles (Upload Data, Users, Activity, etc.). Same lift-and-
+   glow treatment as stat-card above, since both are clickable panel-style
+   links; .panel itself stays static because most panels aren't links. */
+.admin-tile {
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-tile:hover {
+  border-color: var(--color-brand-2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pop);
+}
+
 .stat-card__icon {
   width: 36px;
   height: 36px;
@@ -701,22 +707,6 @@ a.stat-card:hover {
   opacity: 0.55;
 }
 
-.donut-legend__row--sub {
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 26px;
-  font-size: var(--font-size-xs);
-}
-
-.donut-legend__row--sub .legend-dot {
-  width: 8px;
-  height: 8px;
-}
-
-.donut-legend__row--sub .donut-legend__label {
-  color: var(--color-ink-muted);
-}
-
 .donut-legend__label {
   color: var(--color-ink);
 }
@@ -876,10 +866,17 @@ a.stat-card:hover {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 0;
+  padding: 12px 10px;
+  margin: 0 -10px;
+  border-radius: var(--radius-sm);
   border-bottom: 1px solid var(--color-rule);
   text-decoration: none;
   color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.watchlist-row:hover {
+  background: var(--color-surface-hover);
 }
 
 .watchlist-row:last-child {
@@ -1815,50 +1812,96 @@ a.stat-card:hover {
   display: block;
 }
 
-/* Dark theme: slow gradient waves. Four stacked SVG bands sit along the
-   bottom edge, each drifting sideways at its own speed (a real water-wave
-   surface never moves as one flat sheet). Each wave's SVG path is the same
-   shape drawn twice back to back (2880 units for a 1440-unit viewport), so
-   sliding the whole element left by exactly half its width loops with no
-   visible seam. Opacity is kept low (0.10–0.16, set inline per wave) so nothing
-   competes with the form in front of it. */
+/* Dark theme: a still, top-down water surface, like the reference photo —
+   overlapping domes of colour anchored off the top-left corner, brightest
+   and largest at the front, darker and smaller behind it. Each dome
+   "breathes" (a slow, few-percent scale/shift) so the surface never looks
+   frozen, and three thin rings expand outward from the same corner on a
+   loop, like the rings that spread after something drops into water. Both
+   motions are slow (22–46s) and low-opacity, so nothing distracts from the
+   form in front. */
 .auth-waves {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* barely-there violet glow so the page is not flat black above the waves */
-  background: radial-gradient(ellipse 80% 55% at 50% 115%, rgba(109, 40, 217, 0.12), transparent 70%);
 }
 
 [data-theme="light"] .auth-waves {
   display: none;
 }
 
-.wave {
+.ripple-dome {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 200%;
-  height: 40vh;
-  min-height: 220px;
-  will-change: transform;
-  animation: wave-drift var(--wave-dur) linear var(--wave-delay) infinite;
+  left: -35%;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  animation: ripple-breathe var(--dur, 30s) ease-in-out var(--delay, 0s) infinite;
 }
 
-.wave--1 path { fill: var(--wave-1); }
-.wave--2 path { fill: var(--wave-2); }
-.wave--3 path { fill: var(--wave-3); }
-.wave--4 path { fill: var(--wave-4); }
+.ripple-dome--1 {
+  width: 135%;
+  top: -60%;
+  background: radial-gradient(circle at 32% 30%, #a78bfa 0%, #7c3aed 42%, #4c1d95 68%, transparent 84%);
+  opacity: 0.5;
+  --dur: 24s;
+}
 
-/* Each layer sits a little lower than the one in front, like a real
-   shoreline: closer waves are taller and higher on the screen. */
-.wave--2 { height: 34vh; }
-.wave--3 { height: 30vh; }
-.wave--4 { height: 26vh; }
+.ripple-dome--2 {
+  width: 108%;
+  top: -34%;
+  left: -30%;
+  background: radial-gradient(circle at 34% 32%, #8b5cf6 0%, #6d28d9 42%, #3b1370 68%, transparent 84%);
+  opacity: 0.42;
+  --dur: 32s;
+  --delay: -8s;
+}
 
-@keyframes wave-drift {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
+.ripple-dome--3 {
+  width: 82%;
+  top: -10%;
+  left: -22%;
+  background: radial-gradient(circle at 34% 32%, #7c3aed 0%, #5b21b6 42%, #2e1065 68%, transparent 84%);
+  opacity: 0.36;
+  --dur: 38s;
+  --delay: -16s;
+}
+
+.ripple-dome--4 {
+  width: 58%;
+  top: 10%;
+  left: -12%;
+  background: radial-gradient(circle at 34% 32%, #6d28d9 0%, #4c1d95 42%, #1e0b4d 68%, transparent 84%);
+  opacity: 0.3;
+  --dur: 46s;
+  --delay: -4s;
+}
+
+@keyframes ripple-breathe {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.035) translate(1.2%, -1%); }
+}
+
+/* The expanding rings share the domes' corner origin. */
+.ripple-ring {
+  position: absolute;
+  left: -22%;
+  top: -22%;
+  width: 68%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1.5px solid rgba(196, 181, 253, 0.3);
+  animation: ripple-expand var(--dur, 14s) ease-out var(--delay, 0s) infinite;
+  opacity: 0;
+}
+
+.ripple-ring--1 { --dur: 14s; --delay: 0s; }
+.ripple-ring--2 { --dur: 14s; --delay: -4.6s; }
+.ripple-ring--3 { --dur: 14s; --delay: -9.2s; }
+
+@keyframes ripple-expand {
+  0% { transform: scale(0.55); opacity: 0; }
+  12% { opacity: 0.4; }
+  100% { transform: scale(1.55); opacity: 0; }
 }
 
 .auth-vignette {
@@ -1994,7 +2037,8 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
 
 @media (prefers-reduced-motion: reduce) {
   .auth-blob,
-  .wave,
+  .ripple-dome,
+  .ripple-ring,
   .auth-center > .panel,
   .passcode-card.is-leaving,
   .veil,
@@ -2003,5 +2047,5 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
     animation: none !important;
   }
   .veil { display: none; }
-  .wave { opacity: 0.08 !important; }
+  .ripple-ring { opacity: 0.15 !important; }
 }
