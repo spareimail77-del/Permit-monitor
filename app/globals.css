@@ -2005,3 +2005,66 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
   .veil { display: none; }
   .wave { opacity: 0.35 !important; }
 }
+
+/* ---------------------------------------------------------
+   Page transition (every navigation) — quick, understated.
+   Only the content under the header moves, so the nav stays put.
+   The sign-in welcome effect (html[data-enter]) is separate and,
+   on that one load, page-transition--off skips this.
+--------------------------------------------------------- */
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.page-transition:not(.page-transition--off) > main:not(.skeleton-page):not(.auth-shell) > :not(.hero) {
+  animation: page-in 0.2s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+}
+
+/* ---------------------------------------------------------
+   Loading skeletons (loading.js files) — shimmering placeholders
+   using the panel/surface colours, so they fit both themes.
+--------------------------------------------------------- */
+
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2s ease-in-out infinite;
+}
+
+.skeleton--line { height: 12px; width: 100%; }
+.skeleton--card { height: 96px; width: 100%; border-radius: var(--radius-md); }
+.skeleton--row { height: 44px; width: 100%; border-radius: var(--radius-sm); }
+
+.skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition > main > * { animation: none !important; }
+  .skeleton { animation: none; }
+}
