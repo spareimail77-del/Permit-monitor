@@ -2,87 +2,41 @@
    Reuses the existing --color-expired (red) tokens, so it follows
    dark / light mode. Imported once from app/page.js. */
 
-/* ---- urgent tile ------------------------------------------------ */
+/* ---- Overdue tile (settled: same shape as the other tiles, with a quiet
+   red cue - faint tint, thin edge accent, red number. No glow, no
+   animation, no badge) -------------------------------------------- */
 .stat-card--urgent {
-  border-color: color-mix(in srgb, var(--color-expired) 65%, transparent);
+  border-color: color-mix(in srgb, var(--color-expired) 28%, var(--color-rule));
   background:
-    radial-gradient(280px circle at 100% 0%, color-mix(in srgb, var(--color-expired) 24%, transparent), transparent 70%),
-    linear-gradient(color-mix(in srgb, var(--color-expired) 9%, transparent), color-mix(in srgb, var(--color-expired) 9%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--color-expired) 5%, transparent), color-mix(in srgb, var(--color-expired) 5%, transparent)),
     var(--color-surface);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-expired) 22%, transparent),
-    0 10px 30px -12px color-mix(in srgb, var(--color-expired) 60%, transparent);
 }
 
 a.stat-card--urgent:hover {
-  border-color: var(--color-expired);
+  border-color: color-mix(in srgb, var(--color-expired) 55%, var(--color-rule));
 }
 
-/* red accent bar down the left edge */
+/* thin red accent down the left edge */
 .stat-card--urgent::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 14px;
-  bottom: 14px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--color-expired);
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: color-mix(in srgb, var(--color-expired) 80%, transparent);
 }
 
 .stat-card--urgent .stat-card__value {
   color: var(--color-expired);
-  font-weight: 700;
-}
-
-.stat-card--urgent .stat-card__label {
-  color: var(--color-ink);
-  font-weight: 600;
 }
 
 .stat-card__hint {
   margin: 4px 0 0;
   font-size: var(--font-size-xs);
   color: var(--color-ink-muted);
-}
-
-.stat-card--urgent .stat-card__hint {
-  color: var(--color-expired);
-}
-
-.stat-card__flag {
-  position: absolute;
-  top: 16px;
-  right: 14px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-expired);
-  background: var(--color-expired-tint);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-expired) 45%, transparent);
-}
-
-.stat-card--urgent .stat-card__icon {
-  animation: overdue-pulse 2s ease-out infinite;
-}
-
-@keyframes overdue-pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-expired) 55%, transparent);
-  }
-  70%,
-  100% {
-    box-shadow: 0 0 0 10px transparent;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stat-card--urgent .stat-card__icon {
-    animation: none;
-  }
+  white-space: nowrap;
 }
 
 /* ---- Needs attention tabs --------------------------------------- */

@@ -19,7 +19,6 @@ export default function StatCard({ label, value, color, icon, href, hero, urgent
         <p className="stat-card__label">{label}</p>
         {hint && <p className="stat-card__hint">{hint}</p>}
       </div>
-      {urgent && <span className="stat-card__flag">Urgent</span>}
     </>
   );
 

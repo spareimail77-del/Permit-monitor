@@ -83,8 +83,8 @@ export default async function Dashboard() {
     counts.OVERDUE === 0
       ? "None overdue"
       : oldestOverdueDays > 0
-      ? `Oldest: ${oldestOverdueDays} day${oldestOverdueDays === 1 ? "" : "s"} overdue`
-      : "Close or extend these";
+      ? `Oldest: ${oldestOverdueDays}d`
+      : "Ended today";
 
   // Bars link to the Permit List filtered by that area / type.
   const withLink = (rows, param) =>
