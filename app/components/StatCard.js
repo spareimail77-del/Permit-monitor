@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Icon from "./Icon";
 
-export default function StatCard({ label, value, color, icon, href, hero }) {
+export default function StatCard({ label, value, color, icon, href, hero, urgent, hint }) {
   const iconColor = color || "var(--color-brand-2)";
   const content = (
     <>
@@ -17,11 +17,13 @@ export default function StatCard({ label, value, color, icon, href, hero }) {
       <div>
         <p className="stat-card__value">{value}</p>
         <p className="stat-card__label">{label}</p>
+        {hint && <p className="stat-card__hint">{hint}</p>}
       </div>
+      {urgent && <span className="stat-card__flag">Urgent</span>}
     </>
   );
 
-  const className = `stat-card${hero ? " stat-card--hero" : ""}`;
+  const className = `stat-card${hero ? " stat-card--hero" : ""}${urgent ? " stat-card--urgent" : ""}`;
 
   if (href) {
     return (

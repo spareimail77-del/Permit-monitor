@@ -1,10 +1,12 @@
 import Link from "next/link";
 import Icon from "./Icon";
 import { STATUS_META } from "../../lib/statusMeta";
+import { daysText } from "../../lib/status";
 
-// permits: open permits with a numeric daysRemaining, soonest first.
-// Grouped by expiry day so a long run of identical "1d left" badges
-// becomes "Tomorrow · Wed 30 Sep — 17 permits".
+// mode "expiring": open permits with a numeric daysRemaining, soonest first.
+// mode "overdue":  OVERDUE permits, most overdue first (unknown days last).
+// Grouped by Valid To day so a long run of identical badges becomes
+// "Tomorrow · Wed 30 Sep — 17 permits" / "2 days overdue · Mon 28 Sep — 6".
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-GB", {
   weekday: "short",
@@ -19,8 +21,13 @@ function formatDay(iso) {
   return Number.isNaN(d.getTime()) ? iso : DAY_FORMAT.format(d);
 }
 
-function groupLabel(days) {
-  if (days < 0) return "Past Valid To (still marked open)";
+function groupLabel(days, mode) {
+  if (mode === "overdue") {
+    if (typeof days !== "number") return "Overdue · no Valid To date";
+    if (days >= 0) return "Overdue · ended today";
+    const n = Math.abs(days);
+    return `${n} day${n === 1 ? "" : "s"} overdue`;
+  }
   if (days === 0) return "Due today";
   if (days === 1) return "Tomorrow";
   return `In ${days} days`;
@@ -28,19 +35,21 @@ function groupLabel(days) {
 
 // Heading colour fades with urgency: red = past Valid To, strong amber = today
 // or tomorrow, soft amber = 2-3 days (still "Expiring soon"), calm brand = later.
-function groupTone(days) {
-  if (days < 0) return "overdue";
+function groupTone(days, mode) {
+  if (mode === "overdue") return "overdue";
   if (days <= 1) return "urgent";
   if (days <= 3) return "soon";
   return "calm";
 }
 
-export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) {
+export default function ExpiringWatchlist({ permits, totalCount, viewAllHref, mode = "expiring" }) {
   if (permits.length === 0) {
     return (
       <div className="watchlist-empty">
         <Icon name="checkCircle" size={16} style={{ color: "var(--color-open)" }} />
-        No open permits with a Valid To date on record.
+        {mode === "overdue"
+          ? "No overdue permits. Every open permit is still within its Valid To date."
+          : "No open permits with a Valid To date on record."}
       </div>
     );
   }
@@ -59,10 +68,10 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) 
     <>
       <div className="watchlist watchlist-scroll">
         {groups.map((g) => (
-          <section key={`${g.validTo}-${g.days}`} className={`watchlist-group watchlist-group--${groupTone(g.days)}`}>
+          <section key={`${g.validTo}-${g.days}`} className={`watchlist-group watchlist-group--${groupTone(g.days, mode)}`}>
             <h3 className="watchlist-group__head">
               <span>
-                {groupLabel(g.days)}
+                {groupLabel(g.days, mode)}
                 {g.validTo && <span className="watchlist-group__date"> · {formatDay(g.validTo)}</span>}
               </span>
               <span className="watchlist-group__count">{g.items.length}</span>
@@ -81,11 +90,7 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref }) 
                     className="watchlist-row__days"
                     style={{ background: meta.tint, color: meta.color }}
                   >
-                    {p.daysRemaining === 0
-                      ? "Due today"
-                      : p.daysRemaining < 0
-                      ? `${Math.abs(p.daysRemaining)}d overdue`
-                      : `${p.daysRemaining}d left`}
+                    {daysText(p)}
                   </span>
                 </Link>
               );

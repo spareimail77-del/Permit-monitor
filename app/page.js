@@ -5,9 +5,10 @@ import Header from "./components/Header";
 import StatCard from "./components/StatCard";
 import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
-import ExpiringWatchlist from "./components/ExpiringWatchlist";
+import AttentionPanel from "./components/AttentionPanel";
 import ErrorScreen from "./components/ErrorScreen";
 import EnterEffect from "./components/EnterEffect";
+import "./overdue.css";
 
 // Always read fresh from Blob — the dashboard should never show
 // stale counts from a cached build.
@@ -45,7 +46,7 @@ export default async function Dashboard() {
     };
   });
 
-  const counts = { OPEN: 0, EXPIRING_SOON: 0, EXPIRED: 0, CLOSED: 0, CANCELED: 0 };
+  const counts = { OPEN: 0, EXPIRING_SOON: 0, OVERDUE: 0, CLOSED: 0, CANCELED: 0 };
   let other = 0;
   for (const p of permits) {
     if (counts[p.displayStatus] !== undefined) {
@@ -64,6 +65,27 @@ export default async function Dashboard() {
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
   const upcomingExpiries = allUpcoming.slice(0, 30);
 
+  // Overdue = still open, past Valid To. Most overdue first; permits with
+  // no Valid To date (days unknown) go last.
+  const allOverdue = permits
+    .filter((p) => p.displayStatus === "OVERDUE")
+    .sort(
+      (a, b) =>
+        (typeof a.daysRemaining === "number" ? a.daysRemaining : 1e9) -
+        (typeof b.daysRemaining === "number" ? b.daysRemaining : 1e9)
+    );
+  const overdueList = allOverdue.slice(0, 50);
+  const oldestOverdueDays =
+    allOverdue.length > 0 && typeof allOverdue[0].daysRemaining === "number" && allOverdue[0].daysRemaining < 0
+      ? Math.abs(allOverdue[0].daysRemaining)
+      : 0;
+  const overdueHint =
+    counts.OVERDUE === 0
+      ? "None overdue"
+      : oldestOverdueDays > 0
+      ? `Oldest: ${oldestOverdueDays} day${oldestOverdueDays === 1 ? "" : "s"} overdue`
+      : "Close or extend these";
+
   // Bars link to the Permit List filtered by that area / type.
   const withLink = (rows, param) =>
     rows.map((r) => ({
@@ -76,16 +98,15 @@ export default async function Dashboard() {
   const areaBreakdown = withLink(topCounts(permits.map((p) => p.area)), "area");
   const typeBreakdown = withLink(topCounts(permits.map((p) => p.permitType)), "type");
 
-  // Expiring Soon is still an open/active permit, so the "Open" slice
-  // covers both (22 = 5 plain-open + 17 expiring) and is shown as one arc.
-  // Expiring Soon then gets its own thin inner arc, sized to its own share
-  // of that 22 (17/22), not the full arc — see DonutChart.js for why. It is
-  // also listed as its own row in the legend, counted and percented against
-  // the same `total` as every other row (17 of 36 = 47%), which is why
-  // Open (61%) + Expiring Soon (47%) + Expired + Closed + Canceled adds up
-  // to more than 100%: Expiring Soon is counted once on its own and again as
-  // part of Open, on purpose.
-  const openTotal = counts.OPEN + counts.EXPIRING_SOON;
+  // Expiring Soon and Overdue are both still open permits, so the "Open"
+  // slice covers all three groups (on track + expiring + overdue) and is
+  // drawn as one arc. Expiring Soon and Overdue then each get their own
+  // thin inner arc, sized to their share of Open (see DonutChart.js). Both
+  // are also listed as their own legend rows, counted against the same
+  // `total` as every other row, which is why the percentages add up to
+  // more than 100%: they are counted once on their own and again inside
+  // Open, on purpose.
+  const openTotal = counts.OPEN + counts.EXPIRING_SOON + counts.OVERDUE;
   const resolvedSegments = [
     {
       key: "OPEN",
@@ -101,9 +122,16 @@ export default async function Dashboard() {
           color: STATUS_META.EXPIRING_SOON.color,
           href: "/permits?status=EXPIRING_SOON",
         },
+        {
+          key: "OVERDUE",
+          label: "Overdue",
+          value: counts.OVERDUE,
+          color: STATUS_META.OVERDUE.color,
+          href: "/permits?status=OVERDUE",
+        },
       ],
     },
-    ...["EXPIRED", "CLOSED", "CANCELED"].map((key) => ({
+    ...["CLOSED", "CANCELED"].map((key) => ({
       key,
       label: STATUS_META[key].label,
       value: counts[key] || 0,
@@ -143,16 +171,35 @@ export default async function Dashboard() {
                 href="/permits"
                 hero
               />
-              {Object.entries(STATUS_META).map(([key, meta]) => (
-                <StatCard
-                  key={key}
-                  label={meta.label}
-                  value={key === "OPEN" ? counts.OPEN + counts.EXPIRING_SOON : counts[key]}
-                  color={meta.color}
-                  icon={meta.icon}
-                  href={`/permits?status=${key}`}
-                />
-              ))}
+              {Object.entries(STATUS_META).map(([key, meta]) => {
+                if (key === "OVERDUE") {
+                  // Urgent red tile while anything is overdue; calm green
+                  // "None overdue" tile when nothing is.
+                  const any = counts.OVERDUE > 0;
+                  return (
+                    <StatCard
+                      key={key}
+                      label={meta.label}
+                      value={counts.OVERDUE}
+                      color={any ? meta.color : STATUS_META.OPEN.color}
+                      icon={any ? meta.icon : "checkCircle"}
+                      href={`/permits?status=${key}`}
+                      urgent={any}
+                      hint={overdueHint}
+                    />
+                  );
+                }
+                return (
+                  <StatCard
+                    key={key}
+                    label={meta.label}
+                    value={key === "OPEN" ? openTotal : counts[key]}
+                    color={meta.color}
+                    icon={meta.icon}
+                    href={`/permits?status=${key}`}
+                  />
+                );
+              })}
               {other > 0 && (
                 <StatCard label="Other / Unrecognized" value={other} icon="tag" />
               )}
@@ -174,17 +221,12 @@ export default async function Dashboard() {
               </div>
 
               <div className="panel dash-panel" style={styles.panelPad}>
-                <h2 className="panel-title">Expiring soon</h2>
-                <p className="panel-subtitle">
-                  Open permits grouped by expiry day, soonest first.
-                </p>
-                <div className="dash-panel__body">
-                  <ExpiringWatchlist
-                    permits={upcomingExpiries}
-                    totalCount={allUpcoming.length}
-                    viewAllHref="/permits?status=OPEN"
-                  />
-                </div>
+                <AttentionPanel
+                  overdue={overdueList}
+                  overdueTotal={allOverdue.length}
+                  expiring={upcomingExpiries}
+                  expiringTotal={allUpcoming.length}
+                />
               </div>
             </div>
 

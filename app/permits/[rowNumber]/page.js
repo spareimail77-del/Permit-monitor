@@ -46,8 +46,18 @@ export default async function PermitDetailPage({ params }) {
     );
   }
 
-  const { displayStatus, daysRemaining } = computeDisplayStatus(raw, today);
-  const permit = { ...raw, displayStatus: normalizeStatus(displayStatus), daysRemaining };
+  const { displayStatus, daysRemaining, excelMismatch } = computeDisplayStatus(raw, today);
+  const permit = {
+    ...raw,
+    displayStatus: normalizeStatus(displayStatus),
+    daysRemaining,
+    excelMismatch,
+  };
+  const isOverdue = permit.displayStatus === "OVERDUE";
+  const overdueDays =
+    isOverdue && typeof permit.daysRemaining === "number" && permit.daysRemaining < 0
+      ? Math.abs(permit.daysRemaining)
+      : null;
   const isDuplicateRef = (data.duplicateReferences || []).includes(
     permit.reference
   );
@@ -80,7 +90,27 @@ export default async function PermitDetailPage({ params }) {
             Permit <span className="mono">{permit.reference}</span>
           </h2>
           <StatusBadge status={permit.displayStatus} />
+          {overdueDays !== null && (
+            <span style={{ color: "var(--color-expired)", fontWeight: 600 }}>
+              {overdueDays} day{overdueDays === 1 ? "" : "s"} overdue
+            </span>
+          )}
         </div>
+
+        {permit.excelMismatch && (
+          <div className="notice">
+            Excel says this permit is EXPIRED, but its Valid To date is still
+            in the future, so the site is following the date. Check the
+            status in Excel.
+          </div>
+        )}
+
+        {isOverdue && !permit.validTo && (
+          <div className="notice">
+            This permit is overdue but has no Valid To date on file, so the
+            number of days overdue can't be shown. Check the date in Excel.
+          </div>
+        )}
 
         {isDuplicateRef && (
           <div className="notice">
@@ -106,8 +136,16 @@ export default async function PermitDetailPage({ params }) {
             <DetailField label="Location" value={permit.location} />
             <DetailField label="Permit Type" value={permit.permitType} />
             <DetailField
-              label="Days Remaining"
-              value={permit.daysRemaining !== null ? permit.daysRemaining : "—"}
+              label={isOverdue ? "Days Overdue" : "Days Remaining"}
+              value={
+                isOverdue
+                  ? overdueDays !== null
+                    ? overdueDays
+                    : "—"
+                  : permit.daysRemaining !== null
+                  ? permit.daysRemaining
+                  : "—"
+              }
               mono
             />
             <DetailField

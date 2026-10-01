@@ -18,7 +18,9 @@ export default async function PermitListPage({ searchParams }) {
 
   // Only accept a status coming from the dashboard links — anything
   // else falls back to "show everything" rather than erroring.
-  const requestedStatus = searchParams?.status;
+  // Old links used ?status=EXPIRED; that group is now called Overdue.
+  const requestedStatus =
+    searchParams?.status === "EXPIRED" ? "OVERDUE" : searchParams?.status;
   const initialStatus =
     requestedStatus && (STATUS_META[requestedStatus] || requestedStatus === "OPEN_ONLY")
       ? requestedStatus

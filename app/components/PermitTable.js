@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import Icon from "./Icon";
 import { STATUS_META, matchesStatusFilter } from "../../lib/statusMeta";
+import { daysText } from "../../lib/status";
 import { downloadPermitWorkbook, listRowToExportPermit } from "../../lib/exportPermits";
 
 function uniqueSorted(values) {
@@ -95,10 +96,10 @@ export default function PermitTable({
           {Object.entries(STATUS_META).map(([key, meta]) => (
             <React.Fragment key={key}>
               <option value={key}>
-                {key === "OPEN" ? "Active / Open (incl. expiring soon)" : meta.label}
+                {key === "OPEN" ? "Active / Open (incl. expiring soon & overdue)" : meta.label}
               </option>
               {key === "OPEN" && (
-                <option value="OPEN_ONLY">Open only (not expiring)</option>
+                <option value="OPEN_ONLY">Open only (on track)</option>
               )}
             </React.Fragment>
           ))}
@@ -196,8 +197,11 @@ export default function PermitTable({
                 <td>
                   <StatusBadge status={p.displayStatus} />
                 </td>
-                <td className="mono">
-                  {p.daysRemaining !== null ? p.daysRemaining : "—"}
+                <td
+                  className="mono"
+                  style={p.displayStatus === "OVERDUE" ? { color: "var(--color-expired)", fontWeight: 600 } : undefined}
+                >
+                  {daysText(p)}
                 </td>
                 <td className="mono">{p.validTo || "—"}</td>
                 <td>{p.holder || "—"}</td>
@@ -242,9 +246,11 @@ export default function PermitTable({
             <p className="permit-card__type">{p.permitType || "—"}</p>
             <div className="permit-card__meta">
               <span>
-                Days left{" "}
-                <strong className="mono">
-                  {p.daysRemaining !== null ? p.daysRemaining : "—"}
+                <strong
+                  className="mono"
+                  style={p.displayStatus === "OVERDUE" ? { color: "var(--color-expired)" } : undefined}
+                >
+                  {daysText(p)}
                 </strong>
               </span>
               <span>
