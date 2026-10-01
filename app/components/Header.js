@@ -28,42 +28,56 @@ export default function Header({ uploadedAt, today }) {
   useEffect(() => {
     let cancelled = false;
 
+    function remember(data) {
+      try {
+        if (data && data.staffId) {
+          window.sessionStorage.setItem(ME_CACHE_KEY, JSON.stringify({ at: Date.now(), data }));
+        } else {
+          window.sessionStorage.removeItem(ME_CACHE_KEY);
+        }
+      } catch (err) {
+        // storage unavailable - fine, it just won't be remembered
+      }
+    }
+
+    function loadFromServer() {
+      fetch("/api/auth/me")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled) return;
+          setMe(data);
+          remember(data);
+        })
+        .catch(() => {
+          if (!cancelled) setMe(null);
+        });
+    }
+
+    // My profile announces a changed name: ask the server again right away.
+    window.addEventListener("permit:me-changed", loadFromServer);
+
     try {
       const raw = window.sessionStorage.getItem(ME_CACHE_KEY);
       if (raw) {
         const cached = JSON.parse(raw);
         if (cached && cached.data && cached.data.staffId) {
           setMe(cached.data);
-          if (Date.now() - cached.at < ME_CACHE_MS) return undefined; // fresh enough
+          if (Date.now() - cached.at < ME_CACHE_MS) {
+            return () => {
+              cancelled = true;
+              window.removeEventListener("permit:me-changed", loadFromServer);
+            };
+          }
         }
       }
     } catch (err) {
       // storage unavailable or unreadable - just ask the server
     }
 
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled) return;
-        setMe(data);
-        try {
-          if (data && data.staffId) {
-            window.sessionStorage.setItem(
-              ME_CACHE_KEY,
-              JSON.stringify({ at: Date.now(), data })
-            );
-          } else {
-            window.sessionStorage.removeItem(ME_CACHE_KEY);
-          }
-        } catch (err) {
-          // storage unavailable - fine, it just won't be remembered
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setMe(null);
-      });
+    loadFromServer();
     return () => {
       cancelled = true;
+      window.removeEventListener("permit:me-changed", loadFromServer);
     };
   }, [pathname]);
 

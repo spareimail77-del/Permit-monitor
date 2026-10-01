@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "../components/Icon";
+import { formatSize, formatWhen } from "../../lib/format";
 
 export default function UploadForm() {
+  const router = useRouter();
   const [file, setFile] = useState(null);
   const [state, setState] = useState("idle"); // idle | uploading | done | error
   const [message, setMessage] = useState("");
@@ -29,11 +32,13 @@ export default function UploadForm() {
       if (!res.ok) {
         setState("error");
         setMessage(data.error || "Upload failed.");
+        router.refresh(); // rejected files are logged too
         return;
       }
 
       setState("done");
       setResult(data);
+      router.refresh(); // shows the new row in the upload history below
     } catch (err) {
       setState("error");
       setMessage("Upload failed. Check your connection and try again.");
@@ -80,12 +85,17 @@ export default function UploadForm() {
             <span className="mono">{result.originalName}</span>
           </p>
           <p style={styles.resultLine}>
-            <strong>Size:</strong> {(result.size / 1024).toFixed(0)} KB
+            <strong>Size:</strong> {formatSize(result.size)}
           </p>
           <p style={styles.resultLine}>
             <strong>Stored at:</strong>{" "}
-            {new Date(result.uploadedAt).toLocaleString()}
+            {formatWhen(result.uploadedAt)} (Oman time)
           </p>
+          {result.permitCount != null && (
+            <p style={styles.resultLine}>
+              <strong>Permits in file:</strong> {result.permitCount}
+            </p>
+          )}
           {result.archivedCount > 0 && (
             <p style={styles.resultLine}>
               <strong>Archived:</strong> {result.archivedCount} permit

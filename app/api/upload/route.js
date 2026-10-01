@@ -9,6 +9,7 @@ import {
 import { findRemovedPermits, archivePermits } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
+import { logUpload } from "../../../lib/uploadLog";
 
 // This route ONLY writes the raw Excel file to blob storage.
 // It never reads, edits, or modifies the workbook's content —
@@ -50,6 +51,13 @@ export async function POST(request) {
     const name = file.name || "";
     const okExtension = name.endsWith(".xlsm") || name.endsWith(".xlsx");
     if (!okExtension) {
+      await logUpload({
+        userId: user.id,
+        fileName: name,
+        sizeBytes: file.size,
+        status: "rejected",
+        note: "Not an .xlsm or .xlsx file.",
+      });
       return Response.json(
         { error: "Please upload a .xlsm or .xlsx file." },
         { status: 400 }
@@ -64,9 +72,17 @@ export async function POST(request) {
     // never blocks the upload; it is reported back instead.
     let archivedCount = 0;
     let archiveWarning = null;
+    let permitCount = null;
     try {
       const newParsed = parsePermitsFromBuffer(await file.arrayBuffer());
       if (newParsed.isExport) {
+        await logUpload({
+          userId: user.id,
+          fileName: name,
+          sizeBytes: file.size,
+          status: "rejected",
+          note: "File was created by the Export button, not the master log.",
+        });
         return Response.json(
           {
             error:
@@ -76,6 +92,13 @@ export async function POST(request) {
         );
       }
       if (newParsed.error || newParsed.permits.length === 0) {
+        await logUpload({
+          userId: user.id,
+          fileName: name,
+          sizeBytes: file.size,
+          status: "rejected",
+          note: newParsed.message || "No permits were found in the file.",
+        });
         return Response.json(
           {
             error:
@@ -85,6 +108,8 @@ export async function POST(request) {
           { status: 400 }
         );
       }
+
+      permitCount = newParsed.permits.length;
 
       const old = await fetchPermitData();
       if (!old.error) {
@@ -106,6 +131,16 @@ export async function POST(request) {
         "application/vnd.ms-excel.sheet.macroEnabled.12",
     });
 
+    await logUpload({
+      userId: user.id,
+      fileName: name,
+      sizeBytes: file.size,
+      permitCount,
+      archivedCount,
+      status: "uploaded",
+      note: archiveWarning,
+    });
+
     // Forget the cached "which file is current" answer so every page sees the
     // new upload straight away (the parsed data is keyed on the upload time,
     // so it can't go stale on its own).
@@ -122,6 +157,7 @@ export async function POST(request) {
       uploadedAt: new Date().toISOString(),
       url: blob.url,
       archivedCount,
+      permitCount,
       archiveWarning,
     });
   } catch (err) {

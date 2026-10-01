@@ -129,6 +129,18 @@ export default function UserMenu({ name, role }) {
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              router.push("/profile");
+            }}
+            className="user-menu-item"
+          >
+            <Icon name="users" size={15} />
+            My profile
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
               router.push("/change-password");
             }}
             className="user-menu-item"

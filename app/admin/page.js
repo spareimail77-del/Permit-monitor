@@ -32,12 +32,21 @@ export default async function AdminPage() {
   }
 
   let pendingUsers = 0;
+  let openIdChanges = 0;
   if (hasPermission(access, "approve_requests")) {
-    const { count } = await createAdminClient()
+    const admin = createAdminClient();
+    const { count } = await admin
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
     pendingUsers = count || 0;
+
+    // Missing table (migration not run yet) just shows 0.
+    const { count: idCount } = await admin
+      .from("staff_id_change_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open");
+    openIdChanges = idCount || 0;
   }
 
   return (
@@ -56,7 +65,7 @@ export default async function AdminPage() {
             <span>
               <span style={styles.tileTitle}>Upload Data</span>
               <span style={styles.tileText}>
-                Replace the permit log the dashboard reads from.
+                Replace the permit log, and see who uploaded what and when.
               </span>
             </span>
           </Link>
@@ -86,6 +95,19 @@ export default async function AdminPage() {
                   {hasPermission(access, "manage_users")
                     ? "Roles, disable, reset, delete."
                     : "Approve or reject requests."}
+                </span>
+              </span>
+            </Link>
+          )}
+          {hasPermission(access, "approve_requests") && (
+            <Link prefetch={false} href="/admin/id-changes" className="panel admin-tile" style={styles.tile}>
+              <span style={styles.tileIcon}>
+                <Icon name="tag" size={20} />
+              </span>
+              <span>
+                <span style={styles.tileTitle}>Staff ID changes</span>
+                <span style={styles.tileText}>
+                  {openIdChanges} waiting. Approve a corrected Staff ID; history moves with it.
                 </span>
               </span>
             </Link>
