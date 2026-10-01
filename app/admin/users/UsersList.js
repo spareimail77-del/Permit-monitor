@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ROLE_LABELS, ALL_ROLES } from "../../../lib/permissions";
+import { ROLE_LABELS, ALL_ROLES, normalizeRole, roleLabel } from "../../../lib/permissions";
 import Icon from "../../components/Icon";
 
 const STATUS_STYLE = {
@@ -93,7 +93,7 @@ export default function UsersList({ initial, meId, canManage, canReset }) {
               </span>
               {canManage && r.status !== "pending" && !isMe ? (
                 <select
-                  value={r.role}
+                  value={normalizeRole(r.role)}
                   disabled={disabled}
                   aria-label={`Role for ${r.staffId}`}
                   onChange={(e) => {
@@ -120,7 +120,7 @@ export default function UsersList({ initial, meId, canManage, canReset }) {
                 </select>
               ) : (
                 <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
-                  {ROLE_LABELS[r.role] || r.role}
+                  {roleLabel(r.role)}
                 </span>
               )}
               {canManage && r.status !== "pending" && (

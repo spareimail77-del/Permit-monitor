@@ -21,7 +21,7 @@ export async function GET() {
 
   return Response.json({
     staffId: profile?.staff_id || null,
-    role: profile?.role || "permit_holder",
+    role: profile?.role || "permit_user",
     // Falls back to the staff ID when nobody has set a friendly name yet.
     displayName: profile?.display_name || profile?.staff_id || "User",
   });

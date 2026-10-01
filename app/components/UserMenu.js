@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ROLE_LABELS } from "../../lib/permissions";
+import { roleLabel } from "../../lib/permissions";
 import Icon from "./Icon";
 import { createClient } from "../../lib/supabase/client";
 
@@ -122,7 +122,7 @@ export default function UserMenu({ name, role }) {
         >
           <div style={styles.menuHead}>
             <p style={styles.menuName}>{name}</p>
-            <p style={styles.menuRole}>{ROLE_LABELS[role] || "User"}</p>
+            <p style={styles.menuRole}>{roleLabel(role)}</p>
           </div>
           <button
             type="button"
