@@ -101,6 +101,24 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   re-uploads and remain visible on archived permits. Opened through short-lived
   signed links. Root and HSE add/remove; everyone signed in can view.
 
+- **My profile (user menu):** everyone can correct their own **name**
+  straight away. A different **Staff ID** is a request
+  (`staff_id_change_requests`) that Root or Manager approves in
+  **Admin → Staff ID changes**. Approving switches the login address to the new
+  ID and runs `apply_staff_id_change()` (SQL, all or nothing) which updates the
+  profile and rewrites the old ID in the activity log, password requests and
+  upload log; attachments and archived permits follow automatically because
+  they point to the account's internal id. If the database step fails, the login
+  address is switched back. The person stays signed in and uses the new ID at
+  their next sign-in. Rules: one open request per person, 3 requests per day, the
+  new ID must be free, and only Root may decide their own request.
+
+- **Upload log (Upload page):** every upload attempt is recorded in
+  `upload_log` (who, file name, size, permits in the file, how many were
+  archived, result, time in Oman time); rejected files are logged with the
+  reason. The page shows the file now on the site and the history (latest 100,
+  12 at a time). Visible to Root and HSE.
+
 - **Sign-in loader:** after a successful sign-in a full-screen loader
   (`app/components/SignInLoader.js`, mounted once in `app/layout.js`) covers the
   screen until the dashboard content has arrived, then fades out as the cards
