@@ -7,7 +7,9 @@
 -- ---------------------------------------------------------------
 -- 1. Profiles: one row per account (identity, role, status)
 -- ---------------------------------------------------------------
--- role:   root | manager | hse | permit_holder | permit_applicant
+-- role:   root | manager | hse | permit_user
+--         (permit_user = applicants and holders; which part someone plays is
+--         per permit, from the Excel columns, not an account role)
 --         (what each role may do lives in lib/permissions.js)
 -- status: pending | active | disabled — only 'active' accounts can use
 --         the site. Accounts you add in the Supabase dashboard are active.
@@ -15,7 +17,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   staff_id text unique,
   display_name text,
-  role text not null default 'permit_holder',
+  role text not null default 'permit_user',
   status text not null default 'active',
   permissions jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
@@ -30,10 +32,10 @@ alter table public.profiles drop column if exists email;
 -- rows, then add the new rule.
 alter table public.profiles drop constraint if exists profiles_role_check;
 update public.profiles set role = 'hse' where role = 'admin';
-update public.profiles set role = 'permit_holder' where role = 'user';
-alter table public.profiles alter column role set default 'permit_holder';
+update public.profiles set role = 'permit_user' where role in ('user', 'permit_holder', 'permit_applicant');
+alter table public.profiles alter column role set default 'permit_user';
 alter table public.profiles add constraint profiles_role_check
-  check (role in ('root', 'manager', 'hse', 'permit_holder', 'permit_applicant'));
+  check (role in ('root', 'manager', 'hse', 'permit_user'));
 
 alter table public.profiles drop constraint if exists profiles_status_check;
 alter table public.profiles add constraint profiles_status_check
@@ -58,7 +60,7 @@ create policy "Users can read their own profile"
 -- ---------------------------------------------------------------
 -- Accounts created from the app's "Create account" page carry
 -- status / display_name in app_metadata (writable only from the server),
--- so they start as 'pending'. Every new account is a permit_holder; only
+-- so they start as 'pending'. Every new account is a permit_user; only
 -- Root can change a role later. Accounts you add in the dashboard have no
 -- such metadata and start 'active'.
 create or replace function public.handle_new_user()
@@ -74,7 +76,7 @@ begin
     new.id,
     split_part(new.email, '@', 1),
     nullif(meta->>'display_name', ''),
-    'permit_holder',
+    'permit_user',
     case when meta->>'status' = 'pending' then 'pending' else 'active' end
   )
   on conflict (id) do nothing;
@@ -84,7 +86,7 @@ $$;
 
 -- Step 22.1: requests made before roles were removed from the form may
 -- carry a role; reset pending accounts to the ordinary role.
-update public.profiles set role = 'permit_holder' where status = 'pending';
+update public.profiles set role = 'permit_user' where status = 'pending';
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

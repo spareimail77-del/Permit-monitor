@@ -18,8 +18,7 @@ keep the policies in `supabase-schema.sql` in step.
 | Root | Everything, incl. password resets, the activity log, archive clean-up and Excel export |
 | Manager | View everything (incl. archive); approve or reject account requests |
 | HSE | View, upload Excel, add/remove attachments, archive clean-up, Excel export, view the activity log (read-only; Root's own visits are hidden from HSE) |
-| Permit holder | View dashboard and permits |
-| Permit applicant | View dashboard and permits |
+| Permit user | View dashboard and permits (applicants, holders, or both: that is per permit, from the Excel columns, not an account role) |
 
 Each account also has a **status**: `pending`, `active` or `disabled`. Only
 `active` accounts can sign in; pending/disabled ones are refused at login and
@@ -55,7 +54,7 @@ staff ID maps to a never-emailed address such as
 
 **Adding a user by hand:** Authentication → Users → Add user (same email
 pattern, Auto Confirm), then set `role` and `display_name` in the
-`profiles` table. New accounts default to `permit_holder`, `active`.
+`profiles` table. New accounts default to `permit_user`, `active`.
 
 ## How it works
 
