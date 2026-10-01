@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Centre text defaults to `total` + `centerLabel`; pass `centerValue` /
+// `centerSub` to show something else (the dashboard shows the open count).
 // segments: [{ key, label, value, color, href?, children?: [{ key, label,
 //   legendLabel?, value, color, href? }] }]
 // Pure SVG + CSS (no chart library). The main ring shows the segments, which
@@ -35,7 +37,13 @@ function percentText(value, total) {
   return pct < 1 ? "<1%" : `${Math.round(pct)}%`;
 }
 
-export default function DonutChart({ segments, total, centerLabel = "permits" }) {
+export default function DonutChart({
+  segments,
+  total,
+  centerValue,
+  centerLabel = "permits",
+  centerSub,
+}) {
   const router = useRouter();
   const [activeKey, setActiveKey] = useState(null);
 
@@ -192,15 +200,21 @@ export default function DonutChart({ segments, total, centerLabel = "permits" })
               className="donut-center__value"
               fill={active ? active.color : "var(--color-ink)"}
             >
-              {active ? active.value : total}
+              {active ? active.value : centerValue ?? total}
             </text>
             <text x={SIZE / 2} y={SIZE / 2 + 22} textAnchor="middle" className="donut-center__label">
               {active ? active.label : centerLabel}
             </text>
-            {active && (
+            {active ? (
               <text x={SIZE / 2} y={SIZE / 2 + 40} textAnchor="middle" className="donut-center__pct">
                 {percentText(active.value, total)} of all permits
               </text>
+            ) : (
+              centerSub && (
+                <text x={SIZE / 2} y={SIZE / 2 + 40} textAnchor="middle" className="donut-center__pct">
+                  {centerSub}
+                </text>
+              )
             )}
           </g>
         </svg>

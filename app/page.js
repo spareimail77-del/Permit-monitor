@@ -98,40 +98,19 @@ export default async function Dashboard() {
   const areaBreakdown = withLink(topCounts(permits.map((p) => p.area)), "area");
   const typeBreakdown = withLink(topCounts(permits.map((p) => p.permitType)), "type");
 
-  // Expiring Soon and Overdue are both still open permits, so the "Open"
-  // slice covers all three groups (on track + expiring + overdue) and is
-  // drawn as one arc. Expiring Soon and Overdue then each get their own
-  // thin inner arc, sized to their share of Open (see DonutChart.js). Both
-  // are also listed as their own legend rows, counted against the same
-  // `total` as every other row, which is why the percentages add up to
-  // more than 100%: they are counted once on their own and again inside
-  // Open, on purpose.
+  // One ring, five mutually exclusive slices that add up to every permit:
+  // On track + Expiring Soon + Overdue (all three are "open") + Closed +
+  // Canceled. The centre shows how many of them are open.
   const openTotal = counts.OPEN + counts.EXPIRING_SOON + counts.OVERDUE;
   const resolvedSegments = [
     {
-      key: "OPEN",
-      label: "Open",
-      value: openTotal,
+      key: "ON_TRACK",
+      label: "On track",
+      value: counts.OPEN,
       color: STATUS_META.OPEN.color,
-      href: "/permits?status=OPEN",
-      children: [
-        {
-          key: "EXPIRING_SOON",
-          label: "Expiring Soon",
-          value: counts.EXPIRING_SOON,
-          color: STATUS_META.EXPIRING_SOON.color,
-          href: "/permits?status=EXPIRING_SOON",
-        },
-        {
-          key: "OVERDUE",
-          label: "Overdue",
-          value: counts.OVERDUE,
-          color: STATUS_META.OVERDUE.color,
-          href: "/permits?status=OVERDUE",
-        },
-      ],
+      href: "/permits?status=OPEN_ONLY",
     },
-    ...["CLOSED", "CANCELED"].map((key) => ({
+    ...["EXPIRING_SOON", "OVERDUE", "CLOSED", "CANCELED"].map((key) => ({
       key,
       label: STATUS_META[key].label,
       value: counts[key] || 0,
@@ -215,7 +194,9 @@ export default async function Dashboard() {
                   <DonutChart
                     segments={resolvedSegments}
                     total={permits.length}
-                    centerLabel="permits"
+                    centerValue={openTotal}
+                    centerLabel="open"
+                    centerSub={`of ${permits.length} permits`}
                   />
                 </div>
               </div>
