@@ -29,7 +29,7 @@ export default function LoginForm() {
     setMessage("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
       email: staffIdToAuthEmail(staffId),
       password,
     });
@@ -44,12 +44,14 @@ export default function LoginForm() {
       return;
     }
 
-    // Pending and disabled accounts may not sign in.
-    const { data: userData } = await supabase.auth.getUser();
+    // Pending and disabled accounts may not sign in. The sign-in reply
+    // already says who just signed in, so no extra getUser() round trip.
+    const userId =
+      signInData?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
     const { data: profile } = await supabase
       .from("profiles")
       .select("status")
-      .eq("id", userData?.user?.id)
+      .eq("id", userId)
       .single();
     if (profile?.status !== "active") {
       await supabase.auth.signOut();
@@ -73,16 +75,44 @@ export default function LoginForm() {
       // (e.g. the person was sent to another page).
       setTimeout(() => {
         delete document.documentElement.dataset.enter;
-      }, 10000);
-      await new Promise((resolve) => setTimeout(resolve, 520));
+      }, 20000);
     }
+    // Start loading the dashboard right away, while the veil animation
+    // plays, instead of waiting for the animation to finish first.
     router.replace(next);
     router.refresh();
   }
 
   return (
     <>
-    {state === "success" && <div className="veil veil--in" aria-hidden="true" />}
+    {state === "success" && (
+      <div className="veil veil--in" aria-hidden="true">
+        {/* Shown while the dashboard loads, so the wait is never a blank
+            screen. Self-contained SVG spinner: no extra CSS needed. */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+            color: "var(--color-ink)",
+          }}
+        >
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="16" stroke="var(--color-rule-strong)" strokeWidth="3" />
+            <path d="M20 4a16 16 0 0 1 16 16" stroke="var(--color-brand-2)" strokeWidth="3" strokeLinecap="round">
+              <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="0.9s" repeatCount="indefinite" />
+            </path>
+          </svg>
+          <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-ink-muted)" }}>
+            Signing you in…
+          </span>
+        </div>
+      </div>
+    )}
     <div className={`panel passcode-card${state === "success" ? " is-leaving" : ""}`}>
       <span className="passcode-icon">
         <Icon name="lock" />
