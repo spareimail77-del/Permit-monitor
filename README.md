@@ -102,6 +102,19 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   re-uploads and remain visible on archived permits. Opened through short-lived
   signed links. Root and HSE add/remove; everyone signed in can view.
 
+- **Sign-in loader:** after a successful sign-in a full-screen loader
+  (`app/components/SignInLoader.js`, mounted once in `app/layout.js`) covers the
+  screen until the dashboard content has arrived, then fades out as the cards
+  rise in. Theme colours only (violet dark, teal light); respects reduced
+  motion (it stays but holds still).
+
+- **Speed:** the permit file is downloaded and parsed once per upload and
+  shared by all server instances (Vercel Data Cache, `lib/parsePermits.js`);
+  the upload clears it at once. Signed-in checks avoid a Supabase round trip
+  where possible (`lib/supabase/user.js`: middleware, the header lookup and
+  read-only pages; routes that change data still use `getUser()`). The header
+  remembers the signed-in person's name/role for 5 minutes per tab.
+
 - **Abuse protection:** account requests and forgot-password requests are
   rate-limited per IP and per day (table `rate_limits`), capped at 40 pending
   requests, and use a hidden bot-trap field. Nothing here sends email.
