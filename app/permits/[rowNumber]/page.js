@@ -11,6 +11,7 @@ import CertificateList from "../../components/CertificateList";
 import AttachmentsPanel from "./AttachmentsPanel";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
+import { getCurrentUser } from "../../../lib/supabase/user";
 
 export const dynamic = "force-dynamic";
 
@@ -62,20 +63,22 @@ export default async function PermitDetailPage({ params }) {
     permit.reference
   );
 
+  // The permission lookup and the attachment list don't depend on each other,
+  // so they run at the same time.
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  let isAdmin = false; // can add/remove attachments
-  if (user) {
-    const access = await getAccess(supabase, user.id);
-    isAdmin = hasPermission(access, "manage_attachments");
-  }
-  const { data: attachments } = await supabase
-    .from("permit_attachments")
-    .select("*")
-    .eq("permit_reference", permit.reference)
-    .order("uploaded_at", { ascending: false });
+  const [isAdmin, { data: attachments }] = await Promise.all([
+    // can add/remove attachments
+    getCurrentUser(supabase).then(async (user) =>
+      user
+        ? hasPermission(await getAccess(supabase, user.id), "manage_attachments")
+        : false
+    ),
+    supabase
+      .from("permit_attachments")
+      .select("*")
+      .eq("permit_reference", permit.reference)
+      .order("uploaded_at", { ascending: false }),
+  ]);
 
   return (
     <main>

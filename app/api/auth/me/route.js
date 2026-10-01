@@ -1,10 +1,9 @@
 import { createClient } from "../../../../lib/supabase/server";
+import { getCurrentUser } from "../../../../lib/supabase/user";
 
 export async function GET() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
 
   if (!user) {
     return Response.json({ user: null }, { status: 401 });

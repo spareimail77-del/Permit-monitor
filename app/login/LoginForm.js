@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
@@ -13,18 +13,61 @@ const REASON_MESSAGES = {
   disabled: "This account is disabled. Contact HSE.",
 };
 
+// Only ever follow a link that stays on this site ("/permits", not
+// "https://elsewhere" or "//elsewhere").
+function safeNext(value) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
+    ? value
+    : "/";
+}
+
+// The full-screen loader (SignInLoader, mounted in the root layout) listens for
+// these two window events.
+function startLoader() {
+  window.dispatchEvent(new Event("permit:signin-start"));
+}
+function stopLoader() {
+  window.dispatchEvent(new Event("permit:signin-cancel"));
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
   const reason = searchParams.get("reason");
-  const [state, setState] = useState(REASON_MESSAGES[reason] ? "error" : "idle"); // idle | checking | error
+  const [state, setState] = useState(REASON_MESSAGES[reason] ? "error" : "idle"); // idle | checking | success | error
   const [message, setMessage] = useState(REASON_MESSAGES[reason] || "");
+  const reasonAtSubmit = useRef(reason);
+
+  // The server can send a just-signed-in person straight back here with a
+  // reason (account turned out to be pending/disabled): show it and drop the
+  // loader instead of leaving the form stuck on "Signing in".
+  useEffect(() => {
+    if (state === "success" && REASON_MESSAGES[reason] && reason !== reasonAtSubmit.current) {
+      delete document.documentElement.dataset.enter;
+      stopLoader();
+      setState("error");
+      setMessage(REASON_MESSAGES[reason]);
+    }
+  }, [reason, state]);
+
+  // Safety net: if the page change never happens, give the form back.
+  useEffect(() => {
+    if (state !== "success") return undefined;
+    const t = setTimeout(() => {
+      delete document.documentElement.dataset.enter;
+      stopLoader();
+      setState("error");
+      setMessage("Sign-in is taking too long. Check your connection and try again.");
+    }, 20000);
+    return () => clearTimeout(t);
+  }, [state]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!staffId || !password) return;
+    reasonAtSubmit.current = reason;
     setState("checking");
     setMessage("");
 
@@ -60,16 +103,20 @@ export default function LoginForm() {
       return;
     }
 
-    // Modern hand-off: the card lifts away under a glowing veil, then the
-    // dashboard fades the veil out while its cards rise in (see EnterEffect).
-    // Skipped for people who prefer reduced motion.
-    const next = searchParams.get("next") || "/";
+    // Hand-off: the card lifts away, the themed loader covers the screen
+    // while the dashboard is fetched, then fades out as the cards rise in.
+    // The rise-in is skipped for people who prefer reduced motion (the loader
+    // itself stays, just without movement).
+    try {
+      window.sessionStorage.removeItem("permit-log-me"); // header's cached user
+    } catch (err) {
+      // storage unavailable - nothing to clear
+    }
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduce) {
-      setState("success");
       document.documentElement.dataset.enter = "1";
       // Safety net: clear the flag even if the dashboard never mounts
       // (e.g. the person was sent to another page).
@@ -77,42 +124,16 @@ export default function LoginForm() {
         delete document.documentElement.dataset.enter;
       }, 20000);
     }
-    // Start loading the dashboard right away, while the veil animation
-    // plays, instead of waiting for the animation to finish first.
-    router.replace(next);
-    router.refresh();
+    setState("success");
+    startLoader();
+    // One navigation only. (An extra router.refresh() here used to make the
+    // server render the dashboard a second time.)
+    router.replace(safeNext(searchParams.get("next")));
   }
 
+  const busy = state === "checking" || state === "success";
+
   return (
-    <>
-    {state === "success" && (
-      <div className="veil veil--in" aria-hidden="true">
-        {/* Shown while the dashboard loads, so the wait is never a blank
-            screen. Self-contained SVG spinner: no extra CSS needed. */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 14,
-            color: "var(--color-ink)",
-          }}
-        >
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="16" stroke="var(--color-rule-strong)" strokeWidth="3" />
-            <path d="M20 4a16 16 0 0 1 16 16" stroke="var(--color-brand-2)" strokeWidth="3" strokeLinecap="round">
-              <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="0.9s" repeatCount="indefinite" />
-            </path>
-          </svg>
-          <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-ink-muted)" }}>
-            Signing you in…
-          </span>
-        </div>
-      </div>
-    )}
     <div className={`panel passcode-card${state === "success" ? " is-leaving" : ""}`}>
       <span className="passcode-icon">
         <Icon name="lock" />
@@ -146,10 +167,11 @@ export default function LoginForm() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!staffId || !password || state === "checking" || state === "success"}
+          disabled={!staffId || !password || busy}
           style={{ width: "100%", justifyContent: "center" }}
         >
-          {state === "checking" || state === "success" ? "Signing in…" : "Sign in"}
+          {busy && <span className="btn-spinner" aria-hidden="true" />}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
@@ -176,6 +198,5 @@ export default function LoginForm() {
         </Link>
       </p>
     </div>
-    </>
   );
 }

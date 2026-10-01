@@ -1,6 +1,11 @@
 import { put } from "@vercel/blob";
+import { revalidateTag } from "next/cache";
 import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
-import { fetchPermitData, parsePermitsFromBuffer } from "../../../lib/parsePermits";
+import {
+  fetchPermitData,
+  parsePermitsFromBuffer,
+  PERMIT_DATA_TAG,
+} from "../../../lib/parsePermits";
 import { findRemovedPermits, archivePermits } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
@@ -100,6 +105,15 @@ export async function POST(request) {
       contentType:
         "application/vnd.ms-excel.sheet.macroEnabled.12",
     });
+
+    // Forget the cached "which file is current" answer so every page sees the
+    // new upload straight away (the parsed data is keyed on the upload time,
+    // so it can't go stale on its own).
+    try {
+      revalidateTag(PERMIT_DATA_TAG);
+    } catch (err) {
+      console.error("Could not clear the permit data cache:", err);
+    }
 
     return Response.json({
       ok: true,

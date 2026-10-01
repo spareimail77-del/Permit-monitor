@@ -1919,11 +1919,19 @@ a.stat-card:hover {
 
 /* Frosted card; falls back to the normal solid panel where unsupported. */
 .auth-center .panel {
-  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(1.15);
-  backdrop-filter: blur(16px) saturate(1.15);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   border-color: color-mix(in srgb, var(--color-rule-strong) 70%, transparent);
   box-shadow: var(--shadow-pop);
+}
+
+/* The frosted blur is re-drawn every frame while the waves move behind it,
+   which is heavy on phones; keep it for mouse/desktop screens only. */
+@media (hover: hover) and (pointer: fine) {
+  .auth-center .panel {
+    background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.15);
+    backdrop-filter: blur(16px) saturate(1.15);
+  }
 }
 
 @keyframes auth-card-in {
@@ -1933,9 +1941,9 @@ a.stat-card:hover {
 
 /* ---------------------------------------------------------
    Sign-in -> dashboard hand-off
-   1. login card lifts away while a glowing veil fades in
-   2. dashboard mounts under the same veil, which fades out
-      while cards rise in (html[data-enter], set by LoginForm)
+   1. login card lifts away while the sign-in loader fades in
+   2. the loader fades out once the dashboard content has arrived,
+      while its cards rise in (html[data-enter], set by LoginForm)
 --------------------------------------------------------- */
 
 .passcode-card.is-leaving {
@@ -1946,32 +1954,244 @@ a.stat-card:hover {
   to { opacity: 0; transform: translateY(-16px) scale(0.97); }
 }
 
-.veil {
+/* Sign-in loader (SignInLoader.js, mounted once in the root layout).
+   Full-screen, built only from theme tokens so it is violet in dark and teal
+   in light. Motion is transform/opacity only. */
+.signin-loader {
   position: fixed;
   inset: 0;
-  z-index: 100;
-  pointer-events: none;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 50% 45%, var(--color-glow-1), transparent 55%),
+    radial-gradient(circle at 50% 40%, var(--color-glow-1), transparent 58%),
     var(--color-bg);
+  animation: signin-fade-in 0.35s ease-out both;
 }
 
-.veil--in {
-  animation: veil-in 0.5s ease-in forwards;
+.signin-loader--leaving {
+  pointer-events: none;
+  animation: signin-fade-out 0.45s ease-in forwards;
 }
 
-.veil--out {
-  animation: veil-out 0.7s ease-out forwards;
-}
-
-@keyframes veil-in {
+@keyframes signin-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-@keyframes veil-out {
+@keyframes signin-fade-out {
   from { opacity: 1; }
   to   { opacity: 0; }
+}
+
+.signin-loader__water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28vh;
+  min-height: 130px;
+  pointer-events: none;
+}
+
+.signin-loader__wave {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  color: var(--color-brand);
+  will-change: transform;
+  animation: signin-wave 22s linear infinite;
+}
+
+.signin-loader__wave path {
+  fill: currentColor;
+}
+
+.signin-loader__wave--back {
+  height: 100%;
+  opacity: 0.12;
+}
+
+.signin-loader__wave--front {
+  height: 68%;
+  opacity: 0.2;
+  animation-duration: 14s;
+  animation-direction: reverse;
+}
+
+@keyframes signin-wave {
+  to { transform: translateX(-50%); }
+}
+
+.signin-loader__center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 340px;
+}
+
+.signin-loader__badge {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 22px;
+}
+
+.signin-loader__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  animation: signin-spin 1.5s linear infinite;
+}
+
+.signin-loader__ring-track,
+.signin-loader__ring-arc {
+  fill: none;
+  stroke-width: 3;
+}
+
+.signin-loader__ring-track {
+  stroke: var(--color-rule-strong);
+  opacity: 0.6;
+}
+
+.signin-loader__ring-arc {
+  stroke: var(--color-brand-2);
+  stroke-linecap: round;
+  stroke-dasharray: 100 240; /* circle length is about 339 */
+  transform-origin: 50% 50%;
+}
+
+@keyframes signin-spin {
+  to { transform: rotate(360deg); }
+}
+
+.signin-loader__icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-brand) 12%);
+  color: var(--color-brand-2);
+  border: 1px solid var(--color-rule-strong);
+  box-shadow: var(--shadow-pop);
+  animation: signin-breathe 2.6s ease-in-out infinite;
+}
+
+@keyframes signin-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.signin-loader__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  color: var(--color-brand-2);
+}
+
+.signin-loader__title {
+  margin: 6px 0 20px;
+  font-size: var(--font-size-xl);
+  color: var(--color-ink);
+}
+
+.signin-loader__steps {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.signin-loader__steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-faint);
+  transition: color 0.3s ease;
+}
+
+.signin-loader__steps li.is-active {
+  color: var(--color-ink);
+}
+
+.signin-loader__steps li.is-done {
+  color: var(--color-ink-muted);
+}
+
+.signin-loader__mark {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--color-brand-2);
+}
+
+.signin-loader__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-rule-strong);
+}
+
+.signin-loader__steps li.is-active .signin-loader__dot {
+  background: var(--color-brand-2);
+  animation: signin-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes signin-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.55; }
+}
+
+.signin-loader__bar {
+  width: 220px;
+  max-width: 100%;
+  height: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-rule);
+}
+
+.signin-loader__bar span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-brand-dark), var(--color-brand-2));
+  animation: signin-bar 1.3s ease-in-out infinite;
+}
+
+@keyframes signin-bar {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(260%); }
+}
+
+/* Small spinner inside the Sign in button while credentials are checked. */
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: signin-spin 0.7s linear infinite;
 }
 
 @keyframes enter-up {
@@ -1997,13 +2217,20 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
   .wave,
   .auth-center > .panel,
   .passcode-card.is-leaving,
-  .veil,
   html[data-enter] .stat-card,
   html[data-enter] .dash-panel {
     animation: none !important;
   }
-  .veil { display: none; }
   .wave { opacity: 0.35 !important; }
+
+  /* The loader stays (people still need to see that something is happening)
+     but holds still: no spin, waves, pulse, fades or moving bar. */
+  .signin-loader,
+  .signin-loader *,
+  .btn-spinner {
+    animation: none !important;
+  }
+  .signin-loader__bar { display: none; }
 }
 
 /* ---------------------------------------------------------

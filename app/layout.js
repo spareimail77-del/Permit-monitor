@@ -1,5 +1,6 @@
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import SignInLoader from "./components/SignInLoader";
 
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -52,7 +53,10 @@ export default function RootLayout({ children }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SignInLoader />
+      </body>
     </html>
   );
 }

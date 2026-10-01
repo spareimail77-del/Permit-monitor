@@ -12,16 +12,52 @@ const BASE_NAV_ITEMS = [
   { href: "/permits", label: "Permit List" },
 ];
 
+// The signed-in person's name and role rarely change, but every page used to
+// ask the server for them again on each navigation (a full extra request, so
+// the user menu and Admin link popped in late). The answer is now remembered
+// for this browser tab for a few minutes: shown at once, re-checked only when
+// it is older than that. Nothing here grants access: the server still checks
+// the role on every page and API call.
+const ME_CACHE_KEY = "permit-log-me";
+const ME_CACHE_MS = 5 * 60 * 1000;
+
 export default function Header({ uploadedAt, today }) {
   const pathname = usePathname();
   const [me, setMe] = useState(null); // { email, role, displayName } | null while loading
 
   useEffect(() => {
     let cancelled = false;
+
+    try {
+      const raw = window.sessionStorage.getItem(ME_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached && cached.data && cached.data.staffId) {
+          setMe(cached.data);
+          if (Date.now() - cached.at < ME_CACHE_MS) return undefined; // fresh enough
+        }
+      }
+    } catch (err) {
+      // storage unavailable or unreadable - just ask the server
+    }
+
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled) setMe(data);
+        if (cancelled) return;
+        setMe(data);
+        try {
+          if (data && data.staffId) {
+            window.sessionStorage.setItem(
+              ME_CACHE_KEY,
+              JSON.stringify({ at: Date.now(), data })
+            );
+          } else {
+            window.sessionStorage.removeItem(ME_CACHE_KEY);
+          }
+        } catch (err) {
+          // storage unavailable - fine, it just won't be remembered
+        }
       })
       .catch(() => {
         if (!cancelled) setMe(null);

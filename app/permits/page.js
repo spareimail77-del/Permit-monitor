@@ -6,11 +6,41 @@ import ErrorScreen from "../components/ErrorScreen";
 import PermitTable from "../components/PermitTable";
 import { createClient } from "../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../lib/authz";
+import { getCurrentUser } from "../../lib/supabase/user";
 
 export const dynamic = "force-dynamic";
 
+// Attachment counts + whether this person may export. Metadata only (no file
+// bytes), and a failure just means no indicators / no export button, never an
+// error page. Runs at the same time as the permit data load below.
+async function loadViewerExtras() {
+  const attachmentCounts = {};
+  let canExport = false;
+  try {
+    const supabase = createClient();
+    const [user, { data: rows }] = await Promise.all([
+      getCurrentUser(supabase),
+      supabase.from("permit_attachments").select("permit_reference"),
+    ]);
+    if (user) {
+      canExport = hasPermission(await getAccess(supabase, user.id), "export_data");
+    }
+    (rows || []).forEach((r) => {
+      attachmentCounts[r.permit_reference] =
+        (attachmentCounts[r.permit_reference] || 0) + 1;
+    });
+  } catch (err) {
+    console.error("Could not load attachment counts:", err);
+  }
+  return { attachmentCounts, canExport };
+}
+
 export default async function PermitListPage({ searchParams }) {
-  const data = await fetchPermitData();
+  // Independent lookups, so they run together instead of one after another.
+  const [data, { attachmentCounts, canExport }] = await Promise.all([
+    fetchPermitData(),
+    loadViewerExtras(),
+  ]);
 
   if (data.error) {
     return <ErrorScreen message={data.message} />;
@@ -25,32 +55,6 @@ export default async function PermitListPage({ searchParams }) {
     requestedStatus && (STATUS_META[requestedStatus] || requestedStatus === "OPEN_ONLY")
       ? requestedStatus
       : "ALL";
-
-  // One lightweight query for every attachment's permit reference, so
-  // the list can show which permits have files attached. Metadata only
-  // (no file bytes), and a failure just means no indicators — never an
-  // error page.
-  const attachmentCounts = {};
-  let canExport = false;
-  try {
-    const supabase = createClient();
-    // Export is limited to roles with the export_data permission.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      canExport = hasPermission(await getAccess(supabase, user.id), "export_data");
-    }
-    const { data: rows } = await supabase
-      .from("permit_attachments")
-      .select("permit_reference");
-    (rows || []).forEach((r) => {
-      attachmentCounts[r.permit_reference] =
-        (attachmentCounts[r.permit_reference] || 0) + 1;
-    });
-  } catch (err) {
-    console.error("Could not load attachment counts:", err);
-  }
 
   const today = todayInMuscat();
   const permits = data.permits.map((permit) => {

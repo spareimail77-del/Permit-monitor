@@ -64,6 +64,11 @@ export default function UserMenu({ name, role }) {
   }, []);
 
   async function handleSignOut() {
+    try {
+      window.sessionStorage.removeItem("permit-log-me"); // Header's remembered user
+    } catch (err) {
+      // storage unavailable - nothing to clear
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

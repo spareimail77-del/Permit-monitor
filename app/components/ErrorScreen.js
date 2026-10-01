@@ -1,10 +1,13 @@
 import Link from "next/link";
 import Header from "./Header";
 import Icon from "./Icon";
+import EnterEffect from "./EnterEffect";
 
 export default function ErrorScreen({ message }) {
   return (
     <main>
+      {/* Lets the sign-in loader fade away even when the data is unavailable. */}
+      <EnterEffect />
       <Header />
       <section style={styles.body}>
         <div className="panel" style={styles.card}>
