@@ -119,6 +119,20 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   reason. The page shows the file now on the site and the history (latest 100,
   12 at a time). Visible to Root and HSE.
 
+- **My permits (step 36):** the Excel log picks Applicant and Holder from
+  dropdown lists. In **Admin → People & Excel names** (Root and HSE) each name
+  from those lists is linked to an account (`excel_name_links`; one Excel name
+  belongs to one account, an account can own several names). Close spellings are
+  offered as a one-click suggestion. A linked person gets: a **My permits**
+  panel at the top of the dashboard (active, expiring soon, overdue, closed;
+  holder/applicant split; the permits needing action first), a **My permits /
+  As holder / As applicant** switch on the Permit List (`?mine=1`), a coloured
+  tag (Holder, Applicant, or Both) on their permits, and a tag on the permit
+  page. Everyone still sees every permit; only the highlighting is personal.
+  Accounts with no linked name get a short hint on the dashboard. Names are
+  compared in upper case with single spaces; several names in one cell can be
+  separated with comma, slash, ampersand or semicolon.
+
 - **Sign-in loader:** after a successful sign-in a full-screen loader
   (`app/components/SignInLoader.js`, mounted once in `app/layout.js`) covers the
   screen until the dashboard content has arrived, then fades out as the cards
