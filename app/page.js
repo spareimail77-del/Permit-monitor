@@ -7,7 +7,6 @@ import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
 import AttentionPanel from "./components/AttentionPanel";
 import MyPermitsAlert from "./components/MyPermitsAlert";
-import LiveFocus from "./components/LiveFocus";
 import UnlinkedNotice from "./components/UnlinkedNotice";
 import { createClient } from "../lib/supabase/server";
 import { loadViewer } from "../lib/viewer";
@@ -224,7 +223,6 @@ export default async function Dashboard() {
               )}
             </div>
 
-            <LiveFocus>
             <div className="dash-row">
               <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">Status distribution</h2>
@@ -251,7 +249,6 @@ export default async function Dashboard() {
                 />
               </div>
             </div>
-            </LiveFocus>
 
             <div className="dash-row" style={{ marginTop: 16 }}>
               <div className="panel dash-panel" style={styles.panelPad}>

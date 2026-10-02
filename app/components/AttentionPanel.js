@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import ExpiringWatchlist from "./ExpiringWatchlist";
-import { useLiveFocus } from "./LiveFocus";
 
 // Dashboard right-hand panel: two tabs, Overdue and Expiring soon.
 //
@@ -22,7 +21,6 @@ import { useLiveFocus } from "./LiveFocus";
 const ROTATE_MS = 8000;
 const MANUAL_HOLD_MS = 30000;
 const TABS = ["overdue", "expiring"];
-const FOCUS_KEY = { overdue: "OVERDUE", expiring: "EXPIRING_SOON" };
 
 export default function AttentionPanel({
   overdue,
@@ -37,7 +35,6 @@ export default function AttentionPanel({
   const [hidden, setHidden] = useState(false);
   const [held, setHeld] = useState(false); // manual 30 s hold
   const [reduced, setReduced] = useState(false);
-  const { setFocus } = useLiveFocus();
 
   const canRotate = overdueTotal > 0 && expiringTotal > 0 && !reduced;
   const paused = hover || kbFocus || hidden;
@@ -70,13 +67,6 @@ export default function AttentionPanel({
     }, MANUAL_HOLD_MS);
     return () => clearTimeout(t);
   }, [held, cycle]);
-
-  // Tell the donut which slice to light up (only while it is rotating
-  // or has an obvious focus; reduced-motion people get a calm, still donut).
-  useEffect(() => {
-    setFocus(reduced ? null : FOCUS_KEY[tab]);
-    return () => setFocus(null);
-  }, [tab, reduced, setFocus]);
 
   const choose = useCallback(
     (next) => {

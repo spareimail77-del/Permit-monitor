@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLiveFocus } from "./LiveFocus";
 
 // Centre text defaults to `total` + `centerLabel`; pass `centerValue` /
 // `centerSub` to show something else (the dashboard shows the open count).
@@ -24,6 +23,7 @@ const STROKE = 26;
 const STROKE_ACTIVE = 34;
 const RADIUS = SIZE / 2 - STROKE_ACTIVE / 2 - 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const ROTATE_MS = 4000; // spotlight moves to the next slice every 4 s
 const GAP = 2.5; // visual gap between slices, in SVG units
 
 // Inner ring sits inside the main ring, clear of its grown (active) state.
@@ -47,13 +47,46 @@ export default function DonutChart({
 }) {
   const router = useRouter();
   const [hoverKey, setHoverKey] = useState(null);
-  // The "Needs attention" panel says which slice it is showing right now.
-  // The person pointing at the donut always wins over that.
-  const { focus: ambientKey } = useLiveFocus();
-  const activeKey = hoverKey || ambientKey || null;
-  const isAmbient = !hoverKey && !!ambientKey;
+  // Self-rotation: every ROTATE_MS the donut spotlights the next slice
+  // (On track, Expiring soon, Overdue, Closed, Canceled, then round again).
+  // -1 = the plain overview shown for the first few seconds after load.
+  const [rot, setRot] = useState(-1);
+  const [hidden, setHidden] = useState(false);
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(!!mq && mq.matches);
+    sync();
+    mq && mq.addEventListener && mq.addEventListener("change", sync);
+    const vis = () => setHidden(document.visibilityState === "hidden");
+    vis();
+    document.addEventListener("visibilitychange", vis);
+    return () => {
+      mq && mq.removeEventListener && mq.removeEventListener("change", sync);
+      document.removeEventListener("visibilitychange", vis);
+    };
+  }, []);
 
   const drawn = segments.filter((s) => s.value > 0);
+
+  // Slices with no permits have no arc to spotlight, so they are skipped.
+  const rotatable = drawn.length > 1 && !reduced;
+  const paused = !!hoverKey || hidden;
+  useEffect(() => {
+    if (!rotatable || paused) return undefined;
+    const t = setTimeout(
+      () => setRot((r) => (r + 1 >= drawn.length ? 0 : r + 1)),
+      ROTATE_MS
+    );
+    return () => clearTimeout(t);
+  }, [rot, rotatable, paused, drawn.length]);
+
+  // The person pointing at the donut always wins over the rotation.
+  const ambientKey =
+    rotatable && rot >= 0 && drawn[rot % drawn.length] ? drawn[rot % drawn.length].key : null;
+  const activeKey = hoverKey || ambientKey || null;
+  const isAmbient = !hoverKey && !!ambientKey;
   const gap = drawn.length > 1 ? GAP : 0;
 
   let offset = 0;
