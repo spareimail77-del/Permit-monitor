@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { roleLabel } from "../../lib/permissions";
+import { roleLabel, normalizeRole } from "../../lib/permissions";
 import Icon from "./Icon";
 import { createClient } from "../../lib/supabase/client";
 
@@ -77,6 +77,7 @@ export default function UserMenu({ name, role }) {
   }
 
   const initial = (name || "?").trim().charAt(0).toUpperCase();
+  const royal = normalizeRole(role) === "manager"; // gold "royal" look for Managers
 
   return (
     <div ref={rootRef} style={styles.root}>
@@ -84,11 +85,18 @@ export default function UserMenu({ name, role }) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="user-menu-trigger"
+        className={`user-menu-trigger${royal ? " user-menu-trigger--royal" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span style={styles.avatar}>{initial}</span>
+        <span style={styles.avatar} className={royal ? "um-avatar um-avatar--royal" : undefined}>
+          {initial}
+          {royal && (
+            <span className="um-crown" aria-hidden="true">
+              <Icon name="crown" size={9} />
+            </span>
+          )}
+        </span>
         <span style={styles.name}>{name}</span>
         <svg
           width="12"
@@ -113,6 +121,7 @@ export default function UserMenu({ name, role }) {
         <div
           ref={menuRef}
           role="menu"
+          className={royal ? "um-pop um-pop--royal" : "um-pop"}
           style={{
             ...styles.menu,
             top: pos.top,
@@ -121,9 +130,12 @@ export default function UserMenu({ name, role }) {
             maxHeight: pos.maxHeight,
           }}
         >
-          <div style={styles.menuHead}>
+          <div style={styles.menuHead} className={royal ? "um-head um-head--royal" : "um-head"}>
             <p style={styles.menuName}>{name}</p>
-            <p style={styles.menuRole}>{roleLabel(role)}</p>
+            <p style={styles.menuRole} className={royal ? "um-role um-role--royal" : "um-role"}>
+              {royal && <Icon name="crown" size={12} />}
+              {roleLabel(role)}
+            </p>
           </div>
           <button
             type="button"
@@ -167,6 +179,7 @@ const styles = {
     fontSize: "var(--font-size-xs)",
     fontWeight: 700,
     flexShrink: 0,
+    position: "relative",
   },
   name: {
     fontSize: "var(--font-size-sm)",

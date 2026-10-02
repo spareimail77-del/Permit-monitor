@@ -26,7 +26,8 @@ export default function AttentionPanel({
   overdue,
   overdueTotal,
   expiring,
-  expiringTotal,
+  expiringTotal, // number on the tab: Expiring Soon status only
+  expiringListTotal, // rows behind it: every open permit with days left
 }) {
   const [tab, setTab] = useState(overdueTotal > 0 ? "overdue" : "expiring");
   const [cycle, setCycle] = useState(0); // restarts the progress line
@@ -36,7 +37,7 @@ export default function AttentionPanel({
   const [held, setHeld] = useState(false); // manual 30 s hold
   const [reduced, setReduced] = useState(false);
 
-  const canRotate = overdueTotal > 0 && expiringTotal > 0 && !reduced;
+  const canRotate = overdueTotal > 0 && expiringListTotal > 0 && !reduced;
   const paused = hover || kbFocus || hidden;
   const activeIndex = TABS.indexOf(tab);
 
@@ -136,7 +137,7 @@ export default function AttentionPanel({
           Still open past their Valid To date, most overdue first.
         </p>
         <p className={`panel-subtitle attn-sub${tab === "expiring" ? " is-active" : ""}`}>
-          Open permits with 3 days or less left, soonest first.
+          Open permits by days left, soonest first.
         </p>
       </div>
 
@@ -170,8 +171,8 @@ export default function AttentionPanel({
           <ExpiringWatchlist
             mode="expiring"
             permits={expiring}
-            totalCount={expiringTotal}
-            viewAllHref="/permits?status=EXPIRING_SOON"
+            totalCount={expiringListTotal}
+            viewAllHref="/permits?status=OPEN"
           />
         </div>
       </div>

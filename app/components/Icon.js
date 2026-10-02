@@ -2,6 +2,12 @@
 // Kept as one file so the app stays dependency-free — no icon package.
 
 const PATHS = {
+  crown: (
+    <>
+      <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z" />
+      <path d="M5.5 21h13" />
+    </>
+  ),
   paperclip: (
     <path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.3-2.3l7.8-7.8" />
   ),

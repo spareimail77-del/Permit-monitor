@@ -3289,3 +3289,112 @@ p.pf-muted {
     transition: none;
   }
 }
+
+
+/* ---------------------------------------------------------
+   Manager "royal" account menu: gold on both themes
+--------------------------------------------------------- */
+.user-menu-trigger--royal,
+.um-pop--royal {
+  --gold: #d4af37;
+  --gold-hi: #f4dc8a;
+  --gold-text: #f0d27a;
+}
+
+[data-theme="light"] .user-menu-trigger--royal,
+[data-theme="light"] .um-pop--royal {
+  --gold: #b8892a;
+  --gold-hi: #e8c766;
+  --gold-text: #8a6410;
+}
+
+.user-menu-trigger--royal {
+  position: relative;
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--color-rule));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent 70%),
+    var(--color-surface-2);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+.user-menu-trigger--royal:hover,
+.user-menu-trigger--royal[aria-expanded="true"] {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 28%, transparent);
+}
+
+/* a slow glint that crosses the pill every few seconds */
+.user-menu-trigger--royal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--gold-hi) 38%, transparent) 50%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  animation: um-glint 7s ease-in-out 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes um-glint {
+  0%, 62% { background-position: 150% 0; }
+  100%    { background-position: -50% 0; }
+}
+
+.um-avatar--royal {
+  background: linear-gradient(135deg, var(--gold-hi), var(--gold)) !important;
+  color: #2a1e05 !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.um-crown {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2a1e05;
+  color: var(--gold-hi);
+  border: 1px solid var(--gold);
+}
+
+.um-pop--royal {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--color-rule)) !important;
+  box-shadow: var(--shadow-pop), 0 0 22px color-mix(in srgb, var(--gold) 16%, transparent) !important;
+}
+
+.um-pop--royal::before {
+  content: "";
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-hi), var(--gold), transparent);
+}
+
+.um-head--royal {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 13%, transparent), transparent 75%);
+  border-bottom-color: color-mix(in srgb, var(--gold) 30%, var(--color-rule)) !important;
+}
+
+.um-role {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.um-role--royal {
+  color: var(--gold-text) !important;
+  font-weight: 700;
+  letter-spacing: 0.1em !important;
+}
+
+.um-pop--royal .user-menu-item:hover {
+  background: color-mix(in srgb, var(--gold) 12%, var(--color-surface-hover));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-menu-trigger--royal::after { animation: none; display: none; }
+}

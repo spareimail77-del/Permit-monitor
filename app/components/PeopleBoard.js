@@ -27,7 +27,12 @@ export default function PeopleBoard({ people }) {
             style={{ "--i": Math.min(i, 12) }}
           >
             <span className="people__name">{p.name}</span>
-            <span className="people__cell">{p.active}</span>
+            <span
+              className={`people__cell${p.active > 0 ? " is-on" : ""}`}
+              style={{ "--cell-color": STATUS_META.OPEN.color }}
+            >
+              {p.active > 0 ? p.active : "–"}
+            </span>
             <span
               className={`people__cell${p.expiring > 0 ? " is-on" : ""}`}
               style={{ "--cell-color": STATUS_META.EXPIRING_SOON.color }}

@@ -144,7 +144,11 @@ export default async function ProfilePage({ searchParams }) {
         {tab === "preferences" && (
           <div className="pf-stack pf-narrow">
             <ThemePicker />
-            <StartPagePref hasLinks={linkedNames.length > 0} />
+            {/* "Open on My permits" only makes sense for someone who can be a
+                Holder or Applicant, so a Manager with no linked name never sees it. */}
+            {!(profile.role === "manager" && linkedNames.length === 0) && (
+              <StartPagePref hasLinks={linkedNames.length > 0} />
+            )}
           </div>
         )}
       </section>

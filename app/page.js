@@ -96,13 +96,14 @@ export default async function Dashboard() {
     }
   }
 
-  // "Expiring soon" is exactly the EXPIRING_SOON status (0-3 days left), so
-  // this tab always agrees with the stat card and the donut. Permits with
-  // 4+ days left are plain Active / Open and do not belong here.
+  // The list shows every open permit that has a Valid To date, soonest
+  // first (1 day left, 2 days left ... n days left). The tab NUMBER is only
+  // the permits whose status is really Expiring Soon (3 days or less), so it
+  // always agrees with the stat card and the donut.
   const allUpcoming = permits
     .filter(
       (p) =>
-        p.displayStatus === "EXPIRING_SOON" &&
+        (p.displayStatus === "OPEN" || p.displayStatus === "EXPIRING_SOON") &&
         typeof p.daysRemaining === "number"
     )
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
@@ -262,7 +263,8 @@ export default async function Dashboard() {
                   overdue={overdueList}
                   overdueTotal={allOverdue.length}
                   expiring={upcomingExpiries}
-                  expiringTotal={allUpcoming.length}
+                  expiringTotal={counts.EXPIRING_SOON}
+                  expiringListTotal={allUpcoming.length}
                 />
               </div>
             </div>
