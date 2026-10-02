@@ -6,7 +6,8 @@ import StatCard from "./components/StatCard";
 import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
 import AttentionPanel from "./components/AttentionPanel";
-import MyPermitsPanel from "./components/MyPermitsPanel";
+import MyPermitsAlert from "./components/MyPermitsAlert";
+import LiveFocus from "./components/LiveFocus";
 import UnlinkedNotice from "./components/UnlinkedNotice";
 import { createClient } from "../lib/supabase/server";
 import { loadViewer } from "../lib/viewer";
@@ -58,6 +59,17 @@ export default async function Dashboard() {
 
   // Permits where this person is the holder and/or applicant.
   const minePermits = permits.filter((p) => p.mine);
+  // Only these few numbers go to the browser for the alert tile.
+  const mineCounts = { active: 0, expiring: 0, overdue: 0, done: 0 };
+  for (const p of minePermits) {
+    if (p.displayStatus === "CLOSED" || p.displayStatus === "CANCELED") mineCounts.done++;
+    else if (p.displayStatus === "OVERDUE") mineCounts.overdue++;
+    else if (p.displayStatus === "EXPIRING_SOON") mineCounts.expiring++;
+    else if (p.displayStatus === "OPEN") mineCounts.active++;
+  }
+  // "Active" on the tile matches the Permit List filter: every open permit,
+  // including expiring soon and overdue.
+  mineCounts.active += mineCounts.expiring + mineCounts.overdue;
   const showMine = viewer.names.size > 0;
   // Ordinary users with no linked name get a hint instead of a blank space.
   const showUnlinkedHint =
@@ -76,10 +88,13 @@ export default async function Dashboard() {
     }
   }
 
+  // "Expiring soon" is exactly the EXPIRING_SOON status (0-3 days left), so
+  // this tab always agrees with the stat card and the donut. Permits with
+  // 4+ days left are plain Active / Open and do not belong here.
   const allUpcoming = permits
     .filter(
       (p) =>
-        (p.displayStatus === "OPEN" || p.displayStatus === "EXPIRING_SOON") &&
+        p.displayStatus === "EXPIRING_SOON" &&
         typeof p.daysRemaining === "number"
     )
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
@@ -136,6 +151,8 @@ export default async function Dashboard() {
       value: counts[key] || 0,
       color: STATUS_META[key].color,
       href: `/permits?status=${key}`,
+      // A soft breathing pulse while something is overdue.
+      pulse: key === "OVERDUE" && counts.OVERDUE > 0,
     })),
   ];
 
@@ -162,10 +179,10 @@ export default async function Dashboard() {
           </div>
         ) : (
           <>
-            {showMine && <MyPermitsPanel mine={minePermits} names={viewer.labels} />}
+            {showMine && <MyPermitsAlert counts={mineCounts} />}
             {showUnlinkedHint && <UnlinkedNotice />}
 
-            <div className="stat-grid" style={{ marginBottom: 16 }}>
+            <div className="stat-grid stat-grid--live" style={{ marginBottom: 16 }}>
               <StatCard
                 label="Total Permits"
                 value={permits.length}
@@ -207,6 +224,7 @@ export default async function Dashboard() {
               )}
             </div>
 
+            <LiveFocus>
             <div className="dash-row">
               <div className="panel dash-panel" style={styles.panelPad}>
                 <h2 className="panel-title">Status distribution</h2>
@@ -233,6 +251,7 @@ export default async function Dashboard() {
                 />
               </div>
             </div>
+            </LiveFocus>
 
             <div className="dash-row" style={{ marginTop: 16 }}>
               <div className="panel dash-panel" style={styles.panelPad}>

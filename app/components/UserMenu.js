@@ -66,6 +66,7 @@ export default function UserMenu({ name, role }) {
   async function handleSignOut() {
     try {
       window.sessionStorage.removeItem("permit-log-me"); // Header's remembered user
+      window.localStorage.removeItem("permit-mine-alert-closed-at"); // "My permits" alert
     } catch (err) {
       // storage unavailable - nothing to clear
     }

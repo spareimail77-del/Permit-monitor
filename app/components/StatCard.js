@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Icon from "./Icon";
+import CountUp from "./CountUp";
 
 export default function StatCard({ label, value, color, icon, href, hero, urgent, hint }) {
   const iconColor = color || "var(--color-brand-2)";
@@ -15,7 +16,9 @@ export default function StatCard({ label, value, color, icon, href, hero, urgent
         <Icon name={icon || "layers"} />
       </span>
       <div>
-        <p className="stat-card__value">{value}</p>
+        <p className="stat-card__value">
+          <CountUp value={value} />
+        </p>
         <p className="stat-card__label">{label}</p>
         {hint && <p className="stat-card__hint">{hint}</p>}
       </div>

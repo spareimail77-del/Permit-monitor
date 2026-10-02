@@ -109,6 +109,8 @@ export default function LoginForm() {
     // itself stays, just without movement).
     try {
       window.sessionStorage.removeItem("permit-log-me"); // header's cached user
+      // Every new sign-in shows the "My permits" alert again.
+      window.localStorage.removeItem("permit-mine-alert-closed-at");
     } catch (err) {
       // storage unavailable - nothing to clear
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLiveFocus } from "./LiveFocus";
 
 // Centre text defaults to `total` + `centerLabel`; pass `centerValue` /
 // `centerSub` to show something else (the dashboard shows the open count).
@@ -45,7 +46,12 @@ export default function DonutChart({
   centerSub,
 }) {
   const router = useRouter();
-  const [activeKey, setActiveKey] = useState(null);
+  const [hoverKey, setHoverKey] = useState(null);
+  // The "Needs attention" panel says which slice it is showing right now.
+  // The person pointing at the donut always wins over that.
+  const { focus: ambientKey } = useLiveFocus();
+  const activeKey = hoverKey || ambientKey || null;
+  const isAmbient = !hoverKey && !!ambientKey;
 
   const drawn = segments.filter((s) => s.value > 0);
   const gap = drawn.length > 1 ? GAP : 0;
@@ -97,10 +103,10 @@ export default function DonutChart({
   const relatedKey = active && active.parentKey ? active.parentKey : null;
 
   const focusProps = (key) => ({
-    onMouseEnter: () => setActiveKey(key),
-    onMouseLeave: () => setActiveKey(null),
-    onFocus: () => setActiveKey(key),
-    onBlur: () => setActiveKey(null),
+    onMouseEnter: () => setHoverKey(key),
+    onMouseLeave: () => setHoverKey(null),
+    onFocus: () => setHoverKey(key),
+    onBlur: () => setHoverKey(null),
   });
 
   const keyGo = (item) => (e) => {
@@ -120,7 +126,7 @@ export default function DonutChart({
     <div className="donut-row">
       <div className="donut-wrap">
         <svg
-          className={`donut-svg${active ? " has-active" : ""}`}
+          className={`donut-svg${active ? " has-active" : ""}${isAmbient ? " is-ambient" : ""}`}
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           role="group"
           aria-label="Permit status distribution"
@@ -138,7 +144,7 @@ export default function DonutChart({
               key={a.key}
               className={`donut-slice${a.key === activeKey ? " is-active" : ""}${
                 a.key === relatedKey ? " is-related" : ""
-              }`}
+              }${a.pulse ? " donut-slice--pulse" : ""}`}
               cx={SIZE / 2}
               cy={SIZE / 2}
               r={RADIUS}

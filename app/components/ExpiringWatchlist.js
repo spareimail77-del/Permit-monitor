@@ -49,7 +49,7 @@ export default function ExpiringWatchlist({ permits, totalCount, viewAllHref, mo
         <Icon name="checkCircle" size={16} style={{ color: "var(--color-open)" }} />
         {mode === "overdue"
           ? "No overdue permits. Every open permit is still within its Valid To date."
-          : "No open permits with a Valid To date on record."}
+          : "Nothing is expiring soon. No open permit has 3 days or less left."}
       </div>
     );
   }

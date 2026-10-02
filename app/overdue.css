@@ -44,7 +44,7 @@ a.stat-card--urgent:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 2px 0 14px;
+  margin: 10px 0 14px;
 }
 
 .attn-tab {
@@ -63,7 +63,9 @@ a.stat-card--urgent:hover {
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  position: relative;
+  overflow: hidden; /* clips the countdown line to the pill's rounded shape */
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease;
 }
 
 .attn-tab:hover {
@@ -98,4 +100,352 @@ a.stat-card--urgent:hover {
   color: var(--tab-color);
   background: var(--tab-tint);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tab-color) 35%, transparent);
+}
+
+/* ---- Living dashboard (browser-side animation only) -------------- */
+
+/* Needs attention: wrapper, subtitles and the two gliding panes */
+.attn {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.attn-subs {
+  display: grid;
+}
+
+.attn-sub {
+  grid-area: 1 / 1;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity 0.4s ease, transform 0.4s ease, visibility 0s linear 0.4s;
+}
+
+.attn-sub.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s, visibility 0s;
+}
+
+/* Thin countdown line along the bottom of the active tab (8 s). */
+.attn-tab__bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--tab-color);
+  opacity: 0.85;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: attn-progress 8s linear forwards;
+  pointer-events: none;
+}
+
+@keyframes attn-progress {
+  to { transform: scaleX(1); }
+}
+
+.attn-stage {
+  display: grid;
+  position: relative;
+  overflow: hidden;
+}
+
+.attn-pane {
+  grid-area: 1 / 1; /* both panes share one cell: the panel never changes height */
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: opacity, transform;
+  transition:
+    opacity 0.55s ease,
+    transform 0.7s cubic-bezier(0.22, 0.8, 0.3, 1),
+    visibility 0s linear 0.7s;
+}
+
+.attn-pane.is-before { transform: translateX(-34px); }
+.attn-pane.is-after  { transform: translateX(34px); }
+
+.attn-pane.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  /* the newcomer starts a beat after the leaver, so they cross smoothly */
+  transition-delay: 0.12s, 0.12s, 0s;
+}
+
+/* Stat cards rise in one after another on every dashboard load. (The
+   sign-in version, html[data-enter], has its own slower timing and wins.) */
+@keyframes live-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.stat-grid--live .stat-card {
+  animation: live-rise 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+}
+.stat-grid--live .stat-card:nth-child(1) { animation-delay: 0.04s; }
+.stat-grid--live .stat-card:nth-child(2) { animation-delay: 0.10s; }
+.stat-grid--live .stat-card:nth-child(3) { animation-delay: 0.16s; }
+.stat-grid--live .stat-card:nth-child(4) { animation-delay: 0.22s; }
+.stat-grid--live .stat-card:nth-child(5) { animation-delay: 0.28s; }
+.stat-grid--live .stat-card:nth-child(6) { animation-delay: 0.34s; }
+.stat-grid--live .stat-card:nth-child(7) { animation-delay: 0.40s; }
+
+/* The Overdue tile's red edge breathes, very gently. */
+.stat-card--urgent::before {
+  animation: urgent-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes urgent-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+/* Donut: soft pulse on the Overdue slice, slow glide when the panel
+   hands the spotlight from one slice to the other. */
+.donut-slice.donut-slice--pulse {
+  animation:
+    donut-draw 0.8s cubic-bezier(0.22, 0.8, 0.3, 1) calc(var(--i, 0) * 90ms) both,
+    donut-pulse 3.2s ease-in-out 1.6s infinite;
+}
+
+@keyframes donut-pulse {
+  0%, 100% { stroke-opacity: 1; }
+  50%      { stroke-opacity: 0.6; }
+}
+
+.donut-svg.is-ambient .donut-slice,
+.donut-svg.is-ambient .donut-inner {
+  transition:
+    stroke-width 0.7s cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 0.7s ease;
+}
+
+.donut-svg.is-ambient.has-active .donut-slice:not(.is-active):not(.is-related),
+.donut-svg.is-ambient.has-active .donut-inner:not(.is-active):not(.is-related) {
+  opacity: 0.45;
+}
+
+.donut-svg.is-ambient .donut-center {
+  animation-duration: 0.5s;
+}
+
+/* ---- "My permits" alert tile -------------------------------------- */
+/* Slides open/closed by animating a grid row between 0fr and 1fr, so the
+   height needs no measuring and the page below glides instead of jumping. */
+.mine-alert-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.55s cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 0.4s ease,
+    visibility 0s linear 0.55s;
+}
+
+.mine-alert-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.mine-alert-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mine-alert-pad {
+  padding: 4px 0 16px;
+}
+
+.mine-alert {
+  --tone: var(--color-open);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tone) 8%, transparent), transparent 60%),
+    var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--tone) 28%, var(--color-rule));
+  border-left: 3px solid var(--tone);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px 16px 18px;
+}
+
+.mine-alert--soon    { --tone: var(--color-expiring); }
+.mine-alert--overdue { --tone: var(--color-expired); }
+
+.mine-alert__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mine-alert__bell {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+}
+
+.mine-alert__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.mine-alert__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.mine-alert__sub {
+  margin: 2px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.mine-alert__all {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-brand-2);
+  white-space: nowrap;
+}
+
+.mine-alert__close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mine-alert__close:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-ink);
+}
+
+.mine-alert__close:focus-visible {
+  outline: 2px solid var(--color-brand-2);
+  outline-offset: 1px;
+}
+
+.mine-alert__cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .mine-alert__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mine-alert__all {
+    display: none; /* the cards already link into the list on small screens */
+  }
+}
+
+.mine-alert__card {
+  --card-color: var(--color-brand-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "chip num" "chip label";
+  column-gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+
+.mine-alert__card:hover {
+  border-color: color-mix(in srgb, var(--card-color) 50%, var(--color-rule));
+  background: var(--color-surface-hover);
+  transform: translateY(-1px);
+}
+
+.mine-alert__card.is-urgent {
+  border-color: color-mix(in srgb, var(--card-color) 45%, var(--color-rule));
+  background: color-mix(in srgb, var(--card-color) 8%, var(--color-surface-2));
+}
+
+.mine-alert__chip {
+  grid-area: chip;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--card-color);
+  background: color-mix(in srgb, var(--card-color) 16%, transparent);
+}
+
+.mine-alert__num {
+  grid-area: num;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.mine-alert__card.is-urgent .mine-alert__num { color: var(--card-color); }
+.mine-alert__card.is-zero .mine-alert__num   { color: var(--color-ink-muted); }
+
+.mine-alert__label {
+  grid-area: label;
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.mine-alert-wrap.is-open .mine-alert__card {
+  animation: enter-up 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+  animation-delay: calc(0.2s + var(--n, 0) * 70ms);
+}
+
+/* ---- Reduced motion: still, but never broken ---------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .attn-pane,
+  .attn-pane.is-before,
+  .attn-pane.is-after {
+    transform: none;
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+  }
+  .attn-pane.is-active { transition-delay: 0s; }
+  .attn-sub,
+  .attn-sub.is-active { transform: none; transition-duration: 0.2s; transition-delay: 0s; }
+  .stat-grid--live .stat-card,
+  .stat-card--urgent::before,
+  .donut-slice.donut-slice--pulse,
+  .mine-alert-wrap.is-open .mine-alert__card {
+    animation: none;
+  }
+  .mine-alert-wrap { transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+  .mine-alert-wrap.is-open { transition-delay: 0s; }
 }
