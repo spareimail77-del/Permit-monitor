@@ -7,6 +7,11 @@ import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
 import AttentionPanel from "./components/AttentionPanel";
 import MyPermitsAlert from "./components/MyPermitsAlert";
+import ManagerBrief from "./components/ManagerBrief";
+import PeopleBoard from "./components/PeopleBoard";
+import ExpiryForecast from "./components/ExpiryForecast";
+import { buildManagerView } from "../lib/managerView";
+import { normalizeRole } from "../lib/permissions";
 import UnlinkedNotice from "./components/UnlinkedNotice";
 import { createClient } from "../lib/supabase/server";
 import { loadViewer } from "../lib/viewer";
@@ -70,6 +75,10 @@ export default async function Dashboard() {
   // including expiring soon and overdue.
   mineCounts.active += mineCounts.expiring + mineCounts.overdue;
   const showMine = viewer.names.size > 0;
+  // Managers get an overview built from the same permits (no extra reads).
+  const isManager =
+    viewer.access.active && normalizeRole(viewer.access.role) === "manager";
+  const mgr = isManager ? buildManagerView(permits, today) : null;
   // Ordinary users with no linked name get a hint instead of a blank space.
   const showUnlinkedHint =
     !showMine &&
@@ -178,6 +187,14 @@ export default async function Dashboard() {
           </div>
         ) : (
           <>
+            {mgr && (
+              <ManagerBrief
+                tone={mgr.tone}
+                headline={mgr.headline}
+                sub={mgr.sub}
+                summaryText={mgr.summaryText}
+              />
+            )}
             {showMine && <MyPermitsAlert counts={mineCounts} />}
             {showUnlinkedHint && <UnlinkedNotice />}
 
@@ -249,6 +266,28 @@ export default async function Dashboard() {
                 />
               </div>
             </div>
+
+            {mgr && (
+              <div className="dash-row" style={{ marginTop: 16 }}>
+                <div className="panel dash-panel" style={styles.panelPad}>
+                  <h2 className="panel-title">Holders &amp; Applicants</h2>
+                  <p className="panel-subtitle">
+                    Open permits per person, overdue first. A permit counts for both its holder and its
+                    applicant. Click a name to see their permits.
+                  </p>
+                  <div className="dash-panel__body">
+                    <PeopleBoard people={mgr.people} />
+                  </div>
+                </div>
+                <div className="panel dash-panel" style={styles.panelPad}>
+                  <h2 className="panel-title">Next 14 days</h2>
+                  <p className="panel-subtitle">Open permits reaching their Valid To date, day by day.</p>
+                  <div className="dash-panel__body">
+                    <ExpiryForecast {...mgr.forecast} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="dash-row" style={{ marginTop: 16 }}>
               <div className="panel dash-panel" style={styles.panelPad}>

@@ -87,6 +87,9 @@ export default async function PermitListPage({ searchParams }) {
   // Only offered when the area / type from a dashboard link really exists.
   const areaParam = typeof searchParams?.area === "string" ? searchParams.area : "";
   const typeParam = typeof searchParams?.type === "string" ? searchParams.type : "";
+  // ?q= opens the list already searched (used by the Manager people board).
+  const initialQuery =
+    typeof searchParams?.q === "string" ? searchParams.q.slice(0, 80) : "";
   const initialArea = permits.some((p) => p.area === areaParam) ? areaParam : "ALL";
   const initialType = permits.some((p) => p.permitType === typeParam) ? typeParam : "ALL";
 
@@ -118,6 +121,7 @@ export default async function PermitListPage({ searchParams }) {
             initialArea={initialArea}
             initialType={initialType}
             initialMine={initialMine}
+            initialQuery={initialQuery}
             hasLinks={names.size > 0}
             canExport={canExport}
             template={canExport ? data.template : null}

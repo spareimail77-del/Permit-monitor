@@ -22,13 +22,14 @@ export default function PermitTable({
   initialArea = "ALL",
   initialType = "ALL",
   initialMine = "ALL",
+  initialQuery = "",
   hasLinks = false,
   canExport = false,
   template = null,
   today = "",
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [areaFilter, setAreaFilter] = useState(initialArea);
   const [typeFilter, setTypeFilter] = useState(initialType);
@@ -46,7 +47,7 @@ export default function PermitTable({
   // Device preference from My profile -> Preferences: open on "My permits"
   // when the page was opened plainly (no filters in the address).
   useEffect(() => {
-    if (!hasLinks || initialMine !== "ALL") return;
+    if (!hasLinks || initialMine !== "ALL" || initialQuery) return;
     try {
       if (
         window.location.search === "" &&
