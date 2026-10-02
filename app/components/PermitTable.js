@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import Icon from "./Icon";
+import RoleChip from "./RoleChip";
 import { STATUS_META, matchesStatusFilter } from "../../lib/statusMeta";
 import { daysText } from "../../lib/status";
 import { downloadPermitWorkbook, listRowToExportPermit } from "../../lib/exportPermits";
@@ -20,6 +21,8 @@ export default function PermitTable({
   initialStatus = "ALL",
   initialArea = "ALL",
   initialType = "ALL",
+  initialMine = "ALL",
+  hasLinks = false,
   canExport = false,
   template = null,
   today = "",
@@ -29,6 +32,7 @@ export default function PermitTable({
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [areaFilter, setAreaFilter] = useState(initialArea);
   const [typeFilter, setTypeFilter] = useState(initialType);
+  const [mineFilter, setMineFilter] = useState(initialMine); // ALL | MINE | holder | applicant
   const [exportState, setExportState] = useState("idle"); // idle | working | error
 
   const areas = useMemo(() => uniqueSorted(permits.map((p) => p.area)), [
@@ -39,9 +43,25 @@ export default function PermitTable({
     [permits]
   );
 
+  // How many permits are mine, as holder, as applicant (both counts a permit
+  // in each of the last two).
+  const mineCounts = useMemo(() => {
+    const c = { MINE: 0, holder: 0, applicant: 0 };
+    for (const p of permits) {
+      if (!p.mine) continue;
+      c.MINE++;
+      if (p.mine === "holder" || p.mine === "both") c.holder++;
+      if (p.mine === "applicant" || p.mine === "both") c.applicant++;
+    }
+    return c;
+  }, [permits]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return permits.filter((p) => {
+      if (mineFilter === "MINE" && !p.mine) return false;
+      if (mineFilter === "holder" && p.mine !== "holder" && p.mine !== "both") return false;
+      if (mineFilter === "applicant" && p.mine !== "applicant" && p.mine !== "both") return false;
       if (!matchesStatusFilter(p.displayStatus, statusFilter)) return false;
       if (areaFilter !== "ALL" && p.area !== areaFilter) return false;
       if (typeFilter !== "ALL" && p.permitType !== typeFilter) return false;
@@ -60,7 +80,7 @@ export default function PermitTable({
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [permits, query, statusFilter, areaFilter, typeFilter]);
+  }, [permits, query, statusFilter, areaFilter, typeFilter, mineFilter]);
 
   async function handleExport() {
     setExportState("working");
@@ -77,8 +97,36 @@ export default function PermitTable({
     }
   }
 
+  const mineOptions = [
+    { value: "ALL", label: "All permits", count: permits.length },
+    { value: "MINE", label: "My permits", count: mineCounts.MINE },
+    ...(mineCounts.holder > 0 && mineCounts.holder !== mineCounts.MINE
+      ? [{ value: "holder", label: "As holder", count: mineCounts.holder }]
+      : []),
+    ...(mineCounts.applicant > 0 && mineCounts.applicant !== mineCounts.MINE
+      ? [{ value: "applicant", label: "As applicant", count: mineCounts.applicant }]
+      : []),
+  ];
+
   return (
     <div>
+      {hasLinks && (
+        <div className="seg" role="tablist" aria-label="Which permits">
+          {mineOptions.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="tab"
+              aria-selected={mineFilter === o.value}
+              className="seg__btn"
+              onClick={() => setMineFilter(o.value)}
+            >
+              {o.label} <span className="seg__count">{o.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="filter-bar">
         <input
           type="search"
@@ -181,6 +229,7 @@ export default function PermitTable({
                 }}
                 tabIndex={0}
                 role="link"
+                className={p.mine ? "is-mine" : undefined}
                 style={{ cursor: "pointer" }}
               >
                 <td className="mono">
@@ -189,6 +238,12 @@ export default function PermitTable({
                     <span title="Duplicate reference — check Excel" style={{ color: "var(--color-expiring)" }}>
                       {" "}⚠
                     </span>
+                  )}
+                  {p.mine && (
+                    <>
+                      {" "}
+                      <RoleChip role={p.mine} short />
+                    </>
                   )}
                 </td>
                 <td>{p.area}</td>
@@ -225,7 +280,7 @@ export default function PermitTable({
         {filtered.map((p) => (
           <div
             key={p.reference + p.rowNumber}
-            className="permit-card"
+            className={`permit-card${p.mine ? " is-mine" : ""}`}
             onClick={() => router.push(`/permits/${p.rowNumber}`)}
             onKeyDown={(e) => {
               if (e.key === "Enter") router.push(`/permits/${p.rowNumber}`);
@@ -237,6 +292,12 @@ export default function PermitTable({
               <span className="mono permit-card__ref">
                 {p.reference}
                 {duplicateReferences.includes(p.reference) && " ⚠"}
+                {p.mine && (
+                  <>
+                    {" "}
+                    <RoleChip role={p.mine} short />
+                  </>
+                )}
               </span>
               <StatusBadge status={p.displayStatus} />
             </div>

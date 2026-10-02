@@ -5,6 +5,8 @@ import Icon from "../components/Icon";
 import { createClient } from "../../lib/supabase/server";
 import { createAdminClient } from "../../lib/supabase/admin";
 import { getAccess, hasPermission } from "../../lib/authz";
+import { fetchPermitData } from "../../lib/parsePermits";
+import { buildPeopleIndex } from "../../lib/people";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export default async function AdminPage() {
 
   let pendingUsers = 0;
   let openIdChanges = 0;
+  let unlinkedNames = null; // null = not shown / not available
   if (hasPermission(access, "approve_requests")) {
     const admin = createAdminClient();
     const { count } = await admin
@@ -47,6 +50,21 @@ export default async function AdminPage() {
       .select("id", { count: "exact", head: true })
       .eq("status", "open");
     openIdChanges = idCount || 0;
+  }
+
+  if (hasPermission(access, "manage_people_links")) {
+    try {
+      const [data, links] = await Promise.all([
+        fetchPermitData(),
+        createAdminClient().from("excel_name_links").select("excel_name"),
+      ]);
+      if (!data.error && !links.error) {
+        const linked = new Set((links.data || []).map((l) => l.excel_name));
+        unlinkedNames = buildPeopleIndex(data.permits).filter((e) => !linked.has(e.key)).length;
+      }
+    } catch (err) {
+      unlinkedNames = null;
+    }
   }
 
   return (
@@ -108,6 +126,21 @@ export default async function AdminPage() {
                 <span style={styles.tileTitle}>Staff ID changes</span>
                 <span style={styles.tileText}>
                   {openIdChanges} waiting. Approve a corrected Staff ID; history moves with it.
+                </span>
+              </span>
+            </Link>
+          )}
+          {hasPermission(access, "manage_people_links") && (
+            <Link prefetch={false} href="/admin/people" className="panel admin-tile" style={styles.tile}>
+              <span style={styles.tileIcon}>
+                <Icon name="users" size={20} />
+              </span>
+              <span>
+                <span style={styles.tileTitle}>People &amp; Excel names</span>
+                <span style={styles.tileText}>
+                  {unlinkedNames === null
+                    ? "Link accounts to the Applicant and Holder names in the log."
+                    : `${unlinkedNames} name${unlinkedNames === 1 ? "" : "s"} without an account. Link them so people see their own permits.`}
                 </span>
               </span>
             </Link>

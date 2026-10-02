@@ -6,6 +6,11 @@ import StatCard from "./components/StatCard";
 import DonutChart from "./components/DonutChart";
 import BreakdownBars from "./components/BreakdownBars";
 import AttentionPanel from "./components/AttentionPanel";
+import MyPermitsPanel from "./components/MyPermitsPanel";
+import UnlinkedNotice from "./components/UnlinkedNotice";
+import { createClient } from "../lib/supabase/server";
+import { loadViewer } from "../lib/viewer";
+import { mineRole } from "../lib/people";
 import ErrorScreen from "./components/ErrorScreen";
 import EnterEffect from "./components/EnterEffect";
 import "./overdue.css";
@@ -27,7 +32,11 @@ function topCounts(values, limit = 6) {
 }
 
 export default async function Dashboard() {
-  const data = await fetchPermitData();
+  // The permit data and "who is looking" are independent: load together.
+  const [data, viewer] = await Promise.all([
+    fetchPermitData(),
+    loadViewer(createClient()),
+  ]);
 
   if (data.error) {
     return <ErrorScreen message={data.message} />;
@@ -43,8 +52,19 @@ export default async function Dashboard() {
       ...permit,
       displayStatus: normalizeStatus(displayStatus),
       daysRemaining,
+      mine: mineRole(permit, viewer.names),
     };
   });
+
+  // Permits where this person is the holder and/or applicant.
+  const minePermits = permits.filter((p) => p.mine);
+  const showMine = viewer.names.size > 0;
+  // Ordinary users with no linked name get a hint instead of a blank space.
+  const showUnlinkedHint =
+    !showMine &&
+    viewer.linksAvailable &&
+    viewer.access.active &&
+    viewer.access.role === "permit_user";
 
   const counts = { OPEN: 0, EXPIRING_SOON: 0, OVERDUE: 0, CLOSED: 0, CANCELED: 0 };
   let other = 0;
@@ -142,6 +162,9 @@ export default async function Dashboard() {
           </div>
         ) : (
           <>
+            {showMine && <MyPermitsPanel mine={minePermits} names={viewer.labels} />}
+            {showUnlinkedHint && <UnlinkedNotice />}
+
             <div className="stat-grid" style={{ marginBottom: 16 }}>
               <StatCard
                 label="Total Permits"

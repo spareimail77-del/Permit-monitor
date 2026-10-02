@@ -10,8 +10,10 @@ import Icon from "../../components/Icon";
 import CertificateList from "../../components/CertificateList";
 import AttachmentsPanel from "./AttachmentsPanel";
 import { createClient } from "../../../lib/supabase/server";
-import { getAccess, hasPermission } from "../../../lib/authz";
-import { getCurrentUser } from "../../../lib/supabase/user";
+import { hasPermission } from "../../../lib/authz";
+import { loadViewer } from "../../../lib/viewer";
+import { mineRole } from "../../../lib/people";
+import RoleChip from "../../components/RoleChip";
 
 export const dynamic = "force-dynamic";
 
@@ -63,22 +65,19 @@ export default async function PermitDetailPage({ params }) {
     permit.reference
   );
 
-  // The permission lookup and the attachment list don't depend on each other,
-  // so they run at the same time.
+  // The viewer lookup (permissions + linked Excel names) and the attachment
+  // list don't depend on each other, so they run at the same time.
   const supabase = createClient();
-  const [isAdmin, { data: attachments }] = await Promise.all([
-    // can add/remove attachments
-    getCurrentUser(supabase).then(async (user) =>
-      user
-        ? hasPermission(await getAccess(supabase, user.id), "manage_attachments")
-        : false
-    ),
+  const [viewer, { data: attachments }] = await Promise.all([
+    loadViewer(supabase),
     supabase
       .from("permit_attachments")
       .select("*")
       .eq("permit_reference", permit.reference)
       .order("uploaded_at", { ascending: false }),
   ]);
+  const isAdmin = hasPermission(viewer.access, "manage_attachments"); // can add/remove attachments
+  const myRole = mineRole(permit, viewer.names);
 
   return (
     <main>
@@ -93,6 +92,7 @@ export default async function PermitDetailPage({ params }) {
             Permit <span className="mono">{permit.reference}</span>
           </h2>
           <StatusBadge status={permit.displayStatus} />
+          <RoleChip role={myRole} />
           {overdueDays !== null && (
             <span style={{ color: "var(--color-expired)", fontWeight: 600 }}>
               {overdueDays} day{overdueDays === 1 ? "" : "s"} overdue

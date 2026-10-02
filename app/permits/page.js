@@ -5,26 +5,28 @@ import Header from "../components/Header";
 import ErrorScreen from "../components/ErrorScreen";
 import PermitTable from "../components/PermitTable";
 import { createClient } from "../../lib/supabase/server";
-import { getAccess, hasPermission } from "../../lib/authz";
-import { getCurrentUser } from "../../lib/supabase/user";
+import { hasPermission } from "../../lib/authz";
+import { loadViewer } from "../../lib/viewer";
+import { mineRole } from "../../lib/people";
 
 export const dynamic = "force-dynamic";
 
-// Attachment counts + whether this person may export. Metadata only (no file
-// bytes), and a failure just means no indicators / no export button, never an
+// Attachment counts, whether this person may export, and which Excel names
+// are linked to their account. Metadata only (no file bytes), and a failure
+// just means no indicators / no export button / no "My permits", never an
 // error page. Runs at the same time as the permit data load below.
 async function loadViewerExtras() {
   const attachmentCounts = {};
   let canExport = false;
+  let names = new Set();
   try {
     const supabase = createClient();
-    const [user, { data: rows }] = await Promise.all([
-      getCurrentUser(supabase),
+    const [viewer, { data: rows }] = await Promise.all([
+      loadViewer(supabase),
       supabase.from("permit_attachments").select("permit_reference"),
     ]);
-    if (user) {
-      canExport = hasPermission(await getAccess(supabase, user.id), "export_data");
-    }
+    canExport = hasPermission(viewer.access, "export_data");
+    names = viewer.names;
     (rows || []).forEach((r) => {
       attachmentCounts[r.permit_reference] =
         (attachmentCounts[r.permit_reference] || 0) + 1;
@@ -32,12 +34,12 @@ async function loadViewerExtras() {
   } catch (err) {
     console.error("Could not load attachment counts:", err);
   }
-  return { attachmentCounts, canExport };
+  return { attachmentCounts, canExport, names };
 }
 
 export default async function PermitListPage({ searchParams }) {
   // Independent lookups, so they run together instead of one after another.
-  const [data, { attachmentCounts, canExport }] = await Promise.all([
+  const [data, { attachmentCounts, canExport, names }] = await Promise.all([
     fetchPermitData(),
     loadViewerExtras(),
   ]);
@@ -67,8 +69,20 @@ export default async function PermitListPage({ searchParams }) {
       displayStatus: normalizeStatus(displayStatus),
       daysRemaining,
       attachmentCount: attachmentCounts[permit.reference] || 0,
+      mine: mineRole(permit, names),
     };
   });
+
+  // ?mine=1 (or holder / applicant) opens the list on "My permits".
+  const mineParam = searchParams?.mine;
+  const initialMine =
+    names.size === 0
+      ? "ALL"
+      : mineParam === "holder" || mineParam === "applicant"
+      ? mineParam
+      : mineParam === "1"
+      ? "MINE"
+      : "ALL";
 
   // Only offered when the area / type from a dashboard link really exists.
   const areaParam = typeof searchParams?.area === "string" ? searchParams.area : "";
@@ -103,6 +117,8 @@ export default async function PermitListPage({ searchParams }) {
             initialStatus={initialStatus}
             initialArea={initialArea}
             initialType={initialType}
+            initialMine={initialMine}
+            hasLinks={names.size > 0}
             canExport={canExport}
             template={canExport ? data.template : null}
             today={today}

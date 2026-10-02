@@ -2416,3 +2416,197 @@ html[data-enter] .dash-panel { animation-delay: 0.5s; }
   white-space: nowrap;
   font-size: var(--font-size-xs);
 }
+
+/* ---------------------------------------------------------
+   "My permits" (step 36): role chip, dashboard panel, Permit List
+   filter and row highlight. Theme tokens only, so violet in dark
+   and teal in light.
+--------------------------------------------------------- */
+
+.role-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.role-chip--holder {
+  background: var(--color-brand-tint);
+  color: var(--color-brand-2);
+}
+
+.role-chip--applicant {
+  border: 1px solid var(--color-brand-2);
+  color: var(--color-brand-2);
+  line-height: 16px;
+}
+
+.role-chip--both {
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-brand));
+  color: #fff;
+}
+
+/* dashboard panel */
+.mine-panel {
+  padding: 18px 22px 20px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--color-brand);
+}
+
+.mine-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mine-panel__all {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-brand-2);
+  white-space: nowrap;
+}
+
+.mine-panel--empty {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+}
+
+.mine-panel--empty svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-brand-2);
+}
+
+.mine-panel--empty p {
+  margin: 4px 0 0;
+  color: var(--color-ink-muted);
+}
+
+.mine-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .mine-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mine-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mine-stat:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-rule-strong);
+}
+
+.mine-stat--urgent {
+  border-color: var(--color-expired);
+  background: var(--color-expired-tint);
+}
+
+.mine-stat__value {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.mine-stat__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.mine-split {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.mine-list {
+  margin-top: 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.mine-list__title {
+  margin: 0 0 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-ink);
+}
+
+/* Permit List: segmented "All / My permits" control */
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.seg__btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.seg__btn:hover {
+  color: var(--color-ink);
+}
+
+.seg__btn[aria-selected="true"] {
+  background: var(--color-brand-tint);
+  color: var(--color-brand-2);
+  font-weight: 600;
+}
+
+.seg__count {
+  margin-left: 4px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+}
+
+/* A permit that is yours stands out with a thin accent on its left edge */
+.permit-table tbody tr.is-mine > td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-brand);
+}
+
+.permit-card.is-mine {
+  border-left: 3px solid var(--color-brand);
+}

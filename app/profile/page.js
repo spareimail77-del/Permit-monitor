@@ -52,6 +52,15 @@ export default async function ProfilePage() {
     idChangeAvailable = false;
   }
 
+  // Which Excel names are linked to this account (read-only here; HSE links them).
+  let linkedNames = [];
+  try {
+    const { data } = await supabase.from("excel_name_links").select("excel_name").eq("user_id", user.id);
+    linkedNames = (data || []).map((r) => r.excel_name).sort();
+  } catch (err) {
+    linkedNames = [];
+  }
+
   const shape = (r) =>
     r && {
       oldStaffId: r.old_staff_id,
@@ -75,6 +84,7 @@ export default async function ProfilePage() {
           staffId={profile.staff_id || ""}
           name={profile.display_name || ""}
           role={roleLabel(profile.role)}
+          linkedNames={linkedNames}
           idChangeAvailable={idChangeAvailable}
           openRequest={shape(openRequest)}
           recent={shape(recent)}

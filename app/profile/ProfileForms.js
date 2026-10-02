@@ -15,7 +15,7 @@ function announceProfileChanged() {
   window.dispatchEvent(new Event("permit:me-changed"));
 }
 
-export default function ProfileForms({ staffId, name, role, idChangeAvailable, openRequest, recent }) {
+export default function ProfileForms({ staffId, name, role, linkedNames = [], idChangeAvailable, openRequest, recent }) {
   const router = useRouter();
 
   // ---- name ----
@@ -116,6 +116,19 @@ export default function ProfileForms({ staffId, name, role, idChangeAvailable, o
             <p style={styles.label}>Role</p>
             <p style={styles.value}>{role}</p>
           </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <p style={styles.label}>Name in the permit log</p>
+          {linkedNames.length > 0 ? (
+            <p className="mono" style={{ margin: 0, color: "var(--color-ink)", fontSize: "var(--font-size-sm)" }}>
+              {linkedNames.join(" · ")}
+            </p>
+          ) : (
+            <p style={{ margin: 0, color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" }}>
+              Not linked yet. Ask HSE to link your name, then your permits show on the dashboard.
+            </p>
+          )}
         </div>
 
         <form onSubmit={saveName} style={{ marginTop: 18 }}>
