@@ -11,7 +11,7 @@ import ManagerBrief from "./components/ManagerBrief";
 import PeopleBoard from "./components/PeopleBoard";
 import ExpiryForecast from "./components/ExpiryForecast";
 import { buildManagerView } from "../lib/managerView";
-import { normalizeRole } from "../lib/permissions";
+import { normalizeRole, can } from "../lib/permissions";
 import UnlinkedNotice from "./components/UnlinkedNotice";
 import { createClient } from "../lib/supabase/server";
 import { loadViewer } from "../lib/viewer";
@@ -78,7 +78,8 @@ export default async function Dashboard() {
   // Managers get an overview built from the same permits (no extra reads).
   const isManager =
     viewer.access.active && normalizeRole(viewer.access.role) === "manager";
-  const mgr = isManager ? buildManagerView(permits, today) : null;
+  const canCopySummary = viewer.access.active && can(viewer.access.role, "copy_summary");
+  const mgr = isManager || canCopySummary ? buildManagerView(permits, today) : null;
   // Ordinary users with no linked name get a hint instead of a blank space.
   const showUnlinkedHint =
     !showMine &&
@@ -190,6 +191,7 @@ export default async function Dashboard() {
           <>
             {mgr && (
               <ManagerBrief
+                canCopy={canCopySummary}
                 tone={mgr.tone}
                 headline={mgr.headline}
                 sub={mgr.sub}
@@ -269,7 +271,7 @@ export default async function Dashboard() {
               </div>
             </div>
 
-            {mgr && (
+            {isManager && mgr && (
               <div className="dash-row" style={{ marginTop: 16 }}>
                 <div className="panel dash-panel" style={styles.panelPad}>
                   <h2 className="panel-title">Holders &amp; Applicants</h2>

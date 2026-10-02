@@ -133,7 +133,6 @@ export default function UserMenu({ name, role }) {
           <div style={styles.menuHead} className={royal ? "um-head um-head--royal" : "um-head"}>
             <p style={styles.menuName}>{name}</p>
             <p style={styles.menuRole} className={royal ? "um-role um-role--royal" : "um-role"}>
-              {royal && <Icon name="crown" size={12} />}
               {roleLabel(role)}
             </p>
           </div>

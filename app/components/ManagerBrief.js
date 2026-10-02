@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import Icon from "./Icon";
 
-// Manager dashboard: one headline sentence about the situation, plus a
-// button that copies a ready-written status message (for WhatsApp / email).
+// Manager / HSE dashboard: one headline sentence about the situation. HSE
+// (canCopy) also gets a button that copies the daily update message.
 // The text is built on the server from data already loaded; copying happens
 // in the browser only.
 
-export default function ManagerBrief({ tone, headline, sub, summaryText }) {
+export default function ManagerBrief({ tone, headline, sub, summaryText, canCopy = false }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef(null);
 
@@ -55,13 +54,12 @@ export default function ManagerBrief({ tone, headline, sub, summaryText }) {
           <h2 className="mine-alert__title">{headline}</h2>
           <p className="mine-alert__sub">{sub}</p>
         </div>
-        <button type="button" className={`mgr-brief__btn${copied ? " is-done" : ""}`} onClick={copy}>
-          <Icon name={copied ? "check" : "clipboard"} size={14} />
-          <span>{copied ? "Copied" : "Copy summary"}</span>
-        </button>
-        <Link prefetch={false} href="/permits" className="mine-alert__all">
-          Permit list →
-        </Link>
+        {canCopy && (
+          <button type="button" className={`mgr-brief__btn${copied ? " is-done" : ""}`} onClick={copy}>
+            <Icon name={copied ? "check" : "clipboard"} size={14} />
+            <span>{copied ? "Copied" : "Copy summary"}</span>
+          </button>
+        )}
       </div>
     </section>
   );

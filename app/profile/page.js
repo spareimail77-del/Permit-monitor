@@ -13,7 +13,7 @@ import SessionCard from "./SessionCard";
 import ThemePicker from "./ThemePicker";
 import StartPagePref from "./StartPagePref";
 import { createClient } from "../../lib/supabase/server";
-import { can, roleLabel } from "../../lib/permissions";
+import { can, roleLabel, normalizeRole } from "../../lib/permissions";
 import { formatWhen } from "../../lib/format";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +118,7 @@ export default async function ProfilePage({ searchParams }) {
                 name={profile.display_name || ""}
                 role={roleLabel(profile.role)}
                 linkedNames={linkedNames}
+                hideLinkRow={normalizeRole(profile.role) === "manager" && linkedNames.length === 0}
                 idChangeAvailable={idChangeAvailable}
                 openRequest={shape(openRequest)}
                 recent={shape(recent)}
@@ -146,7 +147,7 @@ export default async function ProfilePage({ searchParams }) {
             <ThemePicker />
             {/* "Open on My permits" only makes sense for someone who can be a
                 Holder or Applicant, so a Manager with no linked name never sees it. */}
-            {!(profile.role === "manager" && linkedNames.length === 0) && (
+            {!(normalizeRole(profile.role) === "manager" && linkedNames.length === 0) && (
               <StartPagePref hasLinks={linkedNames.length > 0} />
             )}
           </div>

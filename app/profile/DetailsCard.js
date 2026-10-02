@@ -20,6 +20,7 @@ export default function DetailsCard({
   name,
   role,
   linkedNames = [],
+  hideLinkRow = false,
   idChangeAvailable,
   openRequest,
   recent,
@@ -289,7 +290,8 @@ export default function DetailsCard({
           <span className="pf-row__value">{role}</span>
         </div>
 
-        {/* ---- excel names ---- */}
+        {/* ---- excel names (not shown to a Manager with no linked name) ---- */}
+        {!hideLinkRow && (
         <div className="pf-row pf-row--top">
           <span className="pf-row__label">Name in the permit log</span>
           <span className="pf-row__value">
@@ -306,6 +308,7 @@ export default function DetailsCard({
             )}
           </span>
         </div>
+        )}
       </div>
     </div>
   );
