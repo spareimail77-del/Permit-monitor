@@ -19,9 +19,13 @@ export default async function ChangePasswordPage() {
     .eq("id", user.id)
     .single();
 
+  // Choosing a new password on purpose now lives in My profile -> Security.
+  // This page stays only for the forced change after a temporary password.
+  if (!profile?.must_change_password) redirect("/profile?tab=security");
+
   return (
     <AuthShell top={<Header />} below>
-      <ChangePasswordForm forced={!!profile?.must_change_password} />
+      <ChangePasswordForm forced />
     </AuthShell>
   );
 }

@@ -139,18 +139,6 @@ export default function UserMenu({ name, role }) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              router.push("/change-password");
-            }}
-            className="user-menu-item"
-          >
-            <Icon name="lock" size={15} />
-            Change password
-          </button>
-          <button
-            type="button"
-            role="menuitem"
             onClick={handleSignOut}
             className="user-menu-item"
           >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import Icon from "./Icon";
@@ -42,6 +42,23 @@ export default function PermitTable({
     () => uniqueSorted(permits.map((p) => p.permitType)),
     [permits]
   );
+
+  // Device preference from My profile -> Preferences: open on "My permits"
+  // when the page was opened plainly (no filters in the address).
+  useEffect(() => {
+    if (!hasLinks || initialMine !== "ALL") return;
+    try {
+      if (
+        window.location.search === "" &&
+        window.localStorage.getItem("permit-log-start-mine") === "1"
+      ) {
+        setMineFilter("MINE");
+      }
+    } catch (err) {
+      // storage unavailable - keep "All permits"
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // How many permits are mine, as holder, as applicant (both counts a permit
   // in each of the last two).

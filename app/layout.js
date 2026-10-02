@@ -37,12 +37,24 @@ export const viewport = {
 // localStorage key that ThemeToggle writes to.
 const THEME_INIT_SCRIPT = `
 (function () {
+  var root = document.documentElement;
   try {
     var stored = window.localStorage.getItem("permit-log-theme");
-    var theme = stored === "light" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", theme);
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+    function apply() {
+      var theme =
+        stored === "light" ? "light"
+        : stored === "system" ? (mq && mq.matches ? "light" : "dark")
+        : "dark";
+      root.setAttribute("data-theme", theme);
+    }
+    apply();
+    // "Follow my device": switch live when the phone / PC changes theme.
+    if (stored === "system" && mq && mq.addEventListener) {
+      mq.addEventListener("change", apply);
+    }
   } catch (err) {
-    document.documentElement.setAttribute("data-theme", "dark");
+    root.setAttribute("data-theme", "dark");
   }
 })();
 `;

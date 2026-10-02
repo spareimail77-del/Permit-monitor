@@ -133,6 +133,17 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   compared in upper case with single spaces; several names in one cell can be
   separated with comma, slash, ampersand or semicolon.
 
+- **My profile (step 37):** one page with three tabs in the address
+  (`/profile`, `?tab=security`, `?tab=preferences`); only the open tab loads its
+  data. *Overview:* My permits snapshot, Details (name edit in place, Staff ID
+  change request, role, linked Excel names), Your access (plain-language list
+  built from `lib/permissions.js`) and, for Root/HSE, the person's last uploads.
+  *Security:* Change password (moved here from the menu) and Sign out on all
+  devices. *Preferences:* theme (Dark / Light / Follow my device) and "open the
+  Permit List on My permits"; both are saved on the device (no database
+  change). `/change-password` now only serves the forced change after a
+  temporary password; otherwise it redirects to the Security tab.
+
 - **Sign-in loader:** after a successful sign-in a full-screen loader
   (`app/components/SignInLoader.js`, mounted once in `app/layout.js`) covers the
   screen until the dashboard content has arrived, then fades out as the cards

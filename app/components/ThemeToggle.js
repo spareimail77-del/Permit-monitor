@@ -10,8 +10,14 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme");
-    setTheme(current === "light" ? "light" : "dark");
+    function sync() {
+      const current = document.documentElement.getAttribute("data-theme");
+      setTheme(current === "light" ? "light" : "dark");
+    }
+    sync();
+    // My profile -> Preferences can change the theme while this is on screen.
+    window.addEventListener("permit:theme-changed", sync);
+    return () => window.removeEventListener("permit:theme-changed", sync);
   }, []);
 
   function toggle() {

@@ -123,7 +123,7 @@ export default function MyPermitsPanel({ mine, names }) {
   );
 }
 
-function MineStat({ label, value, color, urgent, href }) {
+export function MineStat({ label, value, color, urgent, href }) {
   return (
     <Link prefetch={false} href={href} className={`mine-stat${urgent ? " mine-stat--urgent" : ""}`}>
       <span className="mine-stat__value" style={color ? { color } : undefined}>
