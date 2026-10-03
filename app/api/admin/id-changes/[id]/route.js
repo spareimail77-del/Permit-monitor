@@ -4,8 +4,8 @@ import { getAccess, hasPermission } from "../../../../../lib/authz";
 import { staffIdToAuthEmail } from "../../../../../lib/staffAuth";
 
 // Body: { action: "approve" | "reject", note? }
-// Root and Manager (permission approve_requests; middleware checks it and this
-// route checks it again).
+// Root only (middleware checks approve_requests and this route checks
+// manage_users again, so the lock holds even if middleware config changes).
 //
 // Approve = three steps that are undone if a later one fails:
 //   1. the login address (<id>@staff.permit-log.internal) is switched to the
@@ -35,7 +35,7 @@ export async function POST(request, { params }) {
   if (!user) return fail("Not authenticated.", 401);
 
   const access = await getAccess(supabase, user.id);
-  if (!hasPermission(access, "approve_requests")) {
+  if (!hasPermission(access, "approve_requests") || !hasPermission(access, "manage_users")) {
     return fail("You do not have permission to do that.", 403);
   }
 

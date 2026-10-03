@@ -110,9 +110,7 @@ export default async function AdminPage() {
                 <span style={styles.tileTitle}>Users</span>
                 <span style={styles.tileText}>
                   {pendingUsers} waiting for approval.{" "}
-                  {hasPermission(access, "manage_users")
-                    ? "Roles, disable, reset, delete."
-                    : "Approve or reject requests."}
+                  Accept requests, roles, disable, reset, delete.
                 </span>
               </span>
             </Link>

@@ -16,7 +16,7 @@ export default async function IdChangesPage() {
   if (!user) redirect("/login");
 
   const access = await getAccess(supabase, user.id);
-  if (!hasPermission(access, "approve_requests")) redirect("/");
+  if (!hasPermission(access, "approve_requests") || !hasPermission(access, "manage_users")) redirect("/");
   const isRoot = hasPermission(access, "manage_users");
 
   // Server-side lookup with the service key (permission checked above).

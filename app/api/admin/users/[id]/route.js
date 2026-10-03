@@ -5,18 +5,20 @@ import { ALL_ROLES } from "../../../../../lib/permissions";
 import { generateTempPassword } from "../../../../../lib/tempPassword";
 
 // Body: { action, role? }
-//   approve        pending -> active   (Root, Manager)
-//   reject         pending -> removed  (Root, Manager)
+//   approve        pending -> active   (Root only)
+//   reject         pending -> removed  (Root only)
 //   setRole        change role         (Root)
 //   disable/enable block / unblock     (Root)
 //   resetPassword  temporary password  (Root)
 //   delete         remove the account  (Root)
-// Middleware already lets Root and Manager reach this URL; every action
-// below checks its own permission again, and the last-root and
+// Middleware only lets Root reach this URL; every action below checks
+// its own permission again, and the last-root and
 // "not yourself" rules are enforced here, on the server.
 const NEEDS = {
-  approve: "approve_requests",
-  reject: "approve_requests",
+  // Accepting accounts is Root only. manage_users is held by Root alone, so
+  // this stays locked even if approve_requests is ever given to another role.
+  approve: "manage_users",
+  reject: "manage_users",
   setRole: "manage_users",
   disable: "manage_users",
   enable: "manage_users",

@@ -15,8 +15,8 @@ keep the policies in `supabase-schema.sql` in step.
 
 | Role | Can do |
 |---|---|
-| Root | Everything, incl. password resets, the activity log, archive clean-up and Excel export |
-| Manager | View everything (incl. archive); approve or reject account requests |
+| Root | Everything, incl. the **only** right to accept new accounts and Staff ID changes, password resets, the activity log, archive clean-up and Excel export |
+| Manager | View everything (incl. archive), read-only. Cannot accept accounts or Staff ID changes |
 | HSE | View, upload Excel, add/remove attachments, archive clean-up, Excel export, view the activity log (read-only; Root's own visits are hidden from HSE) |
 | Permit user | View dashboard and permits (applicants, holders, or both: that is per permit, from the Excel columns, not an account role) |
 
@@ -60,8 +60,8 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
 
 - **Users (Admin → Users):** Root sees everyone and can approve/reject
   requests, change roles, disable/enable, reset a password (temporary
-  password shown once, changed at next sign-in) and delete accounts. Manager
-  sees only pending requests and can approve or reject them. Rules enforced
+  password shown once, changed at next sign-in) and delete accounts. Only Root can accept or reject account requests (checked in
+  middleware, the page and the API route). Rules enforced
   on the server: you cannot change, disable or delete your own account, and
   the last active Root can never be demoted, disabled or deleted.
 
@@ -103,7 +103,7 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
 
 - **My profile (user menu):** everyone can correct their own **name**
   straight away. A different **Staff ID** is a request
-  (`staff_id_change_requests`) that Root or Manager approves in
+  (`staff_id_change_requests`) that only Root approves in
   **Admin → Staff ID changes**. Approving switches the login address to the new
   ID and runs `apply_staff_id_change()` (SQL, all or nothing) which updates the
   profile and rewrites the old ID in the activity log, password requests and

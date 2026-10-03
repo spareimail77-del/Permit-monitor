@@ -16,20 +16,19 @@ export default async function UsersPage() {
   if (!user) redirect("/login");
 
   const access = await getAccess(supabase, user.id);
-  if (!hasPermission(access, "approve_requests")) redirect("/");
+  if (!hasPermission(access, "approve_requests") || !hasPermission(access, "manage_users")) redirect("/");
 
   const canManage = hasPermission(access, "manage_users");
   const canReset = hasPermission(access, "reset_passwords");
 
   // Server-side lookup with the service key (permission checked above).
-  // Managers only ever receive the pending requests.
+  // Root only (checked above).
   const admin = createAdminClient();
   let query = admin
     .from("profiles")
     .select("id, staff_id, display_name, role, status, created_at, last_seen_at")
     .order("created_at", { ascending: false })
     .limit(500);
-  if (!canManage) query = query.eq("status", "pending");
   const { data } = await query;
 
   const nowMs = Date.now();

@@ -61,8 +61,10 @@ create policy "Users can read their own profile"
 -- Accounts created from the app's "Create account" page carry
 -- status / display_name in app_metadata (writable only from the server),
 -- so they start as 'pending'. Every new account is a permit_user; only
--- Root can change a role later. Accounts you add in the dashboard have no
--- such metadata and start 'active'.
+-- Root can accept an account or change a role. Step 38: an account with NO
+-- metadata (for example one made through Supabase's public sign-up) now also
+-- starts 'pending'; only app_metadata.status = 'active' (server-side only)
+-- creates an active account.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -77,7 +79,7 @@ begin
     split_part(new.email, '@', 1),
     nullif(meta->>'display_name', ''),
     'permit_user',
-    case when meta->>'status' = 'pending' then 'pending' else 'active' end
+    case when meta->>'status' = 'active' then 'active' else 'pending' end
   )
   on conflict (id) do nothing;
   return new;
@@ -96,9 +98,9 @@ create trigger on_auth_user_created
 -- Adding an account by hand (Supabase → Authentication → Users → Add user):
 --   Email: <staff id>@staff.permit-log.internal  (never emailed)
 --   Password: anything; tick "Auto Confirm User".
---   Then set role / name if needed:
+--   It starts 'pending' (step 38). Activate it and set role / name:
 --
--- update public.profiles set role = 'hse', display_name = 'Jeff'
+-- update public.profiles set status = 'active', role = 'hse', display_name = 'Jeff'
 --  where staff_id = '18489';
 
 -- ---------------------------------------------------------------
@@ -369,7 +371,7 @@ create policy "Root and HSE can read upload log"
 
 -- ---------------------------------------------------------------
 -- 2. Staff ID change requests. A person asks for a new Staff ID from
---    My profile; Root or Manager approves in Admin -> Staff ID changes.
+--    My profile; only Root approves in Admin -> Staff ID changes.
 --    Written by the server (service key). People can read their own rows.
 -- ---------------------------------------------------------------
 create table if not exists public.staff_id_change_requests (
