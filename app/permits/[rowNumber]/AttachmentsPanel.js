@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "../../components/Icon";
 import DropZone from "../../components/DropZone";
 import CropEditor from "./CropEditor";
@@ -16,9 +16,11 @@ import {
   QUALITY_DEFAULT,
   QUALITY_MAX,
   QUALITY_MIN,
+  canvasToJpegBlob,
   compressToJpeg,
   jpgName,
   kindOf,
+  renderToCanvas,
 } from "../../../lib/compressImage";
 
 function formatSize(bytes) {
@@ -56,8 +58,11 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const [quality, setQuality] = useState(QUALITY_DEFAULT); // slider, % (moves live)
   const [appliedQuality, setAppliedQuality] = useState(QUALITY_DEFAULT); // used after the slider rests
   const [keepOriginal, setKeepOriginal] = useState(false); // JPEG only: upload untouched
-  const [crop, setCrop] = useState(null); // { x, y, w, h } fractions, or null = whole photo
+  const [crop, setCrop] = useState(null); // { quad, width, height, scaled, perspective } or null = whole photo
   const [cropping, setCropping] = useState(false); // crop screen open
+  const [cropBusy, setCropBusy] = useState(false); // straightening in progress
+  const [cropError, setCropError] = useState("");
+  const cropCanvas = useRef(null); // the cut-out picture, kept so the quality slider is instant
   const [prepared, setPrepared] = useState(null); // { file, before, after, note } what will be uploaded
   const [preparing, setPreparing] = useState(false);
   const [prepError, setPrepError] = useState("");
@@ -71,11 +76,57 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const mustConvert = kind === "png" || kind === "heic"; // the server only takes JPEG
   const useOriginal = keepOriginal && !mustConvert && !crop; // a crop must re-save the photo
 
+  function dropCropCanvas() {
+    if (cropCanvas.current) {
+      cropCanvas.current.width = 0; // free the memory
+      cropCanvas.current.height = 0;
+      cropCanvas.current = null;
+    }
+  }
+
+  function removeCrop() {
+    dropCropCanvas();
+    setCrop(null);
+  }
+
   // A new file starts without a crop.
   useEffect(() => {
+    dropCropCanvas();
     setCrop(null);
     setCropping(false);
+    setCropError("");
   }, [file]);
+
+  async function applyCrop(quad) {
+    if (!quad) {
+      removeCrop();
+      setCropping(false);
+      return;
+    }
+    setCropBusy(true);
+    setCropError("");
+    try {
+      const res = await renderToCanvas(file, quad);
+      dropCropCanvas();
+      cropCanvas.current = res.canvas;
+      setCrop({
+        quad,
+        width: res.width,
+        height: res.height,
+        scaled: res.scaled,
+        perspective: res.perspective,
+      });
+      setCropping(false);
+    } catch (err) {
+      setCropError(
+        err?.message === "memory"
+          ? "This device ran out of memory while cutting the photo. Try a smaller photo or another device."
+          : "The photo could not be cut. Try again or cancel."
+      );
+    } finally {
+      setCropBusy(false);
+    }
+  }
 
   // Wait until the slider stops moving before compressing again.
   useEffect(() => {
@@ -87,6 +138,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   // Whenever the file or the quality slider changes, work out what will be
   // uploaded. Always starts from the original file, so quality never stacks.
   useEffect(() => {
+    if (crop && !cropCanvas.current) return; // the file just changed; this runs again right after
     setPrepared(null);
     setPrepError("");
     if (!file) {
@@ -117,7 +169,17 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     setPreparing(true);
     (async () => {
       try {
-        const { blob, scaled, width, height } = await compressToJpeg(file, appliedQuality / 100, crop);
+        let blob;
+        let scaled;
+        let width;
+        let height;
+        if (crop) {
+          // Already cut out: only the quality changes, so this is quick.
+          blob = await canvasToJpegBlob(cropCanvas.current, appliedQuality / 100);
+          ({ scaled, width, height } = crop);
+        } else {
+          ({ blob, scaled, width, height } = await compressToJpeg(file, appliedQuality / 100));
+        }
         if (cancelled) return;
         // An already-small JPEG can get bigger when re-saved: keep it as it is.
         if (k === "jpeg" && !crop && !scaled && blob.size >= file.size) {
@@ -131,7 +193,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
           });
         } else {
           const notes = [];
-          if (crop) notes.push(`Cropped to ${width} × ${height} px.`);
+          if (crop) notes.push(`${crop.perspective ? "Straightened and cropped" : "Cropped"} to ${width} × ${height} px.`);
           if (k !== "jpeg") notes.push("Saved as JPEG on a white background.");
           if (scaled) notes.push(`Very large photo: reduced to ${MAX_SIDE} px on its longest side.`);
           setPrepared({
@@ -372,12 +434,14 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                 {cropping ? (
                   <CropEditor
                     file={file}
-                    initial={crop}
-                    onApply={(c) => {
-                      setCrop(c);
+                    initial={crop ? crop.quad : null}
+                    busy={cropBusy}
+                    error={cropError}
+                    onApply={applyCrop}
+                    onCancel={() => {
+                      setCropError("");
                       setCropping(false);
                     }}
-                    onCancel={() => setCropping(false)}
                   />
                 ) : (
                   <>
@@ -407,7 +471,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                       <button
                         type="button"
                         className="btn btn-ghost dz-btn"
-                        onClick={() => setCrop(null)}
+                        onClick={removeCrop}
                         disabled={preparing || state === "uploading"}
                       >
                         <Icon name="x" size={14} /> Remove crop

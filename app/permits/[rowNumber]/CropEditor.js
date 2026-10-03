@@ -1,59 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { quadProblem } from "../../../lib/compressImage";
 
-// Simple crop box on top of a photo (no library). The box is stored as
-// fractions of the photo (0 to 1), so it does not depend on how big the
-// photo is drawn on screen. Mouse, touch and keyboard all work:
-//   - drag a corner to resize, drag inside the box to move it
-//   - Tab to a corner or the box, then use the arrow keys (Shift = bigger steps)
-// The actual cutting is done later by compressToJpeg (lib/compressImage.js).
+// Four-corner crop on top of a photo (no library), like a document scanner:
+// each corner moves on its own, so a page photographed at an angle can be
+// marked exactly and is straightened when you press Apply.
+// The corners are stored as fractions of the photo (0 to 1), in this order:
+//   [top-left, top-right, bottom-right, bottom-left]
+//   - drag a corner to move just that corner (a magnifier shows what is
+//     under your finger)
+//   - drag inside the shape to move all four together
+//   - Tab to a corner, then use the arrow keys (Shift = bigger steps)
+// The actual cutting is done by renderToCanvas (lib/compressImage.js).
 
-const MIN_PX = 40; // smallest box side on screen
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const round4 = (v) => Math.round(v * 10000) / 10000;
 
-function adjust(mode, s, dx, dy, minW, minH) {
-  if (mode === "move") {
-    return {
-      x: clamp(s.x + dx, 0, 1 - s.w),
-      y: clamp(s.y + dy, 0, 1 - s.h),
-      w: s.w,
-      h: s.h,
-    };
-  }
-  let { x, y, w, h } = s;
-  if (mode.includes("w")) {
-    const nx = clamp(s.x + dx, 0, s.x + s.w - minW);
-    w = s.x + s.w - nx;
-    x = nx;
-  }
-  if (mode.includes("e")) w = clamp(s.w + dx, minW, 1 - s.x);
-  if (mode.includes("n")) {
-    const ny = clamp(s.y + dy, 0, s.y + s.h - minH);
-    h = s.y + s.h - ny;
-    y = ny;
-  }
-  if (mode.includes("s")) h = clamp(s.h + dy, minH, 1 - s.y);
-  return { x, y, w, h };
-}
-
-const CORNERS = [
-  { mode: "nw", label: "top-left" },
-  { mode: "ne", label: "top-right" },
-  { mode: "sw", label: "bottom-left" },
-  { mode: "se", label: "bottom-right" },
+const DEFAULT_QUAD = [
+  { x: 0.05, y: 0.05 },
+  { x: 0.95, y: 0.05 },
+  { x: 0.95, y: 0.95 },
+  { x: 0.05, y: 0.95 },
+];
+const FULL_QUAD = [
+  { x: 0, y: 0 },
+  { x: 1, y: 0 },
+  { x: 1, y: 1 },
+  { x: 0, y: 1 },
 ];
 
-export default function CropEditor({ file, initial, onApply, onCancel }) {
+const NAMES = ["top-left", "top-right", "bottom-right", "bottom-left"];
+
+function movePoint(pts, i, dx, dy) {
+  return pts.map((p, j) =>
+    j === i ? { x: clamp(p.x + dx, 0, 1), y: clamp(p.y + dy, 0, 1) } : p
+  );
+}
+
+function moveAll(pts, dx, dy) {
+  const minX = Math.min(...pts.map((p) => p.x));
+  const maxX = Math.max(...pts.map((p) => p.x));
+  const minY = Math.min(...pts.map((p) => p.y));
+  const maxY = Math.max(...pts.map((p) => p.y));
+  const mx = clamp(dx, -minX, 1 - maxX);
+  const my = clamp(dy, -minY, 1 - maxY);
+  return pts.map((p) => ({ x: p.x + mx, y: p.y + my }));
+}
+
+const LOUPE = 104; // magnifier size, px
+const ZOOM = 3;
+
+export default function CropEditor({ file, initial, busy = false, error = "", onApply, onCancel }) {
   const imgRef = useRef(null);
   const drag = useRef(null);
   const [url, setUrl] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [box, setBox] = useState(initial || { x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+  const [pts, setPts] = useState(initial || DEFAULT_QUAD);
   const [shown, setShown] = useState({ w: 0, h: 0 }); // photo size on screen, px
   const [nat, setNat] = useState({ w: 0, h: 0 }); // photo size in pixels
+  const [active, setActive] = useState(null); // corner being dragged (for the magnifier)
 
   useEffect(() => {
     const u = URL.createObjectURL(file);
@@ -76,16 +83,15 @@ export default function CropEditor({ file, initial, onApply, onCancel }) {
     return () => window.removeEventListener("resize", measure);
   }, [loaded]);
 
-  const minW = shown.w ? Math.min(0.5, MIN_PX / shown.w) : 0.05;
-  const minH = shown.h ? Math.min(0.5, MIN_PX / shown.h) : 0.05;
-
   function startDrag(mode) {
     return (e) => {
+      if (busy) return;
       if (e.button !== undefined && e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
       if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
-      drag.current = { mode, sx: e.clientX, sy: e.clientY, start: box };
+      drag.current = { mode, sx: e.clientX, sy: e.clientY, start: pts };
+      setActive(mode === "all" ? null : mode);
     };
   }
 
@@ -94,14 +100,15 @@ export default function CropEditor({ file, initial, onApply, onCancel }) {
     if (!d || !shown.w || !shown.h) return;
     const dx = (e.clientX - d.sx) / shown.w;
     const dy = (e.clientY - d.sy) / shown.h;
-    setBox(adjust(d.mode, d.start, dx, dy, minW, minH));
+    setPts(d.mode === "all" ? moveAll(d.start, dx, dy) : movePoint(d.start, d.mode, dx, dy));
   }
 
   function endDrag() {
     drag.current = null;
+    setActive(null);
   }
 
-  function onKey(mode) {
+  function onKey(i) {
     return (e) => {
       const step = e.shiftKey ? 0.05 : 0.01;
       let dx = 0;
@@ -112,28 +119,44 @@ export default function CropEditor({ file, initial, onApply, onCancel }) {
       else if (e.key === "ArrowDown") dy = step;
       else return;
       e.preventDefault();
-      setBox((b) => adjust(mode, b, dx, dy, minW, minH));
+      setPts((b) => movePoint(b, i, dx, dy));
     };
   }
 
+  const problem = loaded && nat.w ? quadProblem(pts, nat.w, nat.h) : null;
+
   function apply() {
-    const whole = box.w > 0.995 && box.h > 0.995;
-    onApply(
-      whole
-        ? null
-        : { x: round4(box.x), y: round4(box.y), w: round4(box.w), h: round4(box.h) }
-    );
+    if (problem || busy) return;
+    const whole = pts.every((p, i) => Math.abs(p.x - FULL_QUAD[i].x) < 0.003 && Math.abs(p.y - FULL_QUAD[i].y) < 0.003);
+    onApply(whole ? null : pts.map((p) => ({ x: round4(p.x), y: round4(p.y) })));
   }
 
   const pct = (v) => `${v * 100}%`;
-  const sizeText = nat.w
-    ? `${Math.round(box.w * nat.w)} × ${Math.round(box.h * nat.h)} px`
-    : "";
+  const polyPoints = pts.map((p) => `${p.x * 100},${p.y * 100}`).join(" ");
+  const dimPath = `M0 0H100V100H0Z M${pts.map((p) => `${p.x * 100} ${p.y * 100}`).join(" L")} Z`;
+
+  // Magnifier: shows the photo around the corner being dragged, enlarged.
+  let loupe = null;
+  if (active !== null && url && shown.w) {
+    const p = pts[active];
+    loupe = {
+      right: p.x < 0.5,
+      style: {
+        width: LOUPE,
+        height: LOUPE,
+        backgroundImage: `url(${url})`,
+        backgroundSize: `${shown.w * ZOOM}px ${shown.h * ZOOM}px`,
+        backgroundPosition: `${LOUPE / 2 - p.x * shown.w * ZOOM}px ${LOUPE / 2 - p.y * shown.h * ZOOM}px`,
+      },
+    };
+  }
 
   return (
     <div className="crop">
       <p className="crop-help">
-        Drag the corners to choose the part to keep. Drag inside the box to move it.
+        Drag each corner onto a corner of the page. They move one by one, so a page
+        photographed at an angle is straightened when you press Apply. Drag inside the
+        shape to move all four.
       </p>
 
       {failed ? (
@@ -166,48 +189,64 @@ export default function CropEditor({ file, initial, onApply, onCancel }) {
 
             {loaded && (
               <>
-                {/* dim everything outside the box */}
-                <div className="crop-dim" style={{ left: 0, top: 0, width: "100%", height: pct(box.y) }} />
-                <div className="crop-dim" style={{ left: 0, top: pct(box.y + box.h), width: "100%", height: pct(1 - box.y - box.h) }} />
-                <div className="crop-dim" style={{ left: 0, top: pct(box.y), width: pct(box.x), height: pct(box.h) }} />
-                <div className="crop-dim" style={{ left: pct(box.x + box.w), top: pct(box.y), width: pct(1 - box.x - box.w), height: pct(box.h) }} />
-
-                <div
-                  className="crop-box"
-                  style={{ left: pct(box.x), top: pct(box.y), width: pct(box.w), height: pct(box.h) }}
-                  tabIndex={0}
-                  role="group"
-                  aria-label="Crop box. Arrow keys move it."
-                  onPointerDown={startDrag("move")}
-                  onKeyDown={onKey("move")}
+                <svg
+                  className="crop-svg"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
                 >
-                  {CORNERS.map((c) => (
-                    <span
-                      key={c.mode}
-                      className={`crop-handle crop-handle--${c.mode}`}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`Resize crop, ${c.label} corner. Arrow keys change it.`}
-                      onPointerDown={startDrag(c.mode)}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        onKey(c.mode)(e);
-                      }}
-                    />
-                  ))}
-                </div>
+                  <path d={dimPath} fillRule="evenodd" className="crop-dim" />
+                  <polygon points={polyPoints} className="crop-poly-shade" />
+                  <polygon
+                    points={polyPoints}
+                    className={`crop-poly${problem ? " crop-poly--bad" : ""}`}
+                    onPointerDown={startDrag("all")}
+                  />
+                </svg>
+
+                {pts.map((p, i) => (
+                  <span
+                    key={i}
+                    className={`crop-dot${problem ? " crop-dot--bad" : ""}${active === i ? " crop-dot--on" : ""}`}
+                    style={{ left: pct(p.x), top: pct(p.y) }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Move the ${NAMES[i]} corner. Arrow keys change it.`}
+                    onPointerDown={startDrag(i)}
+                    onKeyDown={onKey(i)}
+                  />
+                ))}
+
+                {loupe && (
+                  <span
+                    className={`crop-loupe${loupe.right ? " crop-loupe--right" : ""}`}
+                    style={loupe.style}
+                    aria-hidden="true"
+                  />
+                )}
               </>
             )}
           </div>
         </div>
       )}
 
+      {problem && (
+        <p className="error-text crop-problem" role="alert">
+          {problem}
+        </p>
+      )}
+      {error && (
+        <p className="error-text crop-problem" role="alert">
+          {error}
+        </p>
+      )}
+
       <div className="crop-bar">
         <span className="crop-size" aria-live="polite">
-          {sizeText}
+          {busy ? "Working…" : ""}
         </span>
         <span className="crop-actions">
-          <button type="button" className="btn btn-ghost dz-btn" onClick={onCancel}>
+          <button type="button" className="btn btn-ghost dz-btn" onClick={onCancel} disabled={busy}>
             Cancel
           </button>
           {!failed && (
@@ -215,12 +254,18 @@ export default function CropEditor({ file, initial, onApply, onCancel }) {
               <button
                 type="button"
                 className="btn btn-ghost dz-btn"
-                onClick={() => setBox({ x: 0, y: 0, w: 1, h: 1 })}
+                onClick={() => setPts(FULL_QUAD)}
+                disabled={busy}
               >
                 Reset
               </button>
-              <button type="button" className="btn btn-primary dz-btn" onClick={apply} disabled={!loaded}>
-                Apply
+              <button
+                type="button"
+                className="btn btn-primary dz-btn"
+                onClick={apply}
+                disabled={!loaded || !!problem || busy}
+              >
+                {busy ? "Working…" : "Apply"}
               </button>
             </>
           )}

@@ -151,14 +151,21 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   Formats > Most Compatible). The server code is unchanged (it already accepts
   `image/jpeg`). No database change.
 
-- **Photo crop (step 43):** a **Crop photo** button opens a crop box on the
-  photo (`app/permits/[rowNumber]/CropEditor.js`, canvas only, no library): drag
-  the corners, drag inside the box to move it, or use the arrow keys; works with
-  mouse and touch. **Apply** shows the new pixel size and the before → after file
-  size; **Remove crop** goes back to the whole photo. The cut is made from the
-  original pixels and compressed once together with the quality slider, so a
-  crop costs no extra quality. A crop switches "Keep the original" off. No
-  database change.
+- **Photo crop with four corners (step 43):** a **Crop photo** button opens the
+  photo with four dots (`app/permits/[rowNumber]/CropEditor.js`, canvas only, no
+  library). Each corner moves on its own, so a page photographed at an angle can
+  be marked exactly; drag inside the shape to move all four, or Tab to a corner
+  and use the arrow keys. While a corner is dragged a magnifier shows what is
+  under the finger. If the corners cross over or bend inward the shape turns red
+  and Apply stays off. **Apply** cuts the marked area out and straightens it into
+  a rectangle (a perspective transform done pixel by pixel in
+  `lib/compressImage.js`, in bands so the page stays responsive; the result is
+  limited to 3500 px on its longest side). If the four dots form an upright
+  rectangle it is a plain, sharper crop instead. The cut-out is kept in memory so
+  moving the quality slider afterwards is instant. The panel shows the new pixel
+  size and the before → after file size; **Edit crop** reopens the corners and
+  **Remove crop** goes back to the whole photo. A crop switches "Keep the
+  original" off. No database change.
 
 - **My permits (step 36):** the Excel log picks Applicant and Holder from
   dropdown lists. In **Admin → People & Excel names** (Root and HSE) each name
