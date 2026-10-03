@@ -1375,6 +1375,167 @@ a.stat-card:hover {
 }
 
 /* ---------------------------------------------------------
+   Drop-zone file field (Excel upload + permit attachments)
+--------------------------------------------------------- */
+.dz-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.dz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 18px;
+  text-align: center;
+  color: var(--color-ink);
+  background: var(--color-surface-2);
+  border: 2px dashed var(--color-rule-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dz:not(.dz--filled):not(.dz--disabled):hover {
+  border-color: var(--color-brand-2);
+  background: var(--color-surface-hover);
+}
+
+.dz:focus-visible {
+  outline: 2px solid var(--color-brand-2);
+  outline-offset: 2px;
+}
+
+.dz--over {
+  border-style: solid;
+  border-color: var(--color-brand-2);
+  background: var(--color-brand-tint);
+}
+
+.dz--error {
+  border-color: var(--color-expired);
+  background: var(--color-expired-tint);
+}
+
+.dz--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dz-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--color-brand-2);
+  background: var(--color-brand-tint);
+}
+
+.dz-title {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.dz-title u {
+  color: var(--color-brand-2);
+  text-underline-offset: 2px;
+}
+
+.dz-title-touch {
+  display: none;
+}
+
+.dz-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+/* chosen-file state */
+.dz--filled {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: default;
+  border-style: solid;
+}
+
+.dz-file {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.dz-file-name {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.dz-file-size {
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.dz-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dz-btn {
+  padding: 5px 12px;
+  font-size: var(--font-size-xs);
+}
+
+.dz-error {
+  margin: 0;
+}
+
+.dz-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .dz-title-desktop {
+    display: none;
+  }
+  .dz-title-touch {
+    display: inline;
+  }
+}
+
+@media (max-width: 560px) {
+  .dz {
+    padding: 22px 14px;
+  }
+  .dz--filled {
+    padding: 12px 14px;
+  }
+  .dz-actions {
+    width: 100%;
+  }
+  .dz-actions .dz-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+/* ---------------------------------------------------------
    Permit cards (phones) — replaces the wide table so nobody has
    to scroll sideways.
 --------------------------------------------------------- */

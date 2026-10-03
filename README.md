@@ -129,6 +129,14 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   has no previous file, so it has no change details. The page shows the file now on the site and the history (latest 100,
   12 at a time). Visible to Root and HSE.
 
+- **Drop-zone file fields (step 41):** the Excel upload and the permit
+  attachment upload use one shared field (`app/components/DropZone.js`): drag a
+  file onto it, or click it (or press Enter / Space) to open the file explorer.
+  It shows the chosen file name and size with Replace and Remove, and explains a
+  wrong file type or size. The Excel field checks the 4.4 MB size in the browser
+  because Vercel's free plan refuses larger request bodies; attachments keep
+  their rules (PDF or JPEG, 10 MB). No database change.
+
 - **My permits (step 36):** the Excel log picks Applicant and Holder from
   dropdown lists. In **Admin → People & Excel names** (Root and HSE) each name
   from those lists is linked to an account (`excel_name_links`; one Excel name

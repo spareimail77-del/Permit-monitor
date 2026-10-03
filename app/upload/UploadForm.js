@@ -3,8 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../components/Icon";
+import DropZone from "../components/DropZone";
 import ChangeDetails from "./ChangeDetails";
 import { formatSize, formatWhen } from "../../lib/format";
+
+// The file goes through the site's server on Vercel's free plan, which
+// refuses request bodies over about 4.5 MB. Catch that here with a clear
+// message instead of a vague failure after waiting.
+const MAX_EXCEL_BYTES = 4.4 * 1024 * 1024;
+
+function checkExcel(f) {
+  if (f.size > MAX_EXCEL_BYTES) {
+    return `This file is ${formatSize(f.size)}. The site accepts Excel files up to about 4.4 MB. Save a smaller copy and try again.`;
+  }
+  return null;
+}
 
 export default function UploadForm() {
   const router = useRouter();
@@ -62,11 +75,17 @@ export default function UploadForm() {
       </p>
 
       <form onSubmit={handleUpload} style={styles.form}>
-        <input
-          type="file"
+        <DropZone
+          file={file}
+          onFile={(f) => {
+            setFile(f);
+            if (state === "error") setState("idle");
+          }}
           accept=".xlsm,.xlsx"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          style={styles.fileInput}
+          typeError="Please choose a .xlsm or .xlsx file."
+          validate={checkExcel}
+          hint=".xlsm or .xlsx, up to about 4.4 MB"
+          disabled={state === "uploading"}
         />
         <button
           type="submit"
@@ -162,12 +181,11 @@ const styles = {
   cardText: { color: "var(--color-ink-muted)", marginTop: 0 },
   form: {
     display: "flex",
-    gap: 12,
-    alignItems: "center",
+    flexDirection: "column",
+    gap: 14,
+    alignItems: "flex-start",
     marginTop: 20,
-    flexWrap: "wrap",
   },
-  fileInput: { fontSize: "var(--font-size-sm)", color: "var(--color-ink)" },
   resultBox: {
     marginTop: 20,
     padding: "16px 18px",

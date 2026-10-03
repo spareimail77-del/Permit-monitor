@@ -116,6 +116,18 @@ const PATHS = {
     </>
   ),
   x: <path d="M6 6l12 12M18 6 6 18" />,
+  upload: (
+    <>
+      <path d="M12 16V5m0 0-4 4m4-4 4 4" />
+      <path d="M5 19h14" />
+    </>
+  ),
+  file: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+      <path d="M14 3v5h5" />
+    </>
+  ),
   trash: (
     <>
       <path d="M4 7h16" />

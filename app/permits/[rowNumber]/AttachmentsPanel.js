@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Icon from "../../components/Icon";
+import DropZone from "../../components/DropZone";
 import {
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
@@ -13,6 +14,14 @@ function formatSize(bytes) {
   if (!bytes && bytes !== 0) return "";
   const mb = bytes / 1024 / 1024;
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
+}
+
+function checkAttachment(f) {
+  if (!ALLOWED_CONTENT_TYPES[f.type]) return "Only PDF or JPEG files are allowed.";
+  if (f.size > MAX_ATTACHMENT_BYTES) {
+    return `This file is ${formatSize(f.size)}. The limit is ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB. Compress it or choose a smaller file.`;
+  }
+  return null;
 }
 
 export default function AttachmentsPanel({ permitReference, initialAttachments, isAdmin }) {
@@ -98,8 +107,6 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       setFile(null);
       setLabel("");
       setState("idle");
-      const input = document.getElementById("attachment-file-input");
-      if (input) input.value = "";
     } catch (err) {
       setState("error");
       setMessage(err.message || "Upload failed.");
@@ -217,16 +224,21 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
               className="attach-input"
             />
           </label>
-          <label className="attach-field">
+          <div className="attach-field">
             <span className="attach-field-label">File (PDF or JPEG)</span>
-            <input
-              id="attachment-file-input"
-              type="file"
+            <DropZone
+              file={file}
+              onFile={(f) => {
+                setFile(f);
+                if (state === "error") setState("idle");
+              }}
               accept=".pdf,.jpg,.jpeg"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="attach-file"
+              typeError="Only PDF or JPEG files are allowed."
+              validate={checkAttachment}
+              hint={`PDF or JPEG, up to ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB`}
+              disabled={state === "uploading"}
             />
-          </label>
+          </div>
           {label.trim() && (
             <p className="attach-preview">
               Will be saved as{" "}
