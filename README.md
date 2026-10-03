@@ -80,6 +80,16 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   **Check again**.
 - **Upload (Admin → Upload Data):** replaces the single current Excel in
   Vercel Blob. Root and HSE only.
+- **Upload order (step 44):** the upload route works in a safe order: (1) check the
+  file (a bad file is refused and nothing changes), (2) compare it with the file
+  on the site now, (3) save the new Excel file, (4) only then update the archive,
+  (5) write the upload log. If saving the Excel file fails, the archive is not
+  touched, so the archive and the live dashboard can never disagree. If the
+  archive fails after the file is saved, the upload still counts, a warning is
+  shown and logged, and the next upload repairs the archive (it compares with the
+  archive, not with the previous file). A file that cannot be read as a workbook
+  is now refused instead of uploaded. No database change.
+
 - **Permit archive (step 39):** on each upload every **new or changed** permit is
   copied into `archived_permits` (one row per permit number; unchanged permits
   are not written, so it stays small). The new file is compared with the archive,
@@ -97,10 +107,21 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   more than a page needs a typed `DELETE n` confirmation).
 - **Export to Excel (Root and HSE):** a button on the Permit List (rows
   currently shown) and on the Archive (ticked rows, or everything matching the
-  filters). The `.xlsx` is built in the browser using the master log's header
-  block and column layout, with the site's calculated status and days left; no
-  macros. Exported files carry a marker and the upload refuses them, so a
-  filtered export can't replace the master log by accident.
+  filters). The `.xlsx` is built in the browser from a **copy of the real master
+  log** (step 45, `lib/exportMaster.js`): the browser fetches the current master
+  file, keeps everything that makes it look right (logos, fonts, merged
+  headings, column widths, row heights, colour rules, dropdown lists) and
+  rewrites only the permit rows from row 6, using the master's own row style.
+  Macros and the hidden ActiveX control are removed, so it is a clean `.xlsx`.
+  The **Status** column uses the log's own words: Open and Expiring soon are
+  `OPEN`, Overdue is `EXPIRED`, Closed is `CLOSED` (the log's colour rules look
+  for these). **Days to Go** is not exported (the column is hidden), and
+  multi-line cells (certificates) are tidied to single line breaks. The JSZip
+  library (loaded only when someone clicks Export) opens and closes the file. If the
+  master file can't be fetched or opened, the older plain export (header block
+  and column layout only, no styling) is downloaded instead. Exported files
+  carry a marker and the upload refuses them, so a filtered export can't replace
+  the master log by accident.
 - **Attachments:** files (Physical Permit, JSA, etc.) are stored in
   Cloudinary and linked to the permit number in Supabase, so they survive
   re-uploads and remain visible on archived permits. Opened through short-lived
