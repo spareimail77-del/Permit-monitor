@@ -21,13 +21,16 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
+const LOG_VALUES = { in: "Still in the log", all: "All permits" };
+
 const CHIP_LABELS = {
   q: "Search",
   area: "Area",
   type: "Type",
   status: "Status",
-  from: "Archived from",
-  to: "Archived to",
+  log: "Show",
+  from: "Left the log from",
+  to: "Left the log until",
   vfrom: "Valid to from",
   vto: "Valid to until",
 };
@@ -69,7 +72,7 @@ export default async function ArchivePage({ searchParams }) {
   let query = supabase
     .from("archived_permits")
     .select(
-      "id, reference, area, permit_type, job_description, holder, valid_to, excel_status, archived_at",
+      "id, reference, area, permit_type, job_description, holder, valid_to, excel_status, archived_at, in_log, updated_at",
       { count: "exact" }
     )
     .range(from, from + PAGE_SIZE - 1);
@@ -79,14 +82,11 @@ export default async function ArchivePage({ searchParams }) {
   const { data: rows, count, error } = await query;
   const list = rows || [];
 
-  // Whole-archive size, only needed to say "38 of 212" when filtered.
-  let archiveTotal = count || 0;
-  if (filtersActive) {
-    const { count: all } = await supabase
-      .from("archived_permits")
-      .select("id", { count: "exact", head: true });
-    archiveTotal = all ?? archiveTotal;
-  }
+  // Sizes of the two groups, for the line under the heading.
+  const [{ count: outCount }, { count: inCount }] = await Promise.all([
+    supabase.from("archived_permits").select("id", { count: "exact", head: true }).eq("in_log", false),
+    supabase.from("archived_permits").select("id", { count: "exact", head: true }).eq("in_log", true),
+  ]);
 
   // Attachments stay linked to the permit number, so archived permits
   // keep their scans. One query for just this page's permit numbers.
@@ -117,7 +117,7 @@ export default async function ArchivePage({ searchParams }) {
     .map(([k, v]) => ({
       key: k,
       label: CHIP_LABELS[k],
-      value: v,
+      value: k === "log" ? LOG_VALUES[v] || v : v,
       href: hrefWith({ ...filtersToParams({ ...filters, [k]: "" }), ...sortParam }),
     }));
 
@@ -143,7 +143,8 @@ export default async function ArchivePage({ searchParams }) {
         </p>
         <h2 style={styles.heading}>Permit Archive</h2>
         <p style={styles.subheading}>
-          Permits that were removed from the Excel file. {archiveTotal} archived in total.
+          Every permit of the uploaded Excel is copied here automatically (new and changed ones).{" "}
+          {outCount ?? 0} no longer in the log · {inCount ?? 0} still in the log.
           {canDelete && " Tick rows to permanently delete a permit and any attachments filed under it."}
         </p>
 
@@ -183,6 +184,14 @@ export default async function ArchivePage({ searchParams }) {
               </select>
             </label>
             <label className="archive-field">
+              <span>Show</span>
+              <select name="log" defaultValue={filters.log}>
+                <option value="">No longer in the log</option>
+                <option value="in">Still in the log</option>
+                <option value="all">All permits</option>
+              </select>
+            </label>
+            <label className="archive-field">
               <span>Last status</span>
               <select name="status" defaultValue={filters.status}>
                 <option value="">All statuses</option>
@@ -203,10 +212,10 @@ export default async function ArchivePage({ searchParams }) {
 
           <div className="archive-filters__row">
             <fieldset className="archive-range">
-              <legend>Archived between</legend>
-              <input type="date" name="from" defaultValue={filters.from} aria-label="Archived from" />
+              <legend>Left the log between</legend>
+              <input type="date" name="from" defaultValue={filters.from} aria-label="Left the log from" />
               <span>to</span>
-              <input type="date" name="to" defaultValue={filters.to} aria-label="Archived to" />
+              <input type="date" name="to" defaultValue={filters.to} aria-label="Left the log until" />
             </fieldset>
             <fieldset className="archive-range">
               <legend>Permit valid-to between</legend>
@@ -217,7 +226,7 @@ export default async function ArchivePage({ searchParams }) {
           </div>
 
           <div className="archive-presets">
-            <span className="archive-presets__label">Quick range (archived):</span>
+            <span className="archive-presets__label">Quick range (left the log):</span>
             {presets.map((p) => (
               <Link prefetch={false}
                 key={p.key}
@@ -243,8 +252,8 @@ export default async function ArchivePage({ searchParams }) {
 
         <p className="result-count">
           {filtersActive
-            ? `${total} of ${archiveTotal} archived permits match`
-            : `${total} archived permits`}
+            ? `${total} permits match`
+            : `${total} permits`}
           {total > PAGE_SIZE && ` · page ${page} of ${lastPage}`}
         </p>
 
@@ -252,7 +261,7 @@ export default async function ArchivePage({ searchParams }) {
 
         {!error && list.length === 0 && (
           <p style={styles.empty}>
-            {filtersActive ? "No archived permits match your filters." : "Nothing archived yet."}
+            {filtersActive ? "No archived permits match your filters." : "No permits have left the log yet."}
           </p>
         )}
 

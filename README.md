@@ -80,13 +80,18 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   **Check again**.
 - **Upload (Admin → Upload Data):** replaces the single current Excel in
   Vercel Blob. Root and HSE only.
-- **Permit archive:** on each upload the new file is compared with the one on
-  the site. Any permit number that disappeared is saved to `archived_permits`
-  (one row per permit number, so daily uploads never duplicate; only removed
-  permits are stored). A file with no permits is rejected. Viewable at
-  Admin → Permit Archive by Root, HSE and Manager. A permit that later
-  returns to the Excel also stays in the archive.
-  Root and HSE can filter (search, area, type, status, archived date range,
+- **Permit archive (step 39):** on each upload every **new or changed** permit is
+  copied into `archived_permits` (one row per permit number; unchanged permits
+  are not written, so it stays small). The new file is compared with the archive,
+  not with the previous file, so a wrong upload can't lose anything and the next
+  good upload repairs the archive. A permit missing from the file is never
+  deleted: it is marked `in_log = false` with the date it left the log, and turns
+  back on if it returns. A file with no permits is rejected. Admin → Permit
+  Archive (Root, HSE, Manager) shows "No longer in the log" by default; switch
+  **Show** to "Still in the log" or "All permits". Permits still in the log
+  cannot be deleted from the archive. If the archive can't be updated, the
+  upload still goes through and says so.
+  Root and HSE can filter (search, area, type, status, left-the-log date range,
   valid-to range, sort), tick rows or **select all matching** across pages,
   and permanently delete them together with their attachments (batches of 25;
   more than a page needs a typed `DELETE n` confirmation).

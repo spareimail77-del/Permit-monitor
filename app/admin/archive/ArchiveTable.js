@@ -135,6 +135,7 @@ export default function ArchiveTable({
 
     let deleted = 0;
     let missing = 0;
+    let kept = 0;
     const failed = [];
     let stopped = "";
 
@@ -152,6 +153,7 @@ export default function ArchiveTable({
         }
         deleted += data.deleted || 0;
         missing += data.missing || 0;
+        kept += data.kept || 0;
         failed.push(...(data.failed || []));
       } catch {
         stopped = "Network error, so deleting stopped.";
@@ -166,6 +168,7 @@ export default function ArchiveTable({
       parts.push(`${failed.length} failed (${shown}${failed.length > 5 ? ", …" : ""})`);
     }
     if (missing) parts.push(`${missing} no longer there`);
+    if (kept) parts.push(`${kept} kept (still in the log)`);
     if (stopped) parts.push(stopped);
 
     setMessage({ kind: stopped || failed.length ? "error" : "ok", text: parts.join(" · ") });
@@ -392,7 +395,7 @@ export default function ArchiveTable({
               <th>Holder</th>
               <th>Valid to</th>
               <th>Last status</th>
-              <th>Archived</th>
+              <th>Left the log</th>
               <th>Attachments</th>
             </tr>
           </thead>
@@ -418,7 +421,9 @@ export default function ArchiveTable({
                 <td className="mono">{r.valid_to}</td>
                 <td>{r.excel_status}</td>
                 <td className="mono">
-                  {new Date(r.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" })}
+                  {r.in_log
+                    ? "Still in log"
+                    : new Date(r.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" })}
                 </td>
                 <td>
                   {(attachmentsByRef[r.reference] || []).map((a) => (

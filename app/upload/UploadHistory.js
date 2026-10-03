@@ -75,7 +75,7 @@ export default function UploadHistory({ rows, problem, limit }) {
                     <th>File</th>
                     <th style={{ textAlign: "right" }}>Size</th>
                     <th style={{ textAlign: "right" }}>Permits</th>
-                    <th style={{ textAlign: "right" }}>Archived</th>
+                    <th style={{ textAlign: "right" }}>Saved to archive</th>
                     <th>Result</th>
                   </tr>
                 </thead>

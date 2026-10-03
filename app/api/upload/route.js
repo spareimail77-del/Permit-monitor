@@ -1,12 +1,8 @@
 import { put } from "@vercel/blob";
 import { revalidateTag } from "next/cache";
 import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
-import {
-  fetchPermitData,
-  parsePermitsFromBuffer,
-  PERMIT_DATA_TAG,
-} from "../../../lib/parsePermits";
-import { findRemovedPermits, archivePermits } from "../../../lib/archive";
+import { parsePermitsFromBuffer, PERMIT_DATA_TAG } from "../../../lib/parsePermits";
+import { syncArchive } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
 import { logUpload } from "../../../lib/uploadLog";
@@ -64,13 +60,13 @@ export async function POST(request) {
       );
     }
 
-    // Compare the file currently on the site with the new one. Any
-    // permit that was in the old file but is missing from the new one
-    // is saved to the archive table (upsert by permit number, so a
-    // daily upload never duplicates anything). Only the removed rows
-    // are written, so this costs almost no storage. A failure here
-    // never blocks the upload; it is reported back instead.
+    // Copy new and changed permits into the archive (one row per permit
+    // number, unchanged permits are not written, so this stays small).
+    // Permits missing from the new file are only marked "no longer in the
+    // log", never deleted. A failure here never blocks the upload; it is
+    // reported back, and the next upload repairs it.
     let archivedCount = 0;
+    let archiveSummary = null;
     let archiveWarning = null;
     let permitCount = null;
     try {
@@ -111,16 +107,12 @@ export async function POST(request) {
 
       permitCount = newParsed.permits.length;
 
-      const old = await fetchPermitData();
-      if (!old.error) {
-        const removed = findRemovedPermits(old.permits, newParsed.permits);
-        const result = await archivePermits(supabase, user.id, removed);
-        archivedCount = result.count;
-      }
+      archiveSummary = await syncArchive(supabase, user.id, newParsed.permits);
+      archivedCount = archiveSummary.added + archiveSummary.refreshed;
     } catch (err) {
-      console.error("Archiving removed permits failed:", err);
+      console.error("Saving permits to the archive failed:", err);
       archiveWarning =
-        "Removed permits could not be archived this time. The new file was still uploaded.";
+        "The archive could not be updated this time. The new file was still uploaded; the next upload will catch up.";
     }
 
     const blob = await put(PERMIT_FILE_PATHNAME, file, {
@@ -157,6 +149,7 @@ export async function POST(request) {
       uploadedAt: new Date().toISOString(),
       url: blob.url,
       archivedCount,
+      archiveSummary,
       permitCount,
       archiveWarning,
     });

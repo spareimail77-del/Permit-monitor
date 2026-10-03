@@ -96,11 +96,14 @@ export default function UploadForm() {
               <strong>Permits in file:</strong> {result.permitCount}
             </p>
           )}
-          {result.archivedCount > 0 && (
+          {result.archiveSummary && (
             <p style={styles.resultLine}>
-              <strong>Archived:</strong> {result.archivedCount} permit
-              {result.archivedCount === 1 ? "" : "s"} no longer in this
-              file
+              <strong>Archive:</strong> {result.archiveSummary.added} new copied,{" "}
+              {result.archiveSummary.refreshed} refreshed
+              {result.archiveSummary.left > 0 &&
+                `, ${result.archiveSummary.left} no longer in the log`}
+              {result.archiveSummary.returned > 0 &&
+                `, ${result.archiveSummary.returned} back in the log`}
             </p>
           )}
           {result.archiveWarning && (

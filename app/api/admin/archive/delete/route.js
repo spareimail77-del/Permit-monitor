@@ -50,18 +50,22 @@ export async function POST(request) {
 
   const { data: permits, error: fetchError } = await supabase
     .from("archived_permits")
-    .select("id, reference")
+    .select("id, reference, in_log")
     .in("id", ids);
 
   if (fetchError) {
     return Response.json({ error: "Could not look up the selected permits." }, { status: 500 });
   }
 
-  const found = permits || [];
-  const foundIds = found.map((p) => p.id);
+  // A permit that is still in the uploaded Excel is never deleted here: its
+  // attachments would be lost and the next upload would copy it back anyway.
+  const all = permits || [];
+  const found = all.filter((p) => !p.in_log);
+  const kept = all.length - found.length;
+  const foundIds = all.map((p) => p.id);
   const missing = ids.length - foundIds.length;
 
-  const results = { deleted: 0, failed: [], missing };
+  const results = { deleted: 0, failed: [], missing, kept };
 
   async function removeOne(permit) {
     try {

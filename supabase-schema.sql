@@ -161,8 +161,10 @@ create policy "HSE and root can delete attachments"
   using (public.active_role() in ('root', 'hse'));
 
 -- ---------------------------------------------------------------
--- 5. Permit archive: permits that dropped out of the Excel. One row
---    per permit number, so daily uploads never duplicate.
+-- 5. Permit archive: a copy of every permit of the uploaded Excel (new and
+--    changed ones are copied on each upload; step 39). One row per permit
+--    number, so daily uploads never duplicate. in_log = false marks permits
+--    that are no longer in the latest file.
 -- ---------------------------------------------------------------
 create table if not exists public.archived_permits (
   id uuid primary key default gen_random_uuid(),
@@ -177,9 +179,19 @@ create table if not exists public.archived_permits (
   valid_to date,
   excel_status text,
   data jsonb not null default '{}'::jsonb,
-  archived_at timestamptz not null default now(),
-  archived_by uuid references public.profiles (id) on delete set null
+  archived_at timestamptz not null default now(), -- first copied; for in_log = false: date it left the log
+  archived_by uuid references public.profiles (id) on delete set null,
+  fingerprint text,                -- step 39: spots changed permits
+  in_log boolean not null default false, -- step 39: in the latest uploaded file?
+  updated_at timestamptz           -- step 39: last refresh of this copy
 );
+
+-- Step 39 (existing databases): run migrations/step39-archive-copy-on-add.sql
+alter table public.archived_permits add column if not exists fingerprint text;
+alter table public.archived_permits add column if not exists in_log boolean not null default false;
+alter table public.archived_permits add column if not exists updated_at timestamptz;
+create index if not exists archived_permits_in_log_idx
+  on public.archived_permits (in_log, archived_at desc);
 
 create index if not exists archived_permits_archived_at_idx
   on public.archived_permits (archived_at desc);
