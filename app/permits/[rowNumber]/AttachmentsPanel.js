@@ -12,7 +12,9 @@ import {
 import {
   MAX_IMAGE_INPUT_BYTES,
   MAX_SIDE,
-  QUALITY,
+  QUALITY_DEFAULT,
+  QUALITY_MAX,
+  QUALITY_MIN,
   compressToJpeg,
   jpgName,
   kindOf,
@@ -46,17 +48,13 @@ function checkAttachment(f) {
   return null;
 }
 
-const QUALITY_CHOICES = [
-  { id: "original", label: "Original", sub: "No change" },
-  { id: "balanced", label: "Balanced", sub: "Recommended" },
-  { id: "smallest", label: "Smallest", sub: "Softer print" },
-];
-
 export default function AttachmentsPanel({ permitReference, initialAttachments, isAdmin }) {
   const [attachments, setAttachments] = useState(initialAttachments || []);
   const [label, setLabel] = useState("");
   const [file, setFile] = useState(null); // as chosen
-  const [quality, setQuality] = useState("balanced");
+  const [quality, setQuality] = useState(QUALITY_DEFAULT); // slider, % (moves live)
+  const [appliedQuality, setAppliedQuality] = useState(QUALITY_DEFAULT); // used after the slider rests
+  const [keepOriginal, setKeepOriginal] = useState(false); // JPEG only: upload untouched
   const [prepared, setPrepared] = useState(null); // { file, before, after, note } what will be uploaded
   const [preparing, setPreparing] = useState(false);
   const [prepError, setPrepError] = useState("");
@@ -68,10 +66,16 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const kind = file ? kindOf(file) : null;
   const isPhoto = kind === "jpeg" || kind === "png" || kind === "heic";
   const mustConvert = kind === "png" || kind === "heic"; // the server only takes JPEG
-  const effQuality = mustConvert && quality === "original" ? "balanced" : quality;
+  const useOriginal = keepOriginal && !mustConvert;
+
+  // Wait until the slider stops moving before compressing again.
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedQuality(quality), 350);
+    return () => clearTimeout(t);
+  }, [quality]);
   const tooBig = !!prepared && prepared.after > MAX_ATTACHMENT_BYTES;
 
-  // Whenever the file or the quality choice changes, work out what will be
+  // Whenever the file or the quality slider changes, work out what will be
   // uploaded. Always starts from the original file, so quality never stacks.
   useEffect(() => {
     setPrepared(null);
@@ -92,7 +96,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       return;
     }
 
-    if (k === "jpeg" && effQuality === "original") {
+    if (k === "jpeg" && useOriginal) {
       const same = file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name);
       const keep = same ? file : new File([file], jpgName(file.name), { type: "image/jpeg" });
       setPrepared({ file: keep, before: file.size, after: file.size, note: "" });
@@ -104,7 +108,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     setPreparing(true);
     (async () => {
       try {
-        const { blob, scaled } = await compressToJpeg(file, QUALITY[effQuality]);
+        const { blob, scaled } = await compressToJpeg(file, appliedQuality / 100);
         if (cancelled) return;
         // An already-small JPEG can get bigger when re-saved: keep it as it is.
         if (k === "jpeg" && !scaled && blob.size >= file.size) {
@@ -143,7 +147,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     return () => {
       cancelled = true;
     };
-  }, [file, effQuality]);
+  }, [file, useOriginal, appliedQuality]);
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -367,30 +371,48 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                         : ""}
                   </span>
                 </div>
-                <div className="cmp-choices" role="group" aria-label="Photo quality">
-                  {QUALITY_CHOICES.map((c) => {
-                    const off = c.id === "original" && mustConvert;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`cmp-choice${effQuality === c.id ? " cmp-choice--on" : ""}`}
-                        aria-pressed={effQuality === c.id}
-                        disabled={off || state === "uploading"}
-                        onClick={() => setQuality(c.id)}
-                      >
-                        <span className="cmp-choice-name">{c.label}</span>
-                        <span className="cmp-choice-sub">
-                          {off ? "Needs JPEG" : c.sub}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="cmp-slider-row">
+                  <label htmlFor="cmp-quality" className="cmp-slider-label">
+                    Quality
+                  </label>
+                  <span className="cmp-slider-value">
+                    {useOriginal ? "Original" : `${quality}%`}
+                  </span>
                 </div>
+                <input
+                  id="cmp-quality"
+                  type="range"
+                  className="cmp-slider"
+                  min={QUALITY_MIN}
+                  max={QUALITY_MAX}
+                  step={1}
+                  value={quality}
+                  disabled={useOriginal || state === "uploading"}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                  style={{
+                    "--fill": `${((quality - QUALITY_MIN) / (QUALITY_MAX - QUALITY_MIN)) * 100}%`,
+                  }}
+                />
+                <div className="cmp-slider-ends">
+                  <span>Smaller file</span>
+                  <span>Sharper print</span>
+                </div>
+                <label className={`cmp-check${mustConvert ? " cmp-check--off" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={useOriginal}
+                    disabled={mustConvert || state === "uploading"}
+                    onChange={(e) => setKeepOriginal(e.target.checked)}
+                  />
+                  <span>
+                    Keep the original, no compression
+                    {mustConvert ? " (not possible for this file type)" : ""}
+                  </span>
+                </label>
                 {prepared?.note && <p className="cmp-note">{prepared.note}</p>}
                 <p className="cmp-note">
-                  Small print on scanned permits can look soft when compressed.
-                  Use Original or Balanced for those.
+                  Small print on scanned permits can look soft at lower quality.
+                  Keep it at 80% or higher for those.
                 </p>
                 {prepError && (
                   <p className="error-text cmp-error" role="alert">

@@ -140,9 +140,9 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
 - **Photo compression (step 42):** when a JPEG or PNG is chosen as an attachment,
   the browser re-saves it as a smaller JPEG (canvas only, no library, no server
   work; code in `lib/compressImage.js`). A "before → after" size is shown with a
-  quality choice: **Original** (no change, JPEG only), **Balanced** (80%,
-  default) and **Smallest** (65%); changing it always starts again from the
-  original file. Same pixel size, except photos with a side over 4096 px are
+  quality **slider** (40–95%, default 80%) and a "Keep the original" tick
+  box (JPEG only); moving the slider always starts again from the original
+  file. Same pixel size, except photos with a side over 4096 px are
   scaled down (so old phones don't run out of memory). Rotation is kept; GPS and
   other hidden camera data are dropped. PNG is converted to JPEG on a white
   background. PDFs are never changed. An already-small JPEG that would grow is
