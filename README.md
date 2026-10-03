@@ -135,7 +135,21 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   It shows the chosen file name and size with Replace and Remove, and explains a
   wrong file type or size. The Excel field checks the 4.4 MB size in the browser
   because Vercel's free plan refuses larger request bodies; attachments keep
-  their rules (PDF or JPEG, 10 MB). No database change.
+  their rules (10 MB; step 42 adds PNG and photo compression). No database change.
+
+- **Photo compression (step 42):** when a JPEG or PNG is chosen as an attachment,
+  the browser re-saves it as a smaller JPEG (canvas only, no library, no server
+  work; code in `lib/compressImage.js`). A "before → after" size is shown with a
+  quality choice: **Original** (no change, JPEG only), **Balanced** (80%,
+  default) and **Smallest** (65%); changing it always starts again from the
+  original file. Same pixel size, except photos with a side over 4096 px are
+  scaled down (so old phones don't run out of memory). Rotation is kept; GPS and
+  other hidden camera data are dropped. PNG is converted to JPEG on a white
+  background. PDFs are never changed. An already-small JPEG that would grow is
+  kept as it is. The 10 MB Cloudinary limit is checked on the compressed file.
+  HEIC files the browser can't open show an iPhone tip (Settings > Camera >
+  Formats > Most Compatible). The server code is unchanged (it already accepts
+  `image/jpeg`). No database change.
 
 - **My permits (step 36):** the Excel log picks Applicant and Holder from
   dropdown lists. In **Admin → People & Excel names** (Root and HSE) each name

@@ -12,6 +12,8 @@ import { formatSize } from "../../lib/format";
 //   file       the chosen File (or null) - kept by the page
 //   onFile     called with the new File, or with null when removed
 //   accept     allowed extensions, e.g. ".xlsm,.xlsx"
+//   alsoAllow  extra extensions accepted when dragged or picked, but not
+//              offered in the file explorer filter (e.g. ".heic")
 //   typeError  message shown when the extension is not allowed
 //   validate   optional: (file) => error text, or null when fine (size etc.)
 //   hint       small line under the title, e.g. "PDF or JPEG, up to 10 MB"
@@ -26,6 +28,7 @@ export default function DropZone({
   file,
   onFile,
   accept,
+  alsoAllow = "",
   typeError,
   validate,
   hint,
@@ -36,7 +39,7 @@ export default function DropZone({
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
 
-  const allowed = accept
+  const allowed = `${accept},${alsoAllow}`
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);

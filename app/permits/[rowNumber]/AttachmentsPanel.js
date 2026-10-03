@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../../components/Icon";
 import DropZone from "../../components/DropZone";
 import {
@@ -9,6 +9,14 @@ import {
   MAX_LABEL_LENGTH,
   displayFileName,
 } from "../../../lib/attachments";
+import {
+  MAX_IMAGE_INPUT_BYTES,
+  MAX_SIDE,
+  QUALITY,
+  compressToJpeg,
+  jpgName,
+  kindOf,
+} from "../../../lib/compressImage";
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return "";
@@ -16,26 +24,131 @@ function formatSize(bytes) {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
 }
 
+const MAX_MB = Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024);
+
+const HEIC_MESSAGE =
+  "This browser can't open this photo format (HEIC). On iPhone: Settings > Camera > Formats > Most Compatible, then take the photo again.";
+
+// First check, on the file as chosen. PDFs must fit the limit as they are;
+// photos are checked again after they are compressed.
 function checkAttachment(f) {
-  if (!ALLOWED_CONTENT_TYPES[f.type]) return "Only PDF or JPEG files are allowed.";
-  if (f.size > MAX_ATTACHMENT_BYTES) {
-    return `This file is ${formatSize(f.size)}. The limit is ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB. Compress it or choose a smaller file.`;
+  const kind = kindOf(f);
+  if (!kind) return "Only PDF, JPEG or PNG files are allowed.";
+  if (kind === "pdf") {
+    if (f.size > MAX_ATTACHMENT_BYTES) {
+      return `This PDF is ${formatSize(f.size)}. The limit is ${MAX_MB} MB. Compress it or choose a smaller file.`;
+    }
+    return null;
+  }
+  if (f.size > MAX_IMAGE_INPUT_BYTES) {
+    return `This photo is ${formatSize(f.size)}, too big to process here. Choose a smaller one.`;
   }
   return null;
 }
 
+const QUALITY_CHOICES = [
+  { id: "original", label: "Original", sub: "No change" },
+  { id: "balanced", label: "Balanced", sub: "Recommended" },
+  { id: "smallest", label: "Smallest", sub: "Softer print" },
+];
+
 export default function AttachmentsPanel({ permitReference, initialAttachments, isAdmin }) {
   const [attachments, setAttachments] = useState(initialAttachments || []);
   const [label, setLabel] = useState("");
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null); // as chosen
+  const [quality, setQuality] = useState("balanced");
+  const [prepared, setPrepared] = useState(null); // { file, before, after, note } what will be uploaded
+  const [preparing, setPreparing] = useState(false);
+  const [prepError, setPrepError] = useState("");
   const [state, setState] = useState("idle"); // idle | uploading | error
   const [message, setMessage] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
 
+  const kind = file ? kindOf(file) : null;
+  const isPhoto = kind === "jpeg" || kind === "png" || kind === "heic";
+  const mustConvert = kind === "png" || kind === "heic"; // the server only takes JPEG
+  const effQuality = mustConvert && quality === "original" ? "balanced" : quality;
+  const tooBig = !!prepared && prepared.after > MAX_ATTACHMENT_BYTES;
+
+  // Whenever the file or the quality choice changes, work out what will be
+  // uploaded. Always starts from the original file, so quality never stacks.
+  useEffect(() => {
+    setPrepared(null);
+    setPrepError("");
+    if (!file) {
+      setPreparing(false);
+      return;
+    }
+    const k = kindOf(file);
+
+    if (k === "pdf") {
+      const pdf =
+        file.type === "application/pdf"
+          ? file
+          : new File([file], file.name, { type: "application/pdf" });
+      setPrepared({ file: pdf, before: file.size, after: file.size, note: "" });
+      setPreparing(false);
+      return;
+    }
+
+    if (k === "jpeg" && effQuality === "original") {
+      const same = file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name);
+      const keep = same ? file : new File([file], jpgName(file.name), { type: "image/jpeg" });
+      setPrepared({ file: keep, before: file.size, after: file.size, note: "" });
+      setPreparing(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreparing(true);
+    (async () => {
+      try {
+        const { blob, scaled } = await compressToJpeg(file, QUALITY[effQuality]);
+        if (cancelled) return;
+        // An already-small JPEG can get bigger when re-saved: keep it as it is.
+        if (k === "jpeg" && !scaled && blob.size >= file.size) {
+          const same = file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name);
+          const keep = same ? file : new File([file], jpgName(file.name), { type: "image/jpeg" });
+          setPrepared({
+            file: keep,
+            before: file.size,
+            after: file.size,
+            note: "This photo is already small, so it is kept as it is.",
+          });
+        } else {
+          const notes = [];
+          if (k !== "jpeg") notes.push("Saved as JPEG on a white background.");
+          if (scaled) notes.push(`Very large photo: reduced to ${MAX_SIDE} px on its longest side.`);
+          setPrepared({
+            file: new File([blob], jpgName(file.name), { type: "image/jpeg" }),
+            before: file.size,
+            after: blob.size,
+            note: notes.join(" "),
+          });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setPrepError(
+          err?.message === "memory"
+            ? "This device ran out of memory while preparing the photo. Choose a smaller photo or use another device."
+            : k === "heic"
+              ? HEIC_MESSAGE
+              : "This image could not be opened. It may be damaged. Try another file."
+        );
+      } finally {
+        if (!cancelled) setPreparing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [file, effQuality]);
+
   async function handleUpload(e) {
     e.preventDefault();
-    if (!file) return;
+    const upFile = prepared?.file;
+    if (!file || !upFile || preparing) return;
 
     const cleanLabel = label.trim();
     if (!cleanLabel) {
@@ -43,14 +156,14 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       setMessage("Write what this document is (e.g. Physical Permit, JSA).");
       return;
     }
-    if (!ALLOWED_CONTENT_TYPES[file.type]) {
+    if (!ALLOWED_CONTENT_TYPES[upFile.type]) {
       setState("error");
-      setMessage("Only PDF or JPEG files are allowed.");
+      setMessage("Only PDF, JPEG or PNG files are allowed.");
       return;
     }
-    if (file.size > MAX_ATTACHMENT_BYTES) {
+    if (upFile.size > MAX_ATTACHMENT_BYTES) {
       setState("error");
-      setMessage(`File must be under ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB.`);
+      setMessage(`File must be under ${MAX_MB} MB, even after compression.`);
       return;
     }
 
@@ -64,9 +177,9 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
         body: JSON.stringify({
           permitReference,
           label: cleanLabel,
-          fileName: file.name,
-          contentType: file.type,
-          sizeBytes: file.size,
+          fileName: upFile.name,
+          contentType: upFile.type,
+          sizeBytes: upFile.size,
         }),
       });
       const urlData = await urlRes.json();
@@ -80,7 +193,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
       Object.entries(urlData.params).forEach(([key, value]) => {
         cloudinaryForm.append(key, value);
       });
-      cloudinaryForm.append("file", file);
+      cloudinaryForm.append("file", upFile);
 
       const postRes = await fetch(urlData.uploadUrl, {
         method: "POST",
@@ -94,10 +207,10 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
         body: JSON.stringify({
           permitReference,
           label: cleanLabel,
-          fileName: file.name,
+          fileName: upFile.name,
           storageKey: urlData.storageKey,
-          contentType: file.type,
-          sizeBytes: file.size,
+          contentType: upFile.type,
+          sizeBytes: upFile.size,
         }),
       });
       const createData = await createRes.json();
@@ -225,19 +338,73 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
             />
           </label>
           <div className="attach-field">
-            <span className="attach-field-label">File (PDF or JPEG)</span>
+            <span className="attach-field-label">File (PDF, JPEG or PNG)</span>
             <DropZone
               file={file}
               onFile={(f) => {
                 setFile(f);
                 if (state === "error") setState("idle");
               }}
-              accept=".pdf,.jpg,.jpeg"
-              typeError="Only PDF or JPEG files are allowed."
+              accept=".pdf,.jpg,.jpeg,.png"
+              alsoAllow=".heic,.heif"
+              typeError="Only PDF, JPEG or PNG files are allowed."
               validate={checkAttachment}
-              hint={`PDF or JPEG, up to ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB`}
+              hint={`PDF, JPEG or PNG, up to ${MAX_MB} MB. Photos are compressed first.`}
               disabled={state === "uploading"}
             />
+
+            {file && isPhoto && (
+              <div className="cmp">
+                <div className="cmp-head">
+                  <span className="cmp-title">Photo size</span>
+                  <span className="cmp-result" aria-live="polite">
+                    {preparing
+                      ? "Compressing…"
+                      : prepared
+                        ? prepared.before === prepared.after
+                          ? formatSize(prepared.after)
+                          : `${formatSize(prepared.before)} → ${formatSize(prepared.after)}`
+                        : ""}
+                  </span>
+                </div>
+                <div className="cmp-choices" role="group" aria-label="Photo quality">
+                  {QUALITY_CHOICES.map((c) => {
+                    const off = c.id === "original" && mustConvert;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`cmp-choice${effQuality === c.id ? " cmp-choice--on" : ""}`}
+                        aria-pressed={effQuality === c.id}
+                        disabled={off || state === "uploading"}
+                        onClick={() => setQuality(c.id)}
+                      >
+                        <span className="cmp-choice-name">{c.label}</span>
+                        <span className="cmp-choice-sub">
+                          {off ? "Needs JPEG" : c.sub}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {prepared?.note && <p className="cmp-note">{prepared.note}</p>}
+                <p className="cmp-note">
+                  Small print on scanned permits can look soft when compressed.
+                  Use Original or Balanced for those.
+                </p>
+                {prepError && (
+                  <p className="error-text cmp-error" role="alert">
+                    {prepError}
+                  </p>
+                )}
+                {tooBig && (
+                  <p className="error-text cmp-error" role="alert">
+                    Even compressed this is {formatSize(prepared.after)}. The limit
+                    is {MAX_MB} MB. Try Smallest or choose a smaller photo.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           {label.trim() && (
             <p className="attach-preview">
@@ -250,7 +417,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
           <button
             type="submit"
             className="btn btn-primary attach-submit"
-            disabled={!file || !label.trim() || state === "uploading"}
+            disabled={!prepared || preparing || tooBig || !label.trim() || state === "uploading"}
           >
             {state === "uploading" ? "Uploading…" : "Add attachment"}
           </button>

@@ -1535,6 +1535,91 @@ a.stat-card:hover {
   }
 }
 
+/* Photo compression panel (permit attachments) */
+.cmp {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+}
+
+.cmp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmp-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.cmp-result {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-open);
+}
+
+.cmp-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.cmp-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  font-family: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cmp-choice:not(:disabled):hover {
+  border-color: var(--color-brand-2);
+}
+
+.cmp-choice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cmp-choice--on {
+  border-color: var(--color-brand-2);
+  background: var(--color-brand-tint);
+}
+
+.cmp-choice-name {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.cmp-choice-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.cmp-note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-muted);
+}
+
+.cmp-error {
+  margin: 0;
+}
+
 /* ---------------------------------------------------------
    Permit cards (phones) — replaces the wide table so nobody has
    to scroll sideways.
