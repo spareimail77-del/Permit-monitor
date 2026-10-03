@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatWhen } from "../../../lib/format";
 
 export default function RequestsList({ initial }) {
   const [rows, setRows] = useState(initial);
@@ -50,7 +51,7 @@ export default function RequestsList({ initial }) {
                 <strong className="mono">{r.staffId}</strong>
                 {r.name && <span style={{ marginLeft: 8 }}>{r.name}</span>}
                 <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
-                  Requested {new Date(r.requestedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                  Requested {formatWhen(r.requestedAt)}
                 </div>
               </div>
               {!done && (

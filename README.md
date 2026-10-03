@@ -118,10 +118,14 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   for these). **Days to Go** is not exported (the column is hidden), and
   multi-line cells (certificates) are tidied to single line breaks. The JSZip
   library (loaded only when someone clicks Export) opens and closes the file. If the
-  master file can't be fetched or opened, the older plain export (header block
+  master file can't be fetched or opened (the browser console then shows "Export from the master file failed" with the reason), the older plain export (header block
   and column layout only, no styling) is downloaded instead. Exported files
   carry a marker and the upload refuses them, so a filtered export can't replace
-  the master log by accident.
+  the master log by accident. The master file's address is added to the data
+  after the shared data cache (which lives on across deployments), so an older
+  cached entry can't leave it out. Times in the page header and the admin lists
+  are always shown in Oman time, so the server and the browser print the same
+  text (a mismatch caused React hydration errors #425/#422 in the console).
 - **Attachments:** files (Physical Permit, JSA, etc.) are stored in
   Cloudinary and linked to the permit number in Supabase, so they survive
   re-uploads and remain visible on archived permits. Opened through short-lived

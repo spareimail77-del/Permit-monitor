@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { ROLE_LABELS, ALL_ROLES, normalizeRole, roleLabel } from "../../../lib/permissions";
 import Icon from "../../components/Icon";
+import { formatDay } from "../../../lib/format";
 
 const STATUS_STYLE = {
   pending: { background: "var(--color-brand-tint)", color: "var(--color-brand-2)" },
@@ -160,7 +161,7 @@ export default function UsersList({ initial, meId, canManage, canReset }) {
               )}
               <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" }}>
                 Requested{" "}
-                {new Date(r.createdAt).toLocaleDateString("en-GB", { dateStyle: "medium" })}
+                {formatDay(r.createdAt)}
               </span>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 import { can } from "../../lib/permissions";
+import { formatWhen } from "../../lib/format";
 
 const BASE_NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -118,10 +119,7 @@ export default function Header({ uploadedAt, today }) {
               <span>
                 Data as of{" "}
                 <span className="mono">
-                  {new Date(uploadedAt).toLocaleString("en-GB", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                  {formatWhen(uploadedAt)}
                 </span>
               </span>
             )}
