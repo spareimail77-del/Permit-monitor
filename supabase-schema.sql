@@ -366,13 +366,23 @@ create table if not exists public.upload_log (
   file_name text not null,
   size_bytes bigint not null default 0,
   permit_count integer,        -- permits found in the file
-  archived_count integer,      -- permits moved to the archive by this upload
+  archived_count integer,      -- permits copied or refreshed in the archive by this upload (step 39)
+  added_count integer,         -- step 40: permits new compared with the previous file
+  updated_count integer,       -- step 40: permits whose content changed
+  removed_count integer,       -- step 40: permits missing from the new file
+  changes jsonb,               -- step 40: capped list of those permits (see lib/permitDiff.js)
   status text not null default 'uploaded' check (status in ('uploaded', 'rejected')),
   note text,                   -- why a file was rejected, or a warning
   created_at timestamptz not null default now()
 );
 
 create index if not exists upload_log_created_idx on public.upload_log (created_at desc);
+
+-- Step 40 (existing databases): migrations/step40-upload-log-changes.sql
+alter table public.upload_log add column if not exists added_count integer;
+alter table public.upload_log add column if not exists updated_count integer;
+alter table public.upload_log add column if not exists removed_count integer;
+alter table public.upload_log add column if not exists changes jsonb;
 
 alter table public.upload_log enable row level security;
 

@@ -1,7 +1,8 @@
 import { put } from "@vercel/blob";
 import { revalidateTag } from "next/cache";
 import { PERMIT_FILE_PATHNAME } from "../../../lib/blob";
-import { parsePermitsFromBuffer, PERMIT_DATA_TAG } from "../../../lib/parsePermits";
+import { fetchPermitData, parsePermitsFromBuffer, PERMIT_DATA_TAG } from "../../../lib/parsePermits";
+import { diffPermits } from "../../../lib/permitDiff";
 import { syncArchive } from "../../../lib/archive";
 import { createClient } from "../../../lib/supabase/server";
 import { getAccess, hasPermission } from "../../../lib/authz";
@@ -67,6 +68,7 @@ export async function POST(request) {
     // reported back, and the next upload repairs it.
     let archivedCount = 0;
     let archiveSummary = null;
+    let diff = null; // added / updated / removed compared with the file on the site now
     let archiveWarning = null;
     let permitCount = null;
     try {
@@ -107,6 +109,18 @@ export async function POST(request) {
 
       permitCount = newParsed.permits.length;
 
+      // What this upload changes, for the upload log. Looks at the file that
+      // is on the site right now; if there is none (first upload) or it can't
+      // be read, the log simply has no change details for this upload.
+      try {
+        const old = await fetchPermitData();
+        if (!old.error && Array.isArray(old.permits)) {
+          diff = diffPermits(old.permits, newParsed.permits);
+        }
+      } catch (err) {
+        console.error("Comparing with the previous file failed:", err);
+      }
+
       archiveSummary = await syncArchive(supabase, user.id, newParsed.permits);
       archivedCount = archiveSummary.added + archiveSummary.refreshed;
     } catch (err) {
@@ -129,6 +143,10 @@ export async function POST(request) {
       sizeBytes: file.size,
       permitCount,
       archivedCount,
+      addedCount: diff?.addedCount,
+      updatedCount: diff?.updatedCount,
+      removedCount: diff?.removedCount,
+      changes: diff?.changes,
       status: "uploaded",
       note: archiveWarning,
     });
@@ -150,6 +168,7 @@ export async function POST(request) {
       url: blob.url,
       archivedCount,
       archiveSummary,
+      diff,
       permitCount,
       archiveWarning,
     });

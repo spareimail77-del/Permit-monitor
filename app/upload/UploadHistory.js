@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Icon from "../components/Icon";
+import ChangeDetails from "./ChangeDetails";
 import { formatSize, formatWhen } from "../../lib/format";
 
 const PAGE = 12;
 
 // "Current file" card + the upload log table. Rows come from the server page
 // (newest first); uploading triggers router.refresh() so a new row shows up.
-export default function UploadHistory({ rows, problem, limit }) {
+export default function UploadHistory({ rows, problem, limit, detailsMissing }) {
   const [shown, setShown] = useState(PAGE);
+  const [open, setOpen] = useState(null); // id of the row whose details are open
 
   const current = rows.find((r) => r.status === "uploaded");
   const visible = rows.slice(0, shown);
@@ -66,6 +68,12 @@ export default function UploadHistory({ rows, problem, limit }) {
           </div>
         ) : (
           <>
+            {detailsMissing && (
+              <p className="notice" style={{ marginBottom: 10 }}>
+                To see added / updated / removed permits, run{" "}
+                <span className="mono">step40-upload-log-changes.sql</span> in Supabase (SQL Editor) once.
+              </p>
+            )}
             <div className="table-scroll">
               <table className="permit-table upload-log-table">
                 <thead>
@@ -75,13 +83,14 @@ export default function UploadHistory({ rows, problem, limit }) {
                     <th>File</th>
                     <th style={{ textAlign: "right" }}>Size</th>
                     <th style={{ textAlign: "right" }}>Permits</th>
-                    <th style={{ textAlign: "right" }}>Saved to archive</th>
+                    <th>Changes</th>
                     <th>Result</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visible.map((r) => (
-                    <tr key={r.id}>
+                    <Fragment key={r.id}>
+                    <tr>
                       <td style={{ whiteSpace: "nowrap" }}>{formatWhen(r.at)}</td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{r.name || r.staffId || "Deleted account"}</div>
@@ -103,8 +112,29 @@ export default function UploadHistory({ rows, problem, limit }) {
                       <td className="mono" style={{ textAlign: "right" }}>
                         {r.permitCount ?? "–"}
                       </td>
-                      <td className="mono" style={{ textAlign: "right" }}>
-                        {r.status === "uploaded" ? (r.archivedCount ?? "–") : "–"}
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {r.status === "uploaded" && r.addedCount != null ? (
+                          <>
+                            <span className="mono">
+                              <span style={{ color: "var(--color-open)" }}>+{r.addedCount}</span>{" "}
+                              <span style={{ color: "var(--color-brand-2)" }}>~{r.updatedCount ?? 0}</span>{" "}
+                              <span style={{ color: "var(--color-expired)" }}>−{r.removedCount ?? 0}</span>
+                            </span>
+                            {r.addedCount + (r.updatedCount ?? 0) + (r.removedCount ?? 0) > 0 && (
+                              <button
+                                type="button"
+                                className="archive-linkbtn"
+                                style={{ marginLeft: 8 }}
+                                onClick={() => setOpen(open === r.id ? null : r.id)}
+                                aria-expanded={open === r.id}
+                              >
+                                {open === r.id ? "Hide" : "Details"}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          "–"
+                        )}
                       </td>
                       <td>
                         {r.status === "uploaded" ? (
@@ -124,6 +154,26 @@ export default function UploadHistory({ rows, problem, limit }) {
                         )}
                       </td>
                     </tr>
+                    {open === r.id && (
+                      <tr>
+                        <td colSpan={7} style={{ background: "var(--color-surface-2, transparent)" }}>
+                          <ChangeDetails
+                            counts={{
+                              added: r.addedCount ?? 0,
+                              updated: r.updatedCount ?? 0,
+                              removed: r.removedCount ?? 0,
+                            }}
+                            changes={r.changes}
+                          />
+                          {r.archivedCount != null && (
+                            <p style={{ ...styles.sub, marginTop: 10 }}>
+                              Archive: {r.archivedCount} permit{r.archivedCount === 1 ? "" : "s"} copied or refreshed by this upload.
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

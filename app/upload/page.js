@@ -27,14 +27,24 @@ export default async function UploadPage() {
   // read fails, the page still works and just shows no history.
   let logRows = [];
   let logProblem = false;
+  let detailsMissing = false; // step 40 SQL not run yet
   try {
-    const { data, error } = await supabase
+    const base =
+      "id, staff_id, display_name, file_name, size_bytes, permit_count, archived_count, status, note, created_at";
+    let { data, error } = await supabase
       .from("upload_log")
-      .select(
-        "id, staff_id, display_name, file_name, size_bytes, permit_count, archived_count, status, note, created_at"
-      )
+      .select(`${base}, added_count, updated_count, removed_count, changes`)
       .order("created_at", { ascending: false })
       .limit(LOG_LIMIT);
+    if (error) {
+      // Retry without the step 40 columns so the history still shows.
+      detailsMissing = true;
+      ({ data, error } = await supabase
+        .from("upload_log")
+        .select(base)
+        .order("created_at", { ascending: false })
+        .limit(LOG_LIMIT));
+    }
     if (error) logProblem = true;
     logRows = (data || []).map((r) => ({
       id: r.id,
@@ -44,6 +54,10 @@ export default async function UploadPage() {
       sizeBytes: r.size_bytes,
       permitCount: r.permit_count,
       archivedCount: r.archived_count,
+      addedCount: r.added_count ?? null,
+      updatedCount: r.updated_count ?? null,
+      removedCount: r.removed_count ?? null,
+      changes: r.changes || null,
       status: r.status,
       note: r.note || "",
       at: r.created_at,
@@ -57,7 +71,7 @@ export default async function UploadPage() {
       <Header />
       <section style={styles.body}>
         <UploadForm />
-        <UploadHistory rows={logRows} problem={logProblem} limit={LOG_LIMIT} />
+        <UploadHistory rows={logRows} problem={logProblem} limit={LOG_LIMIT} detailsMissing={detailsMissing} />
       </section>
     </main>
   );

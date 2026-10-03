@@ -119,9 +119,14 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   new ID must be free, and only Root may decide their own request.
 
 - **Upload log (Upload page):** every upload attempt is recorded in
-  `upload_log` (who, file name, size, permits in the file, how many were
-  archived, result, time in Oman time); rejected files are logged with the
-  reason. The page shows the file now on the site and the history (latest 100,
+  `upload_log` (who, file name, size, permits in the file, result, time in Oman
+  time); rejected files are logged with the reason. Step 40 adds what each
+  upload changed compared with the file on the site before it: permits
+  **added**, **updated** (with the fields that changed, old → new) and
+  **removed**, shown as `+added ~updated −removed` with a Details button
+  (counts are exact; lists keep at most 100 permits per group; the daily
+  "days to go" text and row numbers don't count as changes). The first upload
+  has no previous file, so it has no change details. The page shows the file now on the site and the history (latest 100,
   12 at a time). Visible to Root and HSE.
 
 - **My permits (step 36):** the Excel log picks Applicant and Holder from

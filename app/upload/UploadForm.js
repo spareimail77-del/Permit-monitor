@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../components/Icon";
+import ChangeDetails from "./ChangeDetails";
 import { formatSize, formatWhen } from "../../lib/format";
 
 export default function UploadForm() {
@@ -104,6 +105,29 @@ export default function UploadForm() {
                 `, ${result.archiveSummary.left} no longer in the log`}
               {result.archiveSummary.returned > 0 &&
                 `, ${result.archiveSummary.returned} back in the log`}
+            </p>
+          )}
+          {result.diff ? (
+            <div style={styles.resultLine}>
+              <strong>Compared with the previous file:</strong> {result.diff.addedCount} added,{" "}
+              {result.diff.updatedCount} updated, {result.diff.removedCount} removed
+              {result.diff.addedCount + result.diff.updatedCount + result.diff.removedCount > 0 && (
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ cursor: "pointer" }}>Show which permits</summary>
+                  <ChangeDetails
+                    counts={{
+                      added: result.diff.addedCount,
+                      updated: result.diff.updatedCount,
+                      removed: result.diff.removedCount,
+                    }}
+                    changes={result.diff.changes}
+                  />
+                </details>
+              )}
+            </div>
+          ) : (
+            <p style={styles.resultLine}>
+              <strong>Compared with the previous file:</strong> not available for this upload
             </p>
           )}
           {result.archiveWarning && (
