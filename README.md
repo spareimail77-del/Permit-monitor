@@ -140,7 +140,7 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
 - **Photo compression (step 42):** when a JPEG or PNG is chosen as an attachment,
   the browser re-saves it as a smaller JPEG (canvas only, no library, no server
   work; code in `lib/compressImage.js`). A "before → after" size is shown with a
-  quality **slider** (40–95%, default 80%) and a "Keep the original" tick
+  quality **slider** (40–95%, default 60%) and a "Keep the original" tick
   box (JPEG only); moving the slider always starts again from the original
   file. Same pixel size, except photos with a side over 4096 px are
   scaled down (so old phones don't run out of memory). Rotation is kept; GPS and
@@ -150,6 +150,15 @@ pattern, Auto Confirm), then set `role` and `display_name` in the
   HEIC files the browser can't open show an iPhone tip (Settings > Camera >
   Formats > Most Compatible). The server code is unchanged (it already accepts
   `image/jpeg`). No database change.
+
+- **Photo crop (step 43):** a **Crop photo** button opens a crop box on the
+  photo (`app/permits/[rowNumber]/CropEditor.js`, canvas only, no library): drag
+  the corners, drag inside the box to move it, or use the arrow keys; works with
+  mouse and touch. **Apply** shows the new pixel size and the before → after file
+  size; **Remove crop** goes back to the whole photo. The cut is made from the
+  original pixels and compressed once together with the quality slider, so a
+  crop costs no extra quality. A crop switches "Keep the original" off. No
+  database change.
 
 - **My permits (step 36):** the Excel log picks Applicant and Holder from
   dropdown lists. In **Admin → People & Excel names** (Root and HSE) each name

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "../../components/Icon";
 import DropZone from "../../components/DropZone";
+import CropEditor from "./CropEditor";
 import {
   ALLOWED_CONTENT_TYPES,
   MAX_ATTACHMENT_BYTES,
@@ -55,6 +56,8 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const [quality, setQuality] = useState(QUALITY_DEFAULT); // slider, % (moves live)
   const [appliedQuality, setAppliedQuality] = useState(QUALITY_DEFAULT); // used after the slider rests
   const [keepOriginal, setKeepOriginal] = useState(false); // JPEG only: upload untouched
+  const [crop, setCrop] = useState(null); // { x, y, w, h } fractions, or null = whole photo
+  const [cropping, setCropping] = useState(false); // crop screen open
   const [prepared, setPrepared] = useState(null); // { file, before, after, note } what will be uploaded
   const [preparing, setPreparing] = useState(false);
   const [prepError, setPrepError] = useState("");
@@ -66,7 +69,13 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
   const kind = file ? kindOf(file) : null;
   const isPhoto = kind === "jpeg" || kind === "png" || kind === "heic";
   const mustConvert = kind === "png" || kind === "heic"; // the server only takes JPEG
-  const useOriginal = keepOriginal && !mustConvert;
+  const useOriginal = keepOriginal && !mustConvert && !crop; // a crop must re-save the photo
+
+  // A new file starts without a crop.
+  useEffect(() => {
+    setCrop(null);
+    setCropping(false);
+  }, [file]);
 
   // Wait until the slider stops moving before compressing again.
   useEffect(() => {
@@ -108,10 +117,10 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     setPreparing(true);
     (async () => {
       try {
-        const { blob, scaled } = await compressToJpeg(file, appliedQuality / 100);
+        const { blob, scaled, width, height } = await compressToJpeg(file, appliedQuality / 100, crop);
         if (cancelled) return;
         // An already-small JPEG can get bigger when re-saved: keep it as it is.
-        if (k === "jpeg" && !scaled && blob.size >= file.size) {
+        if (k === "jpeg" && !crop && !scaled && blob.size >= file.size) {
           const same = file.type === "image/jpeg" && /\.jpe?g$/i.test(file.name);
           const keep = same ? file : new File([file], jpgName(file.name), { type: "image/jpeg" });
           setPrepared({
@@ -122,6 +131,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
           });
         } else {
           const notes = [];
+          if (crop) notes.push(`Cropped to ${width} × ${height} px.`);
           if (k !== "jpeg") notes.push("Saved as JPEG on a white background.");
           if (scaled) notes.push(`Very large photo: reduced to ${MAX_SIDE} px on its longest side.`);
           setPrepared({
@@ -147,7 +157,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
     return () => {
       cancelled = true;
     };
-  }, [file, useOriginal, appliedQuality]);
+  }, [file, useOriginal, appliedQuality, crop]);
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -359,6 +369,18 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
 
             {file && isPhoto && (
               <div className="cmp">
+                {cropping ? (
+                  <CropEditor
+                    file={file}
+                    initial={crop}
+                    onApply={(c) => {
+                      setCrop(c);
+                      setCropping(false);
+                    }}
+                    onCancel={() => setCropping(false)}
+                  />
+                ) : (
+                  <>
                 <div className="cmp-head">
                   <span className="cmp-title">Photo size</span>
                   <span className="cmp-result" aria-live="polite">
@@ -371,6 +393,28 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                         : ""}
                   </span>
                 </div>
+                {prepared && !prepError && (
+                  <div className="cmp-crop-row">
+                    <button
+                      type="button"
+                      className="btn btn-ghost dz-btn"
+                      onClick={() => setCropping(true)}
+                      disabled={preparing || state === "uploading"}
+                    >
+                      <Icon name="crop" size={14} /> {crop ? "Edit crop" : "Crop photo"}
+                    </button>
+                    {crop && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost dz-btn"
+                        onClick={() => setCrop(null)}
+                        disabled={preparing || state === "uploading"}
+                      >
+                        <Icon name="x" size={14} /> Remove crop
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="cmp-slider-row">
                   <label htmlFor="cmp-quality" className="cmp-slider-label">
                     Quality
@@ -401,12 +445,12 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                   <input
                     type="checkbox"
                     checked={useOriginal}
-                    disabled={mustConvert || state === "uploading"}
+                    disabled={mustConvert || !!crop || state === "uploading"}
                     onChange={(e) => setKeepOriginal(e.target.checked)}
                   />
                   <span>
                     Keep the original, no compression
-                    {mustConvert ? " (not possible for this file type)" : ""}
+                    {mustConvert ? " (not possible for this file type)" : crop ? " (off while a crop is applied)" : ""}
                   </span>
                 </label>
                 {prepared?.note && <p className="cmp-note">{prepared.note}</p>}
@@ -425,6 +469,8 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
                     is {MAX_MB} MB. Try Smallest or choose a smaller photo.
                   </p>
                 )}
+                                </>
+                )}
               </div>
             )}
           </div>
@@ -439,7 +485,7 @@ export default function AttachmentsPanel({ permitReference, initialAttachments, 
           <button
             type="submit"
             className="btn btn-primary attach-submit"
-            disabled={!prepared || preparing || tooBig || !label.trim() || state === "uploading"}
+            disabled={!prepared || preparing || cropping || tooBig || !label.trim() || state === "uploading"}
           >
             {state === "uploading" ? "Uploading…" : "Add attachment"}
           </button>
