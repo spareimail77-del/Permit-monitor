@@ -104,6 +104,9 @@ export default async function ArchivePage({ searchParams }) {
   const total = count || 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const sortParam = sort === "archived_desc" ? {} : { sort };
+  const countText =
+    (filtersActive ? `${total} permits match` : `${total} permits`) +
+    (total > PAGE_SIZE ? ` · page ${page} of ${lastPage}` : "");
 
   const hrefWith = (params) => {
     const qs = new URLSearchParams(params).toString();
@@ -149,69 +152,50 @@ export default async function ArchivePage({ searchParams }) {
           {canDelete && " Tick rows to permanently delete a permit and any attachments filed under it."}
         </p>
 
-        <form method="get" className="archive-filters panel">
-          <div className="archive-filters__row">
+        <form method="get" className="archive-filters">
+          <div className="filter-bar">
             <input
               name="q"
               type="search"
               defaultValue={filters.q}
               placeholder="Search permit no., job, holder or area"
-              className="archive-filters__search"
               aria-label="Search archive"
             />
-            <button type="submit" className="btn btn-primary">Apply filters</button>
+            <select name="log" defaultValue={filters.log} aria-label="Show">
+              <option value="">All permits</option>
+              <option value="in">Still in the log</option>
+              <option value="out">No longer in the log</option>
+            </select>
+            <select name="area" defaultValue={filters.area} aria-label="Area">
+              <option value="">All areas</option>
+              {areaOptions.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+            <select name="type" defaultValue={filters.type} aria-label="Permit type">
+              <option value="">All permit types</option>
+              {typeOptions.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+            <select name="status" defaultValue={filters.status} aria-label="Last status">
+              <option value="">All statuses</option>
+              {statusOptions.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+            <select name="sort" defaultValue={sort} aria-label="Sort by">
+              {Object.entries(ARCHIVE_SORTS).map(([key, s]) => (
+                <option key={key} value={key}>Sort: {s.label}</option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-primary btn-sm">Apply filters</button>
             {(filtersActive || sort !== "archived_desc") && (
-              <Link prefetch={false} href="/admin/archive" className="btn btn-ghost">Reset</Link>
+              <Link prefetch={false} href="/admin/archive" className="btn btn-ghost btn-sm">Reset</Link>
             )}
           </div>
 
-          <div className="archive-filters__row">
-            <label className="archive-field">
-              <span>Area</span>
-              <select name="area" defaultValue={filters.area}>
-                <option value="">All areas</option>
-                {areaOptions.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </label>
-            <label className="archive-field">
-              <span>Type</span>
-              <select name="type" defaultValue={filters.type}>
-                <option value="">All types</option>
-                {typeOptions.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </label>
-            <label className="archive-field">
-              <span>Show</span>
-              <select name="log" defaultValue={filters.log}>
-                <option value="">All permits</option>
-                <option value="in">Still in the log</option>
-                <option value="out">No longer in the log</option>
-              </select>
-            </label>
-            <label className="archive-field">
-              <span>Last status</span>
-              <select name="status" defaultValue={filters.status}>
-                <option value="">All statuses</option>
-                {statusOptions.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </label>
-            <label className="archive-field">
-              <span>Sort by</span>
-              <select name="sort" defaultValue={sort}>
-                {Object.entries(ARCHIVE_SORTS).map(([key, s]) => (
-                  <option key={key} value={key}>{s.label}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="archive-filters__row">
+          <div className="archive-dates">
             <fieldset className="archive-range">
               <legend>Archived between</legend>
               <input type="date" name="from" defaultValue={filters.from} aria-label="Archived from" />
@@ -224,19 +208,18 @@ export default async function ArchivePage({ searchParams }) {
               <span>to</span>
               <input type="date" name="vto" defaultValue={filters.vto} aria-label="Valid to until" />
             </fieldset>
-          </div>
-
-          <div className="archive-presets">
-            <span className="archive-presets__label">Quick range (archived):</span>
-            {presets.map((p) => (
-              <Link prefetch={false}
-                key={p.key}
-                href={p.href}
-                className={`archive-preset${p.active ? " is-active" : ""}`}
-              >
-                {p.label}
-              </Link>
-            ))}
+            <div className="archive-presets">
+              <span className="archive-presets__label">Quick range (archived):</span>
+              {presets.map((p) => (
+                <Link prefetch={false}
+                  key={p.key}
+                  href={p.href}
+                  className={`archive-preset${p.active ? " is-active" : ""}`}
+                >
+                  {p.label}
+                </Link>
+              ))}
+            </div>
           </div>
         </form>
 
@@ -250,13 +233,6 @@ export default async function ArchivePage({ searchParams }) {
             ))}
           </div>
         )}
-
-        <p className="result-count">
-          {filtersActive
-            ? `${total} permits match`
-            : `${total} permits`}
-          {total > PAGE_SIZE && ` · page ${page} of ${lastPage}`}
-        </p>
 
         {error && <p className="error-text">Could not load the archive.</p>}
 
@@ -274,6 +250,7 @@ export default async function ArchivePage({ searchParams }) {
             canDelete={canDelete}
             canExport={canExport}
             total={total}
+            countText={countText}
             filters={filtersForClient}
             sort={sort}
             today={today}
@@ -294,11 +271,11 @@ export default async function ArchivePage({ searchParams }) {
 
 const styles = {
   main: { minHeight: "100svh" },
-  body: { maxWidth: 1120, margin: "0 auto", padding: "32px 20px" },
+  body: { maxWidth: 1200, margin: "0 auto", padding: "28px 20px 48px" },
   crumb: { margin: 0, fontSize: "var(--font-size-xs)", color: "var(--color-ink-muted)" },
   crumbLink: { color: "var(--color-brand-2)" },
-  heading: { margin: "6px 0 0", fontSize: "var(--font-size-xl)", color: "var(--color-ink)" },
-  subheading: { margin: "6px 0 20px", color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
+  heading: { margin: "6px 0 0", fontSize: "var(--font-size-lg)", color: "var(--color-ink)" },
+  subheading: { margin: "6px 0 18px", maxWidth: 760, color: "var(--color-ink-muted)", fontSize: "var(--font-size-sm)" },
   empty: { color: "var(--color-ink-muted)" },
   pager: { display: "flex", gap: 12, alignItems: "center", marginTop: 16 },
   pageInfo: { fontSize: "var(--font-size-sm)", color: "var(--color-ink-muted)" },

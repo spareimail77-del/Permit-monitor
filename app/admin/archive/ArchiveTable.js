@@ -11,6 +11,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../../components/Icon";
+import StatusBadge from "../../components/StatusBadge";
+import { normalizeStatus } from "../../../lib/statusMeta";
 import { downloadPermitWorkbook, archiveRowToExportPermit } from "../../../lib/exportPermits";
 
 const DELETE_BATCH = 25;
@@ -31,6 +33,7 @@ export default function ArchiveTable({
   canDelete,
   canExport,
   total,
+  countText,
   filters,
   sort,
   today,
@@ -211,8 +214,9 @@ export default function ArchiveTable({
 
   return (
     <>
-      {canExport && (
-        <div className="archive-toolbar">
+      <div className="result-row">
+        <p className="result-count">{countText}</p>
+        {canExport && (
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -223,8 +227,8 @@ export default function ArchiveTable({
             <Icon name="download" size={15} />
             {busy === "exporting" ? "Preparing…" : `Export all ${total} matching to Excel`}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {selectable && selected.size > 0 && (
         <div className="archive-bulkbar" role="region" aria-label="Selected permits">
@@ -370,8 +374,8 @@ export default function ArchiveTable({
         </p>
       )}
 
-      <div className="table-scroll panel">
-        <table className="permit-table">
+      <div className="table-scroll">
+        <table className="permit-table archive-table">
           <thead>
             <tr>
               {selectable && (
@@ -388,7 +392,7 @@ export default function ArchiveTable({
                   />
                 </th>
               )}
-              <th>Permit No.</th>
+              <th>Reference</th>
               <th>Area</th>
               <th>Type</th>
               <th>Job</th>
@@ -396,7 +400,7 @@ export default function ArchiveTable({
               <th>Valid to</th>
               <th>Last status</th>
               <th>Log status</th>
-              <th>Attachments</th>
+              <th title="Attachments">Files</th>
             </tr>
           </thead>
           <tbody>
@@ -414,31 +418,97 @@ export default function ArchiveTable({
                   </td>
                 )}
                 <td className="mono">{r.reference}</td>
-                <td>{r.area}</td>
-                <td>{r.permit_type}</td>
-                <td>{r.job_description}</td>
-                <td>{r.holder}</td>
-                <td className="mono">{r.valid_to}</td>
-                <td>{r.excel_status}</td>
-                <td className="mono">
-                  {r.in_log
-                    ? "Still in log"
-                    : `Left ${new Date(r.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" })}`}
+                <td>{r.area || "—"}</td>
+                <td>{r.permit_type || "—"}</td>
+                <td className="archive-job" title={r.job_description || ""}>
+                  <span>{r.job_description || "—"}</span>
+                </td>
+                <td>{r.holder || "—"}</td>
+                <td className="mono">{r.valid_to || "—"}</td>
+                <td>
+                  <StatusBadge status={normalizeStatus(r.excel_status)} />
                 </td>
                 <td>
-                  {(attachmentsByRef[r.reference] || []).map((a) => (
-                    <div key={a.id}>
-                      <a href={`/api/attachments/${a.id}/view`} target="_blank" rel="noreferrer">
-                        {a.label}
-                      </a>
-                    </div>
-                  ))}
+                  <LogPill row={r} />
+                </td>
+                <td>
+                  <FileChips files={attachmentsByRef[r.reference]} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <div className="permit-cards">
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            className={`permit-card${selected.has(r.id) ? " is-selected" : ""}`}
+            style={{ cursor: "default" }}
+          >
+            <div className="permit-card__top">
+              <span className="mono permit-card__ref">
+                {selectable && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(r.id)}
+                    onChange={() => toggleRow(r.id)}
+                    disabled={working}
+                    aria-label={`Select permit ${r.reference}`}
+                    style={{ marginRight: 8 }}
+                  />
+                )}
+                {r.reference}
+              </span>
+              <StatusBadge status={normalizeStatus(r.excel_status)} />
+            </div>
+            <p className="permit-card__where">{r.job_description || "—"}</p>
+            <p className="permit-card__type">
+              {[r.area, r.permit_type].filter(Boolean).join(" · ") || "—"}
+            </p>
+            <div className="permit-card__meta">
+              <span>
+                Valid to <strong className="mono">{r.valid_to || "—"}</strong>
+              </span>
+              <LogPill row={r} />
+            </div>
+            <div className="permit-card__foot">
+              <span>{r.holder || "—"}</span>
+            </div>
+            <FileChips files={attachmentsByRef[r.reference]} />
+          </div>
+        ))}
+      </div>
     </>
+  );
+}
+
+function LogPill({ row }) {
+  if (row.in_log) return <span className="log-pill log-pill--in">Still in log</span>;
+  const date = new Date(row.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" });
+  return <span className="log-pill log-pill--out">Left {date}</span>;
+}
+
+function FileChips({ files }) {
+  if (!files || files.length === 0) {
+    return <span className="attach-badge attach-badge--none" title="No attachments">—</span>;
+  }
+  return (
+    <div className="archive-files">
+      {files.map((a) => (
+        <a
+          key={a.id}
+          href={`/api/attachments/${a.id}/view`}
+          target="_blank"
+          rel="noreferrer"
+          className="archive-file"
+          title={a.label}
+        >
+          <Icon name="paperclip" size={13} />
+          <span>{a.label}</span>
+        </a>
+      ))}
+    </div>
   );
 }
