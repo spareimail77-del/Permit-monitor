@@ -96,7 +96,7 @@ export default async function AdminPage() {
             <span>
               <span style={styles.tileTitle}>Permit Archive</span>
               <span style={styles.tileText}>
-                Copy of every uploaded permit; shows the ones no longer in the log.
+                Backup copy of every uploaded permit, including the ones no longer in the log.
               </span>
             </span>
           </Link>

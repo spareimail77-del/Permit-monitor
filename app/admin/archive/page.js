@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-const LOG_VALUES = { in: "Still in the log", all: "All permits" };
+const LOG_VALUES = { in: "Still in the log", out: "No longer in the log" };
 
 const CHIP_LABELS = {
   q: "Search",
@@ -29,8 +29,8 @@ const CHIP_LABELS = {
   type: "Type",
   status: "Status",
   log: "Show",
-  from: "Left the log from",
-  to: "Left the log until",
+  from: "Archived from",
+  to: "Archived until",
   vfrom: "Valid to from",
   vto: "Valid to until",
 };
@@ -143,8 +143,9 @@ export default async function ArchivePage({ searchParams }) {
         </p>
         <h2 style={styles.heading}>Permit Archive</h2>
         <p style={styles.subheading}>
-          Every permit of the uploaded Excel is copied here automatically (new and changed ones).{" "}
-          {outCount ?? 0} no longer in the log · {inCount ?? 0} still in the log.
+          A backup copy of every permit from the uploaded Excel. New and changed permits are copied here
+          automatically and are never removed when they leave the log.{" "}
+          {inCount ?? 0} still in the log · {outCount ?? 0} no longer in the log.
           {canDelete && " Tick rows to permanently delete a permit and any attachments filed under it."}
         </p>
 
@@ -186,9 +187,9 @@ export default async function ArchivePage({ searchParams }) {
             <label className="archive-field">
               <span>Show</span>
               <select name="log" defaultValue={filters.log}>
-                <option value="">No longer in the log</option>
+                <option value="">All permits</option>
                 <option value="in">Still in the log</option>
-                <option value="all">All permits</option>
+                <option value="out">No longer in the log</option>
               </select>
             </label>
             <label className="archive-field">
@@ -212,10 +213,10 @@ export default async function ArchivePage({ searchParams }) {
 
           <div className="archive-filters__row">
             <fieldset className="archive-range">
-              <legend>Left the log between</legend>
-              <input type="date" name="from" defaultValue={filters.from} aria-label="Left the log from" />
+              <legend>Archived between</legend>
+              <input type="date" name="from" defaultValue={filters.from} aria-label="Archived from" />
               <span>to</span>
-              <input type="date" name="to" defaultValue={filters.to} aria-label="Left the log until" />
+              <input type="date" name="to" defaultValue={filters.to} aria-label="Archived until" />
             </fieldset>
             <fieldset className="archive-range">
               <legend>Permit valid-to between</legend>
@@ -226,7 +227,7 @@ export default async function ArchivePage({ searchParams }) {
           </div>
 
           <div className="archive-presets">
-            <span className="archive-presets__label">Quick range (left the log):</span>
+            <span className="archive-presets__label">Quick range (archived):</span>
             {presets.map((p) => (
               <Link prefetch={false}
                 key={p.key}
@@ -261,7 +262,7 @@ export default async function ArchivePage({ searchParams }) {
 
         {!error && list.length === 0 && (
           <p style={styles.empty}>
-            {filtersActive ? "No archived permits match your filters." : "No permits have left the log yet."}
+            {filtersActive ? "No archived permits match your filters." : "The archive is empty. Permits are copied here when you upload an Excel file."}
           </p>
         )}
 

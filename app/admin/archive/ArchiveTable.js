@@ -395,7 +395,7 @@ export default function ArchiveTable({
               <th>Holder</th>
               <th>Valid to</th>
               <th>Last status</th>
-              <th>Left the log</th>
+              <th>Log status</th>
               <th>Attachments</th>
             </tr>
           </thead>
@@ -423,7 +423,7 @@ export default function ArchiveTable({
                 <td className="mono">
                   {r.in_log
                     ? "Still in log"
-                    : new Date(r.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" })}
+                    : `Left ${new Date(r.archived_at).toLocaleDateString("en-GB", { timeZone: "Asia/Muscat" })}`}
                 </td>
                 <td>
                   {(attachmentsByRef[r.reference] || []).map((a) => (
