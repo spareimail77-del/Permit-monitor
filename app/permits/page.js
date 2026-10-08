@@ -90,8 +90,10 @@ export default async function PermitListPage({ searchParams }) {
   // ?q= opens the list already searched (used by the Manager people board).
   const initialQuery =
     typeof searchParams?.q === "string" ? searchParams.q.slice(0, 80) : "";
-  const initialArea = permits.some((p) => p.area === areaParam) ? areaParam : "ALL";
-  const initialType = permits.some((p) => p.permitType === typeParam) ? typeParam : "ALL";
+  const initialArea =
+    areaParam && permits.some((p) => p.area === areaParam) ? areaParam : "ALL";
+  const initialType =
+    typeParam && permits.some((p) => p.permitType === typeParam) ? typeParam : "ALL";
 
   return (
     <main>
