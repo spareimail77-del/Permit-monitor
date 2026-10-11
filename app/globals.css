@@ -104,3 +104,17 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .site-nav__role { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.2); }
 .site-nav__button { background: none; border: 1px solid rgba(255,255,255,0.5); color: inherit; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
 .site-nav__button:disabled { opacity: 0.7; cursor: default; }
+
+/* ---- step B2: admin area, users, temporary passwords ---- */
+.admin-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.admin-nav__tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; }
+.admin-nav__tab.is-active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.admin-nav__count { min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
+.section-title { font-size: 15px; margin: 22px 0 10px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.badge--active { background: #e7f6ee; color: var(--ok); }
+.badge--pending { background: #fff7e0; color: #8a5a00; }
+.badge--disabled { background: #fde8e6; color: var(--danger); }
+.notice--danger { background: #fde8e6; border-color: #f3b4ae; color: var(--danger); }
+.temp-pass__value { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--surface); border: 1px dashed var(--ok); font-size: 20px; font-weight: 700; letter-spacing: 0.08em; user-select: all; }

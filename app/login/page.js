@@ -1,3 +1,4 @@
+import Link from "next/link";
 import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export default function LoginPage({ searchParams }) {
         <p className="page-sub">Sign in with your Staff ID.</p>
         {reason && <div className="notice">{reason}</div>}
         <LoginForm next={searchParams?.next || "/"} />
+        <p className="pform-hint" style={{ marginTop: 16, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/register">Request an account</Link>
+          <Link href="/forgot-password">Forgot password?</Link>
+        </p>
       </div>
     </div>
   );

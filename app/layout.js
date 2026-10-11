@@ -29,6 +29,7 @@ export default async function RootLayout({ children }) {
                     + New permit
                   </Link>
                 )}
+                {viewer.canManageUsers && <Link href="/admin">Admin</Link>}
                 <Link href="/profile" className="site-nav__user">
                   {viewer.name} <span className="site-nav__role">{roleLabel(viewer.role)}</span>
                 </Link>
