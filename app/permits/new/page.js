@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation";
 import PermitForm from "../../components/PermitForm";
-import { getSupabase, fetchOptions } from "../../../lib/supabase";
+import { getViewer } from "../../../lib/viewer";
+import { getSupabase, fetchOptions } from "../../../lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewPermitPage() {
+  const viewer = await getViewer();
+  if (!viewer?.canManagePermits) redirect("/permits");
+
   const supabase = getSupabase();
   const [{ lists, error }, { data: refs }] = await Promise.all([
     fetchOptions(supabase),

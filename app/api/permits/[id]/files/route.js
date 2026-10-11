@@ -1,4 +1,4 @@
-import { getSupabase } from "../../../../../lib/supabase";
+import { getSupabase } from "../../../../../lib/db";
 import { deleteObject } from "../../../../../lib/storage";
 import { ALLOWED_FILE_TYPES, FILE_KINDS, MAX_FILE_BYTES } from "../../../../../lib/fileRules";
 import { oneLine } from "../../../../../lib/permitRules";

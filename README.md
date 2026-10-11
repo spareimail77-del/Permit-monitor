@@ -1,13 +1,15 @@
-# HSE Permits — step A / A2
+# HSE Permits — steps A, A2, A3, B
 
-The smallest working piece of the new site: a **permit form** that saves into
-the database, and a plain **permit list** to see what was stored. No login yet
-(step B). Rebuild plan and system reference: see "SWWS Permit Log Register — System Reference".
+The new site, built in small steps: a **permit form** that saves into the
+database, a **permit list**, documents in Cloudinary, and (step B) **sign-in by
+Staff ID with roles**. Rebuild plan and system reference: see "SWWS Permit Log Register — System Reference".
 
 ## What is in this step
 
 | Page | What it does |
 |---|---|
+| `/login` | Sign in with Staff ID and password (step B) |
+| `/profile` | Change your own name and password (step B) |
 | `/` | Home, with the number of permits stored |
 | `/permits/new` | The permit form (dropdowns from the database) |
 | `/permits` | List of everything stored, newest first |
@@ -80,14 +82,54 @@ No service-role key is needed in this step.
 12. On the permit page, add one more document with "Add file".
 13. Try a file that is not PDF/JPEG/PNG, or over 10 MB: refused with a message.
 
-## Temporary: open access
+## Step B: login and roles
 
-Until step B (login) anyone with the site address can read and add permits and
-files. Do
-not share the address and do not enter real data yet.
+Everything on the site now needs a sign-in (only `/login` is open). The Staff ID
+becomes a made-up address `<id>@staff.permit-log.internal` for Supabase Auth, so
+the accounts already in Authentication -> Users keep working with their old
+passwords. No email is ever sent.
+
+| Role | Can do |
+|---|---|
+| Root | View everything, add permits and files |
+| HSE | View everything, add permits and files |
+| Manager | View only |
+| Permit user | View only |
+
+Account status: `pending` (cannot sign in yet), `active`, `disabled`. Every
+account starts `pending`; it is switched on with SQL for now (the Users admin
+page comes in step B2). The rules are enforced three times: in `middleware.js`
+(URL), on the pages and API routes, and inside the database (`supabase/03-login-and-roles.sql`).
+Roles are defined in one file: `lib/permissions.js`.
+
+**Set-up for step B**
+
+1. SQL Editor -> run all of `supabase/03-login-and-roles.sql`. It creates
+   `profiles`, a profile (status pending) for every existing login, and replaces
+   the temporary open rules with role rules.
+2. Then, **in a separate run**, make yourself Root (use your own Staff ID, the part
+   before the @ in Authentication -> Users):
+   `update public.profiles set role = 'root', status = 'active' where staff_id = 'YOUR_ID';`
+   Others: see the last section of the SQL file.
+3. Supabase -> Authentication -> Sign In / Providers: switch **off** "Allow new
+   users to sign up" (accounts are made by Root only). Even if it were on, a new
+   account starts `pending` and cannot see anything.
+4. Upload the files to GitHub (`package.json` now includes `@supabase/ssr`) and
+   let Vercel redeploy. No new environment variables.
+
+**Step B tests**
+
+1. Open the site address while signed out: you land on `/login`.
+2. A wrong password shows "Wrong Staff ID or password." (same message for a wrong ID).
+3. Sign in as Root: the header shows your name, a Root tag, "+ New permit" and "Sign out".
+4. Sign in as an ordinary user (activate one with SQL): no "+ New permit" button,
+   no "Add a document" box, and `/permits/new` sends you back to the list.
+5. A `pending` account tells you it is waiting for approval; a `disabled` one says so.
+6. My profile: save a name (shows in the header), change the password, sign out and in with the new one.
+7. Signed out, open a file link or `/api/permits`: refused (sign-in page or 401).
 
 ## Not in this step (planned)
 
-Login and roles (B) · edit / close / cancel · dropdown-list admin · status logic
+Users admin: requests, approval, roles, password reset, forgot password (B2) · edit / close / cancel · dropdown-list admin · status logic
 and dashboard · photo compression and crop for uploads · export · import of the
 48 current permits.

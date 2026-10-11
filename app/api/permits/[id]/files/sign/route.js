@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getSupabase } from "../../../../../../lib/supabase";
+import { getSupabase } from "../../../../../../lib/db";
 import { getUploadCredentials } from "../../../../../../lib/storage";
 import { ALLOWED_FILE_TYPES, MAX_FILE_BYTES } from "../../../../../../lib/fileRules";
 

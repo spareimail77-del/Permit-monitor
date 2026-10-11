@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getSupabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/db";
+import { getViewer } from "../../lib/viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ function fmt(iso) {
 }
 
 export default async function PermitsPage() {
+  const viewer = await getViewer();
   const supabase = getSupabase();
   const rows = [];
   let failed = false;
@@ -41,9 +43,11 @@ export default async function PermitsPage() {
             {rows.length} permit{rows.length === 1 ? "" : "s"}, newest first
           </p>
         </div>
-        <Link href="/permits/new" className="btn btn-primary">
-          + New permit
-        </Link>
+        {viewer?.canManagePermits && (
+          <Link href="/permits/new" className="btn btn-primary">
+            + New permit
+          </Link>
+        )}
       </div>
 
       {failed && (
@@ -55,7 +59,7 @@ export default async function PermitsPage() {
 
       <div className="panel table-wrap">
         {rows.length === 0 ? (
-          <p className="empty">No permits yet. Add the first one with the New permit button.</p>
+          <p className="empty">No permits yet. There is nothing to show yet.</p>
         ) : (
           <table className="table">
             <thead>

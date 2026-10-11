@@ -1,12 +1,17 @@
 import "./globals.css";
 import Link from "next/link";
+import SignOutButton from "./components/SignOutButton";
+import { getViewer } from "../lib/viewer";
+import { roleLabel } from "../lib/permissions";
 
 export const metadata = {
   title: "HSE Permits",
   description: "SWWS Salalah HSE — work permit register",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const viewer = await getViewer();
+
   return (
     <html lang="en">
       <body>
@@ -16,12 +21,20 @@ export default function RootLayout({ children }) {
               <span className="site-title__small">SWWS — Salalah</span>
               HSE Permits
             </Link>
-            <nav className="site-nav">
-              <Link href="/permits">Permit list</Link>
-              <Link href="/permits/new" className="btn btn-primary btn-sm">
-                + New permit
-              </Link>
-            </nav>
+            {viewer && (
+              <nav className="site-nav">
+                <Link href="/permits">Permit list</Link>
+                {viewer.canManagePermits && (
+                  <Link href="/permits/new" className="btn btn-primary btn-sm">
+                    + New permit
+                  </Link>
+                )}
+                <Link href="/profile" className="site-nav__user">
+                  {viewer.name} <span className="site-nav__role">{roleLabel(viewer.role)}</span>
+                </Link>
+                <SignOutButton />
+              </nav>
+            )}
           </div>
         </header>
         <main className="page">{children}</main>

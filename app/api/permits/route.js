@@ -1,4 +1,4 @@
-import { getSupabase } from "../../../lib/supabase";
+import { getSupabase } from "../../../lib/db";
 import { validatePermitInput } from "../../../lib/permitRules";
 
 // Saves one new permit from the form. The same checks run in the browser

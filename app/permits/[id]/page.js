@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AddFile from "../../components/AddFile";
-import { getSupabase } from "../../../lib/supabase";
+import { getSupabase } from "../../../lib/db";
+import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
 import { isNA, prettyDate } from "../../../lib/permitRules";
 
@@ -17,6 +18,7 @@ function Detail({ label, value }) {
 
 export default async function PermitPage({ params }) {
   const id = Number(params.id);
+  const viewer = await getViewer();
   const supabase = getSupabase();
 
   const { data: permit } =
@@ -127,10 +129,12 @@ export default async function PermitPage({ params }) {
         )}
       </div>
 
-      <div className="panel pform-card">
-        <h3 className="pform-title">Add a document</h3>
-        <AddFile permitId={permit.id} certificateNames={certificateNames} />
-      </div>
+      {viewer?.canManagePermits && (
+        <div className="panel pform-card">
+          <h3 className="pform-title">Add a document</h3>
+          <AddFile permitId={permit.id} certificateNames={certificateNames} />
+        </div>
+      )}
     </>
   );
 }

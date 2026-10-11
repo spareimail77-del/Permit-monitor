@@ -1,4 +1,4 @@
-import { getSupabase } from "../../../../../lib/supabase";
+import { getSupabase } from "../../../../../lib/db";
 import { getViewUrl } from "../../../../../lib/storage";
 
 // Opens one file: makes a 5-minute private link and sends the browser there.
