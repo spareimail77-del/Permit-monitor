@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AddFile from "../../components/AddFile";
 import { getSupabase } from "../../../lib/supabase";
-import { FILE_BUCKET, FILE_KINDS, formatBytes } from "../../../lib/fileRules";
+import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
 import { isNA, prettyDate } from "../../../lib/permitRules";
 
 export const dynamic = "force-dynamic";
@@ -41,28 +41,17 @@ export default async function PermitPage({ params }) {
     .eq("permit_id", id)
     .order("id", { ascending: true });
 
-  // Short-lived links (1 hour) to open the files.
-  const urls = {};
-  if (files && files.length > 0) {
-    const { data: signed } = await supabase.storage
-      .from(FILE_BUCKET)
-      .createSignedUrls(files.map((f) => f.storage_path), 3600);
-    for (const s of signed || []) if (s.signedUrl) urls[s.path] = s.signedUrl;
-  }
-
   const certificates = Array.isArray(permit.certificates) ? permit.certificates : [];
   const certificateNames = certificates.filter((c) => !isNA(c.name)).map((c) => c.name);
   const fileFor = (c) => (files || []).filter((f) => f.kind === "certificate" && f.label === c.name);
   const generalFiles = (files || []).filter((f) => f.kind !== "certificate");
 
-  const FileLink = ({ f }) =>
-    urls[f.storage_path] ? (
-      <a href={urls[f.storage_path]} target="_blank" rel="noreferrer">
-        {f.file_name}
-      </a>
-    ) : (
-      <span>{f.file_name} (link not available)</span>
-    );
+  // Each link makes a fresh 5-minute private link when it is clicked.
+  const FileLink = ({ f }) => (
+    <a href={`/api/files/${f.id}/view`} target="_blank" rel="noreferrer">
+      {f.file_name}
+    </a>
+  );
 
   return (
     <>

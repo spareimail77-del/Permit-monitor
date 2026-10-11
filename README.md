@@ -31,8 +31,8 @@ can be ticked with it. Stored as a list of name + number.
 
 **Documents (A2, all optional):** permit copy, JSA, a copy of each certificate,
 and any number of other documents (PDF, JPEG or PNG, up to 10 MB each). Files go
-from the browser straight to a private Supabase Storage bucket (`permit-files`)
-and are opened with 1-hour links. More can be added later from the permit page.
+from the browser straight to **Cloudinary** (private; the server signs each upload
+and makes a 5-minute link each time a file is opened). More can be added later from the permit page.
 If a file fails, the permit is still saved and the message says which file to add again.
 
 ## Set-up (once)
@@ -40,7 +40,7 @@ If a file fails, the permit is still saved and the message says which file to ad
 1. **Supabase:** SQL Editor -> paste all of `supabase/01-permits.sql` -> Run
    (creates `permits` and `permit_options` with the starting lists). Then paste
    all of `supabase/02-certificates-and-files.sql` -> Run (certificates with
-   numbers, `permit_files`, and the `permit-files` storage bucket).
+   numbers, and the `permit_files` table).
 2. **GitHub:** create an empty repository and upload every file of this folder
    (keep the folder structure; do not upload `node_modules`).
 3. **Vercel:** Add New -> Project -> pick the repository. Before deploying, add
@@ -49,7 +49,13 @@ If a file fails, the permit is still saved and the message says which file to ad
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy, then open the site.
 
-No service-role key and no other secret is needed in this step.
+   Files also need the three Cloudinary values (Cloudinary dashboard ->
+   Settings -> API Keys). They are secret, server only (no `NEXT_PUBLIC_`):
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+
+No service-role key is needed in this step.
 
 ## Test list
 

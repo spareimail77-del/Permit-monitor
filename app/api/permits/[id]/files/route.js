@@ -1,8 +1,9 @@
 import { getSupabase } from "../../../../../lib/supabase";
+import { deleteObject } from "../../../../../lib/storage";
 import { ALLOWED_FILE_TYPES, FILE_KINDS, MAX_FILE_BYTES } from "../../../../../lib/fileRules";
 import { oneLine } from "../../../../../lib/permitRules";
 
-// Records files that the browser has already sent to storage. Checks each one
+// Records files that the browser has already sent to Cloudinary. Checks each one
 // again (kind, type, size, and that the path belongs to this permit).
 export async function POST(request, { params }) {
   const permitId = Number(params.id);
@@ -36,7 +37,7 @@ export async function POST(request, { params }) {
       return Response.json({ error: "A certificate copy needs the certificate name." }, { status: 400 });
     }
     if (!fileName) return Response.json({ error: "A file has no name." }, { status: 400 });
-    if (!storagePath.startsWith(`${permitId}/`) || storagePath.includes("..")) {
+    if (!storagePath.startsWith(`permits/${permitId}/`) || storagePath.includes("..")) {
       return Response.json({ error: "A file does not belong to this permit." }, { status: 400 });
     }
     if (!ALLOWED_FILE_TYPES[contentType]) {
@@ -69,6 +70,8 @@ export async function POST(request, { params }) {
   const { error } = await supabase.from("permit_files").insert(rows);
   if (error) {
     console.error("Recording files failed:", error);
+    // Do not leave the files behind in storage.
+    await Promise.allSettled(rows.map((r) => deleteObject(r.storage_path, { contentType: r.content_type })));
     return Response.json({ error: "The files could not be recorded. Please try again." }, { status: 500 });
   }
   return Response.json({ ok: true });

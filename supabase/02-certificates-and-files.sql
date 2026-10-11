@@ -1,4 +1,4 @@
--- STEP A2: certificates with their own numbers, and file attachments.
+-- STEP A2: certificates with their own numbers, and the table of attached files.
 -- Run ONCE in Supabase -> SQL Editor, after 01-permits.sql. Safe to run again.
 --
 -- WARNING: this removes the old certificate columns, so certificates typed on
@@ -12,7 +12,7 @@ alter table public.permits drop column if exists certificates;
 alter table public.permits add column certificates jsonb not null default '[]'::jsonb;
 
 -- ---------------------------------------------------------------
--- permit_files: one row per attached file (the file itself is in Storage)
+-- permit_files: one row per attached file (the file itself is in Cloudinary)
 -- ---------------------------------------------------------------
 create table if not exists public.permit_files (
   id bigint generated always as identity primary key,
@@ -20,7 +20,7 @@ create table if not exists public.permit_files (
   kind text not null check (kind in ('permit_copy', 'jsa', 'certificate', 'other')),
   label text not null default '',              -- certificate name, or what an "other" document is
   file_name text not null,
-  storage_path text not null unique,
+  storage_path text not null unique,           -- the file's name in Cloudinary
   content_type text not null,
   size_bytes bigint not null,
   created_at timestamptz not null default now()
@@ -31,19 +31,10 @@ create index if not exists permit_files_permit_idx on public.permit_files (permi
 alter table public.permit_files enable row level security;
 
 -- ---------------------------------------------------------------
--- Storage bucket (private; files are opened with short-lived links)
--- ---------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('permit-files', 'permit-files', false, 10485760,
-        array['application/pdf', 'image/jpeg', 'image/png'])
-on conflict (id) do update
-  set public = false,
-      file_size_limit = 10485760,
-      allowed_mime_types = array['application/pdf', 'image/jpeg', 'image/png'];
-
--- ---------------------------------------------------------------
 -- TEMPORARY ACCESS (step A only, there is no login yet)
 -- Same as the permits table: step B replaces these with role-based policies.
+-- The files themselves are in Cloudinary (see README); this table only records
+-- which file belongs to which permit.
 -- ---------------------------------------------------------------
 drop policy if exists "TEMP step A: read permit files" on public.permit_files;
 create policy "TEMP step A: read permit files" on public.permit_files for select using (true);
@@ -51,10 +42,8 @@ create policy "TEMP step A: read permit files" on public.permit_files for select
 drop policy if exists "TEMP step A: add permit files" on public.permit_files;
 create policy "TEMP step A: add permit files" on public.permit_files for insert with check (true);
 
+-- Clean-up for anyone who ran the first version of this file, which used
+-- Supabase Storage. Harmless otherwise. (If a "permit-files" bucket exists, delete
+-- it in the Supabase dashboard -> Storage; SQL is not allowed to remove buckets.)
 drop policy if exists "TEMP step A: read stored files" on storage.objects;
-create policy "TEMP step A: read stored files" on storage.objects
-  for select using (bucket_id = 'permit-files');
-
 drop policy if exists "TEMP step A: add stored files" on storage.objects;
-create policy "TEMP step A: add stored files" on storage.objects
-  for insert with check (bucket_id = 'permit-files');
