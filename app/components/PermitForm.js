@@ -223,7 +223,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
     const payload = buildPayload();
     const { errors: found } = validatePermitInput(payload);
-    if (refTaken) found.reference = "This permit number is already used.";
+    if (refTaken) found.reference = "This permit number is already used (it may be in the trash).";
     if (isEdit) Object.assign(found, validateStatusInput(status, cancelReason).errors);
     if (Object.keys(found).length > 0) {
       setErrors(found);
@@ -327,7 +327,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
               autoComplete="off"
             />
             {isEdit && <p className="pform-hint">The permit number cannot be changed after saving.</p>}
-            {refTaken && !errors.reference && <p className="pform-error">This permit number is already used.</p>}
+            {refTaken && !errors.reference && <p className="pform-error">This permit number is already used (it may be in the trash).</p>}
           </Field>
           {dd("area", "area", { required: true })}
           <Field name="location" label="Location" required error={errors.location}>

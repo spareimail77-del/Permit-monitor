@@ -1,5 +1,5 @@
 import { getSupabase } from "../../../../lib/db";
-import { deleteObject } from "../../../../lib/storage";
+import { getViewer } from "../../../../lib/viewer";
 import { todayOman } from "../../../../lib/omanDate";
 import { statusPatch, validatePermitInput, validateStatusInput } from "../../../../lib/permitRules";
 
@@ -23,10 +23,11 @@ export async function PATCH(request, { params }) {
   const supabase = getSupabase();
   const { data: permit, error: readError } = await supabase
     .from("permits")
-    .select("id, reference, status, closed_at")
+    .select("id, reference, status, closed_at, deleted_at")
     .eq("id", id)
     .maybeSingle();
   if (readError || !permit) return bad("This permit does not exist.", 404);
+  if (permit.deleted_at) return bad("This permit is in the trash. Restore it first.", 409);
 
   const today = todayOman();
   let patch;
@@ -82,43 +83,30 @@ export async function PATCH(request, { params }) {
   return Response.json({ ok: true });
 }
 
-// DELETE body: { confirm: "<permit number>" }  (typed by the person)
-// Removes the permit, its attachment records, and its files in Cloudinary.
+// "Delete" = move to the trash (nothing is erased). Root and HSE can restore it
+// from the Trash page; only Root can delete it for good (/api/trash/purge).
 export async function DELETE(request, { params }) {
   const id = parseId(params);
   if (!id) return bad("Unknown permit.");
-  const body = await request.json().catch(() => null);
+  const viewer = await getViewer();
+  if (!viewer) return bad("Not authenticated.", 401);
 
   const supabase = getSupabase();
-  const { data: permit } = await supabase.from("permits").select("id, reference").eq("id", id).maybeSingle();
+  const { data: permit } = await supabase.from("permits").select("id, deleted_at").eq("id", id).maybeSingle();
   if (!permit) return bad("This permit does not exist.", 404);
+  if (permit.deleted_at) return bad("This permit is already in the trash.", 409);
 
-  const typed = String(body?.confirm ?? "").trim().toUpperCase();
-  if (typed !== String(permit.reference).trim().toUpperCase()) {
-    return bad("Type the permit number exactly to confirm.", 400);
-  }
-
-  const { data: files } = await supabase
-    .from("permit_files")
-    .select("storage_path, content_type")
-    .eq("permit_id", id);
-
-  // Database first: the permit (and its file records, by cascade) disappears.
-  const { data: removed, error } = await supabase.from("permits").delete().eq("id", id).select("id");
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("permits")
+    .update({ deleted_at: now, deleted_by: viewer.staffId, updated_at: now })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id");
   if (error) {
-    console.error("Deleting a permit failed:", error);
-    return bad("The permit could not be deleted. Please try again.", 500);
+    console.error("Moving a permit to the trash failed:", error);
+    return bad("The permit could not be moved to the trash. Please try again.", 500);
   }
-  if (!removed || removed.length === 0) return bad("You are not allowed to delete this permit.", 403);
-
-  // Then the stored files. A failure here leaves a stray private file in Cloudinary
-  // but no permit points to it; the paths are logged so it can be cleaned up.
-  const list = files || [];
-  const results = await Promise.allSettled(
-    list.map((f) => deleteObject(f.storage_path, { contentType: f.content_type }))
-  );
-  const failedPaths = list.filter((_, i) => results[i].status === "rejected").map((f) => f.storage_path);
-  if (failedPaths.length) console.error("Permit deleted but these Cloudinary files remain:", failedPaths);
-
-  return Response.json({ ok: true, filesDeleted: list.length - failedPaths.length, filesNotRemoved: failedPaths.length });
+  if (!data || data.length === 0) return bad("You are not allowed to delete this permit.", 403);
+  return Response.json({ ok: true });
 }

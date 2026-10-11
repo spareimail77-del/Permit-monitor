@@ -62,6 +62,7 @@ export async function POST(request, { params }) {
     .from("permits")
     .select("id")
     .eq("id", permitId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (readError || !permit) {
     return Response.json({ error: "This permit does not exist." }, { status: 404 });

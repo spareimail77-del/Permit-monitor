@@ -28,6 +28,8 @@ export default async function EditPermitPage({ params }) {
     );
   }
 
+  if (permit.deleted_at) redirect(`/permits/${permit.id}`); // in the trash: restore it first
+
   const { lists, error } = await fetchOptions(supabase);
   const certs = Array.isArray(permit.certificates) ? permit.certificates : [];
 

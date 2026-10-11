@@ -23,6 +23,7 @@ export default async function PermitsPage({ searchParams }) {
     const { data, error } = await supabase
       .from("permits")
       .select("id, reference, area, location, permit_type, applicant, holder, valid_from, valid_to, status")
+      .is("deleted_at", null)
       .order("id", { ascending: false })
       .range(from, from + PAGE - 1);
     if (error) {
@@ -50,10 +51,10 @@ export default async function PermitsPage({ searchParams }) {
         )}
       </div>
 
-      {searchParams?.deleted && (
-        <div className={`notice ${searchParams?.note ? "" : "notice--ok"}`}>
-          Permit <strong className="mono">{String(searchParams.deleted).slice(0, 40)}</strong> was deleted.
-          {searchParams?.note && " Some of its files could not be erased from storage; Root can see which in the Vercel logs."}
+      {searchParams?.trashed && (
+        <div className="notice notice--ok">
+          Permit <strong className="mono">{String(searchParams.trashed).slice(0, 40)}</strong> was moved to the trash. Root or
+          HSE can restore it from the Trash page.
         </div>
       )}
 

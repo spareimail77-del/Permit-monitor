@@ -30,6 +30,7 @@ export default async function RootLayout({ children }) {
                   </Link>
                 )}
                 {viewer.canManageOptions && <Link href="/lists">Dropdown lists</Link>}
+                {viewer.canViewTrash && <Link href="/trash">Trash</Link>}
                 {viewer.canManageUsers && <Link href="/admin">Admin</Link>}
                 <Link href="/profile" className="site-nav__user">
                   {viewer.name} <span className="site-nav__role">{roleLabel(viewer.role)}</span>

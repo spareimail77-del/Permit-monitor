@@ -2,6 +2,8 @@ import Link from "next/link";
 import AddFile from "../../components/AddFile";
 import DeleteFileButton from "../../components/DeleteFileButton";
 import PermitActions from "../../components/PermitActions";
+import TrashActions from "../../components/TrashActions";
+import { omanDateTime } from "../../../lib/format";
 import { getSupabase } from "../../../lib/db";
 import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
@@ -52,7 +54,9 @@ export default async function PermitPage({ params }) {
   // listed under Documents, so it can still be opened or deleted.
   const certSet = new Set(certificates.map((c) => c.name));
   const generalFiles = (files || []).filter((f) => f.kind !== "certificate" || !certSet.has(f.label));
-  const canManage = Boolean(viewer?.canManagePermits);
+  // A permit in the trash is read-only (only Root and HSE can see it at all).
+  const trashed = Boolean(permit.deleted_at);
+  const canManage = Boolean(viewer?.canManagePermits) && !trashed;
 
   // Each link makes a fresh 5-minute private link when it is clicked.
   const FileLink = ({ f }) => (
@@ -66,6 +70,14 @@ export default async function PermitPage({ params }) {
       <Link href="/permits" style={{ display: "inline-block", marginBottom: 12 }}>
         ← Back to the permit list
       </Link>
+      {trashed && (
+        <>
+          <TrashActions permitId={permit.id} reference={permit.reference} canPurge={Boolean(viewer?.canPurgeTrash)} />
+          <p className="pform-hint" style={{ margin: "-6px 0 14px" }}>
+            Deleted by <span className="mono">{permit.deleted_by || "—"}</span> on {omanDateTime(permit.deleted_at)} (Oman time).
+          </p>
+        </>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <h2 className="page-title" style={{ margin: 0 }}>
           Permit <span className="mono">{permit.reference}</span>

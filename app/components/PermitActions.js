@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Close, cancel, reopen and delete one permit (Root and HSE; the server checks
-// again). status: the stored status OPEN / CLOSED / CANCELED.
+// Close, cancel, reopen and move one permit to the trash (Root and HSE; the server
+// checks again). status: the stored status OPEN / CLOSED / CANCELED.
 export default function PermitActions({ permitId, reference, status }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [panel, setPanel] = useState(""); // "" | "cancel" | "delete"
+  const [panel, setPanel] = useState(""); // "" | "cancel"
   const [reason, setReason] = useState("");
-  const [typed, setTyped] = useState("");
   const [message, setMessage] = useState({ text: "", error: false });
 
   async function call(method, body, after) {
@@ -78,8 +77,18 @@ export default function PermitActions({ permitId, reference, status }) {
             Reopen
           </button>
         )}
-        <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => setPanel(panel === "delete" ? "" : "delete")}>
-          Delete permit
+        <button
+          className="btn btn-sm btn-danger"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`Move permit ${reference} to the trash? Root or HSE can restore it from the Trash page.`)) {
+              call("DELETE", {}, () => {
+                window.location.href = `/permits?trashed=${encodeURIComponent(reference)}`;
+              });
+            }
+          }}
+        >
+          Delete permit (to trash)
         </button>
       </div>
 
@@ -96,38 +105,6 @@ export default function PermitActions({ permitId, reference, status }) {
             <button className="btn btn-sm" disabled={busy} onClick={() => setPanel("")}>
               Never mind
             </button>
-          </div>
-        </div>
-      )}
-
-      {panel === "delete" && (
-        <div style={{ marginTop: 14 }} className="notice notice--danger">
-          <p style={{ margin: "0 0 10px" }}>
-            This deletes permit <strong className="mono">{reference}</strong> <strong>and all of its documents</strong>, for
-            good. It cannot be undone. If you only want to stop using the permit, cancel it instead.
-          </p>
-          <div className="pform">
-            <div className="pform-field">
-              <label htmlFor="pa-typed">Type the permit number to confirm</label>
-              <input id="pa-typed" className="pform-input mono" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" disabled={busy} />
-            </div>
-            <div className="pform-actions">
-              <button
-                className="btn btn-danger btn-sm"
-                disabled={busy || typed.trim().toUpperCase() !== String(reference).trim().toUpperCase()}
-                onClick={() =>
-                  call("DELETE", { confirm: typed }, (data) => {
-                    const note = data.filesNotRemoved ? `&note=${data.filesNotRemoved}` : "";
-                    window.location.href = `/permits?deleted=${encodeURIComponent(reference)}${note}`;
-                  })
-                }
-              >
-                {busy ? "Deleting…" : "Delete permanently"}
-              </button>
-              <button className="btn btn-sm" disabled={busy} onClick={() => setPanel("")}>
-                Never mind
-              </button>
-            </div>
           </div>
         </div>
       )}

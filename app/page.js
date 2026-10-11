@@ -8,7 +8,7 @@ export default async function Home() {
   const viewer = await getViewer();
   let count = null;
   try {
-    const { count: c } = await getSupabase().from("permits").select("id", { count: "exact", head: true });
+    const { count: c } = await getSupabase().from("permits").select("id", { count: "exact", head: true }).is("deleted_at", null);
     count = c;
   } catch {
     count = null;

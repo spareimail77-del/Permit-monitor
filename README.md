@@ -1,4 +1,4 @@
-# HSE Permits — steps A, A2, A3, B, B2, C
+# HSE Permits — steps A, A2, A3, B, B2, C, C2
 
 The new site, built in small steps: a **permit form** that saves into the
 database, a **permit list**, documents in Cloudinary, and (step B) **sign-in by
@@ -187,13 +187,14 @@ Root and HSE only (the server and the database both check). Everyone else sees n
 | Where | What |
 |---|---|
 | Permit page -> **Edit permit** (`/permits/edit/<id>`) | Change any field. The permit number is locked. The 30/14/7-day limit still applies. Has a Status section (Open / Closed / Canceled; a cancel needs a reason) |
-| Permit page -> **Actions** | **Close permit** (saves today's date, Oman time, as the closed date), **Cancel permit** (asks for a reason), **Reopen** (clears the closed date / reason), **Delete permit** |
+| Permit page -> **Actions** | **Close permit** (saves today's date, Oman time, as the closed date), **Cancel permit** (asks for a reason), **Reopen** (clears the closed date / reason), **Delete permit** (moves it to the trash, step C2) |
 | Permit page -> each document -> **Delete** | Deletes that one file (record and the file in Cloudinary) |
 | **Dropdown lists** (`/lists`, header link) | Add a value to any list (saved in UPPER CASE) or hide / show one. Values are never deleted: a hidden value still shows on the permits that use it |
 
 How the rules work:
 - **Closed date:** saved automatically when a permit becomes Closed and kept while it stays closed. Reopening or cancelling clears it.
-- **Delete permit:** you must type the permit number. It removes the permit, its document records and its files in Cloudinary, permanently. If Cloudinary fails for some file, the permit is still gone and the leftover file paths are written to the Vercel logs.
+- **Delete permit:** moves it to the trash (see step C2 below). Nothing is erased.
+- **Delete one document:** permanent and immediate (record and Cloudinary file).
 - **Certificate copies:** if you untick a certificate when editing, its uploaded copy moves to the Documents list (so it can still be opened or deleted).
 - **Overdue / Expiring soon** are not chosen here; they come with step D.
 
@@ -215,6 +216,38 @@ How the rules work:
 9. Delete a whole test permit that has 2 or 3 documents: the confirm box only enables when you type the number exactly (any capitals). Afterwards: the list shows "was deleted", the permit link says not found, and the files are gone from Cloudinary.
 10. `/lists`: add a new Applicant, then open **+ New permit**: it is in the dropdown. Hide it: gone from the new form. A permit that already uses a hidden value still shows it when edited. Adding a value that exists (any capitals): refused.
 11. Try the same calls as Manager/Permit user (for example from the browser address bar to `/lists`): refused.
+
+## Step C2: recycle bin
+
+| Who | Delete permit | Trash page | Restore | Delete for good |
+|---|---|---|---|---|
+| Root | to the trash | sees it | yes | **yes** (one, or empty the trash) |
+| HSE | to the trash | sees it (read) | yes | no |
+| Manager, Permit user | no | no | no | no |
+
+- A trashed permit disappears from the permit list and the count, and cannot be edited, closed or given new documents until it is restored. Its documents stay in Cloudinary.
+- Root and HSE can open a trashed permit from the Trash page (read-only, with a banner). Manager and Permit user cannot see it at all; the database hides it from them, not only the pages.
+- A trashed permit **keeps its permit number reserved**: the number cannot be used again until the permit is restored or deleted for good. The form says "it may be in the trash".
+- Deleting for good removes the permit, its document records and its Cloudinary files. Only Root can; the database refuses everyone else. Nothing is emptied automatically.
+- Deleting ONE document is still permanent at once (not trashed).
+
+**Set-up for step C2 (in this order)**
+
+1. Supabase -> SQL Editor: run all of `supabase/06-trash.sql` (needs 01 to 05). Run it **before** deploying the code: the code reads the new `deleted_at` column.
+2. Upload the files to GitHub and let Vercel redeploy. Nothing else to set.
+
+**Step C2 tests** (test permits only; have at least one with 2 documents)
+
+1. As HSE: on a test permit press **Delete permit (to trash)**: you land on the list with a green message, the permit is gone from the list, and the home page count drops by one.
+2. HSE: the header has **Trash**. The permit is there with its document count and "deleted by". There is a **Restore** button but **no** "Delete for good" and no "Empty the trash".
+3. HSE: open the trashed permit from Trash. The red banner shows; there is no Edit, Actions, Add a document or document Delete. Its documents still open.
+4. Restore it: it is back in the list with the same status and documents.
+5. As Manager and as Permit user: no Trash link; `/trash` sends you home; a link to the trashed permit says "Permit not found".
+6. Trash a permit again, then as Root: **Delete for good** on it (confirm). The row goes and its files are gone in Cloudinary.
+7. Trash two permits, as Root press **Empty the trash**, type EMPTY. Both go; type something else: nothing happens.
+8. Create a new permit with the number of a trashed one: refused ("it may be in the trash"). After deleting it for good, the number can be used.
+9. As HSE, try to reach `/api/trash/purge` (for example by sending the request from the browser console): refused (403).
+10. While a permit is in the trash, try to open `/permits/edit/<id>`: it sends you to the permit page.
 
 ## Not in this step (planned)
 

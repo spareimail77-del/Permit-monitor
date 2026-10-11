@@ -42,7 +42,7 @@ export async function POST(request) {
     if (error.code === "23505") {
       return Response.json(
         {
-          error: `Permit number ${clean.reference} already exists.`,
+          error: `Permit number ${clean.reference} already exists (it may be in the trash).`,
           fields: { reference: "This permit number is already used." },
         },
         { status: 409 }

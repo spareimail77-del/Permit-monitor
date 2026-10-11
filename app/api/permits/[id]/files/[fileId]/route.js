@@ -19,6 +19,10 @@ export async function DELETE(request, { params }) {
     .maybeSingle();
   if (!file) return Response.json({ error: "File not found." }, { status: 404 });
 
+  // A permit in the trash is read-only: restore it first.
+  const { data: live } = await supabase.from("permits").select("id").eq("id", permitId).is("deleted_at", null).maybeSingle();
+  if (!live) return Response.json({ error: "This permit is in the trash. Restore it first." }, { status: 409 });
+
   const { data: removed, error } = await supabase.from("permit_files").delete().eq("id", fileId).select("id");
   if (error) {
     console.error("Deleting a file record failed:", error);

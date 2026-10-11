@@ -24,7 +24,7 @@ export async function POST(request, { params }) {
     return Response.json({ error: "The file is empty or larger than 10 MB." }, { status: 400 });
   }
 
-  const { data: permit } = await getSupabase().from("permits").select("id").eq("id", permitId).maybeSingle();
+  const { data: permit } = await getSupabase().from("permits").select("id").eq("id", permitId).is("deleted_at", null).maybeSingle();
   if (!permit) return Response.json({ error: "This permit does not exist." }, { status: 404 });
 
   // No extension: Cloudinary's name for the file does not carry one.
