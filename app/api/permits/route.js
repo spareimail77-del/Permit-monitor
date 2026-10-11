@@ -11,7 +11,7 @@ export async function POST(request) {
     return Response.json({ error: "Could not read the form." }, { status: 400 });
   }
 
-  const { errors, clean } = validatePermitInput(body, { mode: "create" });
+  const { errors, clean } = validatePermitInput(body);
   if (Object.keys(errors).length > 0) {
     return Response.json({ error: "Please fix the marked fields.", fields: errors }, { status: 400 });
   }
@@ -25,8 +25,7 @@ export async function POST(request) {
       location: clean.location,
       permit_type: clean.permitType,
       job_description: clean.jobDescription,
-      certificates: clean.certificates,
-      certificate_no: clean.certificateNo,
+      certificates: clean.certificates, // [{ name, number }]
       applicant: clean.applicant,
       holder: clean.holder,
       issuer: clean.issuer,

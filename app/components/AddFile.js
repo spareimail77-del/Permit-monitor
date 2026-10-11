@@ -1,0 +1,128 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FILE_KINDS, fileProblem, formatBytes } from "../../lib/fileRules";
+import { uploadPermitFiles } from "../../lib/uploadFiles";
+
+const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+
+// Adds one more document to a permit that is already saved.
+// certificateNames: the permit's certificates (without NA), for "Certificate copy".
+export default function AddFile({ permitId, certificateNames = [] }) {
+  const router = useRouter();
+  const [kind, setKind] = useState("permit_copy");
+  const [label, setLabel] = useState("");
+  const [file, setFile] = useState(null);
+  const [state, setState] = useState("idle"); // idle | saving
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  const kinds = Object.entries(FILE_KINDS).filter(([k]) => k !== "certificate" || certificateNames.length > 0);
+
+  function say(text, error) {
+    setMessage(text);
+    setIsError(error);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (state === "saving") return;
+    const problem = fileProblem(file);
+    if (problem) return say(problem, true);
+    if (kind === "certificate" && !label) return say("Choose which certificate this is a copy of.", true);
+
+    setState("saving");
+    say("", false);
+    const out = await uploadPermitFiles(permitId, [{ file, kind, label: kind === "other" || kind === "certificate" ? label.trim() : "" }]);
+    setState("idle");
+    if (out.saved === 1) {
+      setFile(null);
+      setLabel("");
+      say("File added.", false);
+      router.refresh();
+    } else {
+      say(`${file.name} could not be added (${out.failed[0]?.reason || "unknown problem"}). Try again.`, true);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="pform" style={{ gap: 12 }}>
+      <div className="pform-grid">
+        <div className="pform-field">
+          <label htmlFor="af-kind">Kind of document</label>
+          <select
+            id="af-kind"
+            className="pform-input"
+            value={kind}
+            onChange={(e) => {
+              setKind(e.target.value);
+              setLabel("");
+            }}
+            disabled={state === "saving"}
+          >
+            {kinds.map(([k, name]) => (
+              <option key={k} value={k}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {kind === "certificate" && (
+          <div className="pform-field">
+            <label htmlFor="af-cert">Which certificate</label>
+            <select id="af-cert" className="pform-input" value={label} onChange={(e) => setLabel(e.target.value)} disabled={state === "saving"}>
+              <option value="">Select…</option>
+              {certificateNames.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {kind === "other" && (
+          <div className="pform-field">
+            <label htmlFor="af-label">What is it? (optional)</label>
+            <input id="af-label" className="pform-input" value={label} maxLength={80} onChange={(e) => setLabel(e.target.value)} disabled={state === "saving"} />
+          </div>
+        )}
+      </div>
+
+      <div className="file-slot">
+        <span className="file-slot__label">File (PDF, JPEG or PNG, up to 10 MB)</span>
+        {file ? (
+          <span className="file-slot__chosen">
+            <span className="file-slot__name">{file.name}</span>
+            <span className="pform-hint">{formatBytes(file.size)}</span>
+            <button type="button" className="pform-link" onClick={() => setFile(null)} disabled={state === "saving"}>
+              Remove
+            </button>
+          </span>
+        ) : (
+          <input
+            type="file"
+            accept={FILE_ACCEPT}
+            disabled={state === "saving"}
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null;
+              e.target.value = "";
+              setFile(f);
+              say(f ? fileProblem(f) || "" : "", Boolean(f && fileProblem(f)));
+            }}
+          />
+        )}
+      </div>
+
+      {message && <p className={isError ? "error-text" : "pform-rec"}>{message}</p>}
+
+      <div className="pform-actions">
+        <button type="submit" className="btn btn-primary btn-sm" disabled={state === "saving" || !file}>
+          {state === "saving" ? "Uploading…" : "Add file"}
+        </button>
+      </div>
+    </form>
+  );
+}

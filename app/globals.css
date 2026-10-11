@@ -80,3 +80,19 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .home-card { padding: 22px 24px; text-decoration: none; color: inherit; display: block; }
 .home-card h3 { font-size: 16px; margin-bottom: 6px; color: var(--brand); }
 .home-card p { margin: 0; color: var(--ink-muted); font-size: 14px; }
+
+/* Validity and documents (step A2) */
+.pform-rec { margin: 0; font-size: 13px; color: var(--ok); font-weight: 700; }
+.pform-link--green { color: var(--ok); }
+.cert-row { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--surface-2); }
+.file-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.file-slot { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; min-width: 0; }
+.file-slot__label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-muted); font-weight: 700; }
+.file-slot__chosen { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.file-slot__name { font-weight: 600; word-break: break-all; }
+.other-row { display: grid; gap: 8px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 20px; }
+.detail-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-muted); font-weight: 700; margin-bottom: 2px; }
+.detail-value { margin: 0; white-space: pre-wrap; }
+.file-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.file-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); }

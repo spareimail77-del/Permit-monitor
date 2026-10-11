@@ -74,7 +74,9 @@ export default async function PermitsPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="mono">{r.reference}</td>
+                  <td className="mono">
+                    <Link href={`/permits/${r.id}`}>{r.reference}</Link>
+                  </td>
                   <td>{r.area || "—"}</td>
                   <td>{r.location || "—"}</td>
                   <td>{r.permit_type || "—"}</td>
