@@ -12,7 +12,7 @@ function fmt(iso) {
   return `${d}-${m}-${y}`;
 }
 
-export default async function PermitsPage() {
+export default async function PermitsPage({ searchParams }) {
   const viewer = await getViewer();
   const supabase = getSupabase();
   const rows = [];
@@ -49,6 +49,13 @@ export default async function PermitsPage() {
           </Link>
         )}
       </div>
+
+      {searchParams?.deleted && (
+        <div className={`notice ${searchParams?.note ? "" : "notice--ok"}`}>
+          Permit <strong className="mono">{String(searchParams.deleted).slice(0, 40)}</strong> was deleted.
+          {searchParams?.note && " Some of its files could not be erased from storage; Root can see which in the Vercel logs."}
+        </div>
+      )}
 
       {failed && (
         <div className="notice">

@@ -2,15 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FIELD_LABELS,
   certNumberKey,
   isNA,
+  STATUSES,
+  STATUS_LABELS,
   isValidISODate,
   latestValidTo,
   prettyDate,
   validToProblem,
   validatePermitInput,
+  validateStatusInput,
 } from "../../lib/permitRules";
 import { fileProblem, formatBytes } from "../../lib/fileRules";
 import { uploadPermitFiles } from "../../lib/uploadFiles";
@@ -83,6 +87,11 @@ function Dropdown({ name, label, required, hint, error, value, onChange, items, 
   );
 }
 
+// A hidden or removed dropdown value must still show on a permit that uses it.
+function withCurrent(items, current) {
+  return current && !items.includes(current) ? [...items, current] : items;
+}
+
 // One optional file: choose, see its name and size, remove.
 function FileSlot({ label, file, error, disabled, onPick, onClear }) {
   return (
@@ -113,10 +122,17 @@ function FileSlot({ label, file, error, disabled, onPick, onClear }) {
   );
 }
 
-export default function PermitForm({ options, existingRefs = [] }) {
-  const [values, setValues] = useState(emptyValues);
-  const [certs, setCerts] = useState([]); // ticked certificate names
-  const [certNumbers, setCertNumbers] = useState({}); // name -> number
+// mode "new": the add form. mode "edit": changes a saved permit. In edit mode the
+// permit number is locked, files are handled on the permit page, and there is a
+// Status section. `initial` = { values, certs, certNumbers, status, cancelReason }.
+export default function PermitForm({ options, existingRefs = [], mode = "new", permitId = null, initial = null }) {
+  const router = useRouter();
+  const isEdit = mode === "edit";
+  const [values, setValues] = useState(() => initial?.values || emptyValues());
+  const [status, setStatus] = useState(initial?.status || "OPEN");
+  const [cancelReason, setCancelReason] = useState(initial?.cancelReason || "");
+  const [certs, setCerts] = useState(() => initial?.certs || []); // ticked certificate names
+  const [certNumbers, setCertNumbers] = useState(() => initial?.certNumbers || {}); // name -> number
   const [certFiles, setCertFiles] = useState({}); // name -> File
   const [permitCopy, setPermitCopy] = useState(null);
   const [jsa, setJsa] = useState(null);
@@ -165,7 +181,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
       error={errors[name]}
       value={values[name]}
       onChange={(v) => set(name, v)}
-      items={options[listKey] || []}
+      items={withCurrent(options[listKey] || [], values[name])}
       disabled={disabled}
     />
   );
@@ -177,7 +193,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
   );
   const toProblem = validToProblem(values.permitType, values.validFrom, values.validTo);
 
-  const refTaken = values.reference.trim() !== "" && taken.has(values.reference.trim().toUpperCase());
+  const refTaken = !isEdit && values.reference.trim() !== "" && taken.has(values.reference.trim().toUpperCase());
 
   function buildPayload() {
     return {
@@ -208,6 +224,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
     const payload = buildPayload();
     const { errors: found } = validatePermitInput(payload);
     if (refTaken) found.reference = "This permit number is already used.";
+    if (isEdit) Object.assign(found, validateStatusInput(status, cancelReason).errors);
     if (Object.keys(found).length > 0) {
       setErrors(found);
       setState("error");
@@ -217,6 +234,28 @@ export default function PermitForm({ options, existingRefs = [] }) {
 
     setState("saving");
     setMessage("");
+    if (isEdit) {
+      try {
+        const res = await fetch(`/api/permits/${permitId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, action: "edit", status, cancelReason }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setErrors(data.fields || {});
+          setState("error");
+          setMessage(data.error || "The permit could not be saved.");
+          return;
+        }
+        router.push(`/permits/${permitId}`);
+        router.refresh();
+      } catch {
+        setState("error");
+        setMessage("Network error. Check your connection and try again.");
+      }
+      return;
+    }
     try {
       const res = await fetch("/api/permits", {
         method: "POST",
@@ -255,7 +294,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
     }
   }
 
-  const certOptions = options.certificate || [];
+  const certOptions = certs.reduce((list, c) => (list.includes(c) ? list : [...list, c]), options.certificate || []);
 
   return (
     <form onSubmit={handleSubmit} noValidate className="pform">
@@ -283,10 +322,11 @@ export default function PermitForm({ options, existingRefs = [] }) {
               className="pform-input mono"
               value={values.reference}
               onChange={(e) => set("reference", e.target.value)}
-              disabled={disabled}
+              disabled={disabled || isEdit}
               maxLength={40}
               autoComplete="off"
             />
+            {isEdit && <p className="pform-hint">The permit number cannot be changed after saving.</p>}
             {refTaken && !errors.reference && <p className="pform-error">This permit number is already used.</p>}
           </Field>
           {dd("area", "area", { required: true })}
@@ -407,6 +447,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
                   maxLength={60}
                 />
                 {errors[certNumberKey(name)] && <p className="pform-error">{errors[certNumberKey(name)]}</p>}
+                {!isEdit && (
                 <FileSlot
                   label={`Copy of the ${name} certificate (optional)`}
                   file={certFiles[name]}
@@ -415,6 +456,7 @@ export default function PermitForm({ options, existingRefs = [] }) {
                   onPick={(f) => pickFile(`cert:${name}`, f, (file) => setCertFiles((c) => ({ ...c, [name]: file })))}
                   onClear={() => setCertFiles((c) => ({ ...c, [name]: undefined }))}
                 />
+                )}
               </div>
             )
           )}
@@ -441,6 +483,52 @@ export default function PermitForm({ options, existingRefs = [] }) {
         </div>
       </div>
 
+      {isEdit && (
+        <div className="panel pform-card">
+          <h3 className="pform-title">Status</h3>
+          <div className="pform-grid">
+            <Field name="status" label="Status" error={errors.status}>
+              <select
+                id="pf-status"
+                className="pform-input"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setErrors((x) => ({ ...x, status: undefined, cancelReason: undefined }));
+                }}
+                disabled={disabled}
+              >
+                {STATUSES.map((st) => (
+                  <option key={st} value={st}>
+                    {STATUS_LABELS[st]}
+                  </option>
+                ))}
+              </select>
+              <p className="pform-hint">
+                Closing saves today&apos;s date (Oman time) as the closed date. Overdue and Expiring soon are worked out by
+                the site later; they are never chosen here.
+              </p>
+            </Field>
+            {status === "CANCELED" && (
+              <Field name="cancelReason" label="Reason for cancelling" required error={errors.cancelReason}>
+                <input
+                  id="pf-cancelReason"
+                  className="pform-input"
+                  value={cancelReason}
+                  onChange={(e) => {
+                    setCancelReason(e.target.value);
+                    setErrors((x) => ({ ...x, cancelReason: undefined }));
+                  }}
+                  disabled={disabled}
+                  maxLength={200}
+                />
+              </Field>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!isEdit && (
       <div className="panel pform-card">
         <h3 className="pform-title">Documents (optional)</h3>
         <p className="pform-hint" style={{ marginBottom: 12 }}>
@@ -504,14 +592,15 @@ export default function PermitForm({ options, existingRefs = [] }) {
           + Add another document
         </button>
       </div>
+      )}
 
       {state === "error" && message && <p className="error-text">{message}</p>}
 
       <div className="pform-actions">
         <button type="submit" className="btn btn-primary" disabled={disabled}>
-          {state === "saving" ? "Saving…" : "Save permit"}
+          {state === "saving" ? "Saving…" : isEdit ? "Save changes" : "Save permit"}
         </button>
-        <Link href="/permits" className="btn">
+        <Link href={isEdit ? `/permits/${permitId}` : "/permits"} className="btn">
           Cancel
         </Link>
       </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import AddFile from "../../components/AddFile";
+import DeleteFileButton from "../../components/DeleteFileButton";
+import PermitActions from "../../components/PermitActions";
 import { getSupabase } from "../../../lib/db";
 import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
@@ -46,7 +48,11 @@ export default async function PermitPage({ params }) {
   const certificates = Array.isArray(permit.certificates) ? permit.certificates : [];
   const certificateNames = certificates.filter((c) => !isNA(c.name)).map((c) => c.name);
   const fileFor = (c) => (files || []).filter((f) => f.kind === "certificate" && f.label === c.name);
-  const generalFiles = (files || []).filter((f) => f.kind !== "certificate");
+  // A certificate copy whose certificate was later removed from the permit is
+  // listed under Documents, so it can still be opened or deleted.
+  const certSet = new Set(certificates.map((c) => c.name));
+  const generalFiles = (files || []).filter((f) => f.kind !== "certificate" || !certSet.has(f.label));
+  const canManage = Boolean(viewer?.canManagePermits);
 
   // Each link makes a fresh 5-minute private link when it is clicked.
   const FileLink = ({ f }) => (
@@ -65,6 +71,11 @@ export default async function PermitPage({ params }) {
           Permit <span className="mono">{permit.reference}</span>
         </h2>
         <span className={`badge badge--${permit.status}`}>{permit.status}</span>
+        {canManage && (
+          <Link href={`/permits/edit/${permit.id}`} className="btn btn-sm">
+            Edit permit
+          </Link>
+        )}
       </div>
 
       <div className="panel pform-card" style={{ marginBottom: 16 }}>
@@ -80,6 +91,8 @@ export default async function PermitPage({ params }) {
           <Detail label="Authorized issuer" value={permit.issuer} />
           <Detail label="Area authority" value={permit.area_authority} />
           <Detail label="Controller" value={permit.controller} />
+          {permit.status === "CLOSED" && <Detail label="Closed on" value={prettyDate(permit.closed_at)} />}
+          {permit.status === "CANCELED" && <Detail label="Cancel reason" value={permit.cancel_reason} />}
         </div>
         <div style={{ marginTop: 14 }}>
           <Detail label="Job description" value={permit.job_description} />
@@ -101,6 +114,7 @@ export default async function PermitPage({ params }) {
                   {fileFor(c).map((f) => (
                     <span key={f.id} style={{ marginLeft: 12 }}>
                       <FileLink f={f} /> <span className="pform-hint">{formatBytes(f.size_bytes)}</span>
+                      {canManage && <DeleteFileButton permitId={permit.id} fileId={f.id} fileName={f.file_name} />}
                     </span>
                   ))}
                 </span>
@@ -122,14 +136,19 @@ export default async function PermitPage({ params }) {
                   <strong>{FILE_KINDS[f.kind]}</strong>
                   {f.label ? ` — ${f.label}` : ""}: <FileLink f={f} />
                 </span>
-                <span className="pform-hint">{formatBytes(f.size_bytes)}</span>
+                <span>
+                  <span className="pform-hint">{formatBytes(f.size_bytes)}</span>
+                  {canManage && <DeleteFileButton permitId={permit.id} fileId={f.id} fileName={f.file_name} />}
+                </span>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      {viewer?.canManagePermits && (
+      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} />}
+
+      {canManage && (
         <div className="panel pform-card">
           <h3 className="pform-title">Add a document</h3>
           <AddFile permitId={permit.id} certificateNames={certificateNames} />

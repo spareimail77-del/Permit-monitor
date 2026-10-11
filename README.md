@@ -1,4 +1,4 @@
-# HSE Permits — steps A, A2, A3, B, B2
+# HSE Permits — steps A, A2, A3, B, B2, C
 
 The new site, built in small steps: a **permit form** that saves into the
 database, a **permit list**, documents in Cloudinary, and (step B) **sign-in by
@@ -180,8 +180,44 @@ Staff ID change: one open request per person, 3 per day, the new ID must be free
     Also test Reject, Cancel, and asking for an ID that is already taken.
 14. Reject a pending request: the account is removed and the ID can be requested again.
 
+## Step C: edit, close, cancel, delete, dropdown lists
+
+Root and HSE only (the server and the database both check). Everyone else sees none of these buttons.
+
+| Where | What |
+|---|---|
+| Permit page -> **Edit permit** (`/permits/edit/<id>`) | Change any field. The permit number is locked. The 30/14/7-day limit still applies. Has a Status section (Open / Closed / Canceled; a cancel needs a reason) |
+| Permit page -> **Actions** | **Close permit** (saves today's date, Oman time, as the closed date), **Cancel permit** (asks for a reason), **Reopen** (clears the closed date / reason), **Delete permit** |
+| Permit page -> each document -> **Delete** | Deletes that one file (record and the file in Cloudinary) |
+| **Dropdown lists** (`/lists`, header link) | Add a value to any list (saved in UPPER CASE) or hide / show one. Values are never deleted: a hidden value still shows on the permits that use it |
+
+How the rules work:
+- **Closed date:** saved automatically when a permit becomes Closed and kept while it stays closed. Reopening or cancelling clears it.
+- **Delete permit:** you must type the permit number. It removes the permit, its document records and its files in Cloudinary, permanently. If Cloudinary fails for some file, the permit is still gone and the leftover file paths are written to the Vercel logs.
+- **Certificate copies:** if you untick a certificate when editing, its uploaded copy moves to the Documents list (so it can still be opened or deleted).
+- **Overdue / Expiring soon** are not chosen here; they come with step D.
+
+**Set-up for step C (in this order)**
+
+1. Supabase -> SQL Editor: run all of `supabase/05-edit-delete-lists.sql` (it adds edit, delete and dropdown rules for Root and HSE). Needs 01 to 04 already run.
+2. Upload the files to GitHub and let Vercel redeploy. No new packages or environment variables.
+
+**Step C tests** (use test permits, not real ones)
+
+1. As HSE or Root: a permit page shows **Edit permit**, an **Actions** box and **Delete** next to each document. As Manager or Permit user: none of these, and `/permits/edit/<id>`, `/lists` go back to the list or home.
+2. Edit a permit: change the location and holder, save. The permit page shows the new values. The permit number box is greyed out.
+3. Edit: make Valid to later than the limit for its type: refused with "Too long".
+4. Edit: untick a certificate that has an uploaded copy, save: the copy appears under Documents.
+5. Close an open permit: status Closed and "Closed on" is today's date. Close it again via Edit (status stays Closed): the date does not change.
+6. Reopen it: the closed date disappears. Cancel it: the reason is required and is shown on the page.
+7. Edit with status Canceled but no reason: refused.
+8. Delete one document: it disappears from the page, and the file is gone from Cloudinary (Media Library).
+9. Delete a whole test permit that has 2 or 3 documents: the confirm box only enables when you type the number exactly (any capitals). Afterwards: the list shows "was deleted", the permit link says not found, and the files are gone from Cloudinary.
+10. `/lists`: add a new Applicant, then open **+ New permit**: it is in the dropdown. Hide it: gone from the new form. A permit that already uses a hidden value still shows it when edited. Adding a value that exists (any capitals): refused.
+11. Try the same calls as Manager/Permit user (for example from the browser address bar to `/lists`): refused.
+
 ## Not in this step (planned)
 
-edit / close / cancel · dropdown-list admin · status logic
+status logic
 and dashboard · photo compression and crop for uploads · export · import of the
 48 current permits.
