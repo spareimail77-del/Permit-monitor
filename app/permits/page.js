@@ -3,7 +3,8 @@ import StatusBadge from "../components/StatusBadge";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
 import { todayOman } from "../../lib/omanDate";
-import { STATUS_FILTERS, computeStatus, matchesStatusFilter } from "../../lib/status";
+import { STATUS_FILTERS, computeStatus } from "../../lib/status";
+import { filterPermits, filtersToQuery, hasFilters, parseFilters } from "../../lib/permitFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,6 @@ function fmt(iso) {
 }
 
 const one = (v) => (Array.isArray(v) ? v[0] : v) ?? "";
-const clean = (v) => String(one(v)).trim().slice(0, 80);
 
 export default async function PermitsPage({ searchParams }) {
   const viewer = await getViewer();
@@ -45,25 +45,9 @@ export default async function PermitsPage({ searchParams }) {
   const permits = all.map((r) => ({ ...r, st: computeStatus(r, today) }));
 
   // Filters from the address bar (the dashboard links here with ?status=, ?area=, ...).
-  const f = {
-    q: clean(searchParams?.q),
-    status: STATUS_FILTERS.some((s) => s.value === clean(searchParams?.status)) ? clean(searchParams?.status) : "",
-    area: clean(searchParams?.area),
-    type: clean(searchParams?.type),
-    applicant: clean(searchParams?.applicant),
-    holder: clean(searchParams?.holder),
-  };
-  const q = f.q.toLowerCase();
-
-  let rows = permits.filter(
-    (r) =>
-      matchesStatusFilter(r.st.key, f.status) &&
-      (!f.area || r.area === f.area) &&
-      (!f.type || r.permit_type === f.type) &&
-      (!f.applicant || r.applicant === f.applicant) &&
-      (!f.holder || r.holder === f.holder) &&
-      (!q || [r.reference, r.location, r.applicant, r.holder].some((v) => String(v ?? "").toLowerCase().includes(q)))
-  );
+  // lib/permitFilters.js is shared with the Excel export, so both give the same rows.
+  const f = parseFilters((name) => one(searchParams?.[name]));
+  let rows = filterPermits(permits, f);
   // Overdue / expiring first show what needs action soonest.
   if (f.status === "overdue" || f.status === "expiring") {
     rows = [...rows].sort((a, b) => String(a.valid_to).localeCompare(String(b.valid_to)));
@@ -71,7 +55,8 @@ export default async function PermitsPage({ searchParams }) {
 
   const areas = [...new Set(permits.map((r) => r.area).filter(Boolean))].sort();
   const types = [...new Set(permits.map((r) => r.permit_type).filter(Boolean))].sort();
-  const filtered = Boolean(f.q || f.status || f.area || f.type || f.applicant || f.holder);
+  const filtered = hasFilters(f);
+  const exportHref = `/api/export${filtersToQuery(f) ? `?${filtersToQuery(f)}` : ""}`;
 
   return (
     <>
@@ -83,11 +68,18 @@ export default async function PermitsPage({ searchParams }) {
             {" · "}as of {fmt(today)} (Oman time)
           </p>
         </div>
-        {viewer?.canManagePermits && (
-          <Link href="/permits/new" className="btn btn-primary">
-            + New permit
-          </Link>
-        )}
+        <div className="row-actions">
+          {viewer?.canExport && rows.length > 0 && (
+            <a href={exportHref} className="btn" title="Downloads the rows shown below, in the Excel log layout">
+              Export to Excel ({rows.length})
+            </a>
+          )}
+          {viewer?.canManagePermits && (
+            <Link href="/permits/new" className="btn btn-primary">
+              + New permit
+            </Link>
+          )}
+        </div>
       </div>
 
       {searchParams?.trashed && (

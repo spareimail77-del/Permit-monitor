@@ -1,4 +1,4 @@
-# HSE Permits — steps A, A2, A3, B, B2, C, C2, D
+# HSE Permits — steps A, A2, A3, B, B2, C, C2, D, E
 
 The new site, built in small steps: a **permit form** that saves into the
 database, a **permit list**, documents in Cloudinary, and (step B) **sign-in by
@@ -283,6 +283,39 @@ Not in D (later): My permits, People board and Copy summary (they need the name 
 9. With zero permits: the dashboard shows zeros and an empty grey ring, no error.
 10. The 14-day bars: a permit ending in 5 days adds one to the bar 5 places after today; an overdue permit is not in the bars.
 
+## Step E: export to Excel
+
+**Permit list -> "Export to Excel (N)"** (Root and HSE only). It downloads an `.xlsx` in the layout of the Excel permit log, with exactly the rows the list shows: the same search and filters (`?status=overdue&area=CCS` ...) apply. Permits in the trash are never exported.
+
+- **Layout:** a copy of the real log (`assets/permit-template.xlsx`): logo, headings, merged cells, fonts, column widths, colours, freeze panes, status colour rules, print setup and the hidden `DropdownRAW` sheet are kept. Only the permit rows (row 6 down, columns A to Q) are written. Macros and the hidden ActiveX control are removed, so it is a clean `.xlsx`.
+- **Order:** the order the permits were entered (oldest first), like the log; "Sl." counts 1, 2, 3...
+- **Status column** uses the log's words: Open and Expiring soon -> `OPEN`, Overdue -> `EXPIRED`, Closed -> `CLOSED`, Canceled -> `CANCELED`.
+- **Certificates / Certificate No:** one per line in the same order in both columns; `NA` and `NA` when there is none. A single numeric certificate number is written as a number, as in the log.
+- **Days to Go:** not exported. The column stays in the layout but is hidden and empty.
+- **Dates** are real Excel dates (format dd-mm-yyyy), never text. An open permit with no dates exports with empty date cells.
+- File name: `Permit-Log-<Oman date>.xlsx`.
+- Built on the server (`lib/exportMaster.js`, `app/api/export/route.js`); permission `export_data` is checked by the middleware and again in the route.
+
+**Known limitations**
+- The dropdown lists inside the exported Excel (the hidden `DropdownRAW` sheet) are the lists as they were in the log when the template was made. They are NOT updated from the website's Dropdown lists page. Exported values are never changed by them.
+- Tested with LibreOffice and file-structure checks, not with Microsoft Excel itself: please open a real export in Excel (test 3 below).
+- If the Excel log layout ever changes (a new column, a new logo), the template must be rebuilt from the new log: ask Claude, and give it the new file.
+- Keep the GitHub repository **private**: the template holds the hidden dropdown lists (staff names). Author names and the original folder path were removed from it.
+
+**Set-up for step E:** no SQL, no new environment variable. One **new package** (`jszip`, in `package.json`) and a new folder `assets/` with `permit-template.xlsx`: upload both, and let Vercel redeploy.
+
+**Step E tests**
+
+1. As Root or HSE: the Permit list shows **Export to Excel (N)**. As Manager and Permit user: no button, and typing `/api/export` in the address bar gives "Not authorized".
+2. Click it with no filters: a file `Permit-Log-<date>.xlsx` downloads; N matches the "x permits" count.
+3. **Open it in Microsoft Excel**: no repair / "file is corrupt" message; the logo and headings are there; the status colours show (green CLOSED, red EXPIRED, ...); "Days to Go" is not visible; dates show as dd-mm-yyyy; the first column is 1, 2, 3...
+4. Compare a few permits with the website: reference, area, location, holder, dates, certificates (several certificates on separate lines, numbers lining up).
+5. Filter the list (for example Overdue), then export: only those rows are in the file, in entry order.
+6. Export a permit whose status is Overdue on the site: the Excel status says EXPIRED. An Expiring soon one says OPEN.
+7. Move a permit to the trash, export again: it is not in the file.
+8. Export with many permits (50 or more): the table, filter drop-downs and print area extend to the last row.
+9. A permit with an `&`, quote or very long job description exports without breaking the file.
+
 ## Not in this step (planned)
 
-photo compression and crop for uploads · export to Excel · import of the 48 current permits · name links, My permits and People board.
+import of the 48 current permits (F) · photo compression and crop for uploads · name links, My permits and People board.
