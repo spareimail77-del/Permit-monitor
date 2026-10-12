@@ -1,6 +1,9 @@
 import Link from "next/link";
+import StatusBadge from "../components/StatusBadge";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
+import { todayOman } from "../../lib/omanDate";
+import { STATUS_FILTERS, computeStatus, matchesStatusFilter } from "../../lib/status";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +15,14 @@ function fmt(iso) {
   return `${d}-${m}-${y}`;
 }
 
+const one = (v) => (Array.isArray(v) ? v[0] : v) ?? "";
+const clean = (v) => String(one(v)).trim().slice(0, 80);
+
 export default async function PermitsPage({ searchParams }) {
   const viewer = await getViewer();
   const supabase = getSupabase();
-  const rows = [];
+  const today = todayOman();
+  const all = [];
   let failed = false;
 
   // The database returns at most 1000 rows per request, so read in pages.
@@ -31,9 +38,40 @@ export default async function PermitsPage({ searchParams }) {
       failed = true;
       break;
     }
-    rows.push(...(data || []));
+    all.push(...(data || []));
     if (!data || data.length < PAGE) break;
   }
+
+  const permits = all.map((r) => ({ ...r, st: computeStatus(r, today) }));
+
+  // Filters from the address bar (the dashboard links here with ?status=, ?area=, ...).
+  const f = {
+    q: clean(searchParams?.q),
+    status: STATUS_FILTERS.some((s) => s.value === clean(searchParams?.status)) ? clean(searchParams?.status) : "",
+    area: clean(searchParams?.area),
+    type: clean(searchParams?.type),
+    applicant: clean(searchParams?.applicant),
+    holder: clean(searchParams?.holder),
+  };
+  const q = f.q.toLowerCase();
+
+  let rows = permits.filter(
+    (r) =>
+      matchesStatusFilter(r.st.key, f.status) &&
+      (!f.area || r.area === f.area) &&
+      (!f.type || r.permit_type === f.type) &&
+      (!f.applicant || r.applicant === f.applicant) &&
+      (!f.holder || r.holder === f.holder) &&
+      (!q || [r.reference, r.location, r.applicant, r.holder].some((v) => String(v ?? "").toLowerCase().includes(q)))
+  );
+  // Overdue / expiring first show what needs action soonest.
+  if (f.status === "overdue" || f.status === "expiring") {
+    rows = [...rows].sort((a, b) => String(a.valid_to).localeCompare(String(b.valid_to)));
+  }
+
+  const areas = [...new Set(permits.map((r) => r.area).filter(Boolean))].sort();
+  const types = [...new Set(permits.map((r) => r.permit_type).filter(Boolean))].sort();
+  const filtered = Boolean(f.q || f.status || f.area || f.type || f.applicant || f.holder);
 
   return (
     <>
@@ -41,7 +79,8 @@ export default async function PermitsPage({ searchParams }) {
         <div>
           <h2 className="page-title">Permit list</h2>
           <p className="page-sub" style={{ margin: 0 }}>
-            {rows.length} permit{rows.length === 1 ? "" : "s"}, newest first
+            {filtered ? `Showing ${rows.length} of ${permits.length}` : `${permits.length} permit${permits.length === 1 ? "" : "s"}`}
+            {" · "}as of {fmt(today)} (Oman time)
           </p>
         </div>
         {viewer?.canManagePermits && (
@@ -53,7 +92,7 @@ export default async function PermitsPage({ searchParams }) {
 
       {searchParams?.trashed && (
         <div className="notice notice--ok">
-          Permit <strong className="mono">{String(searchParams.trashed).slice(0, 40)}</strong> was moved to the trash. Root or
+          Permit <strong className="mono">{String(one(searchParams.trashed)).slice(0, 40)}</strong> was moved to the trash. Root or
           HSE can restore it from the Trash page.
         </div>
       )}
@@ -65,9 +104,54 @@ export default async function PermitsPage({ searchParams }) {
         </div>
       )}
 
+      <form method="get" action="/permits" className="panel filter-bar">
+        <input name="q" className="pform-input" defaultValue={f.q} placeholder="Search number, location, applicant, holder" aria-label="Search" />
+        <select name="status" className="pform-input" defaultValue={f.status} aria-label="Status">
+          <option value="">All statuses</option>
+          {STATUS_FILTERS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <select name="area" className="pform-input" defaultValue={f.area} aria-label="Area">
+          <option value="">All areas</option>
+          {areas.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+        <select name="type" className="pform-input" defaultValue={f.type} aria-label="Type of permit">
+          <option value="">All types</option>
+          {types.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        {f.applicant && <input type="hidden" name="applicant" value={f.applicant} />}
+        {f.holder && <input type="hidden" name="holder" value={f.holder} />}
+        <button type="submit" className="btn btn-primary btn-sm">
+          Apply
+        </button>
+        {filtered && (
+          <Link href="/permits" className="btn btn-sm">
+            Clear
+          </Link>
+        )}
+      </form>
+      {(f.applicant || f.holder) && (
+        <p className="pform-hint" style={{ margin: "-6px 0 12px" }}>
+          {f.applicant && <>Applicant = <strong>{f.applicant}</strong> </>}
+          {f.holder && <>Holder = <strong>{f.holder}</strong> </>}
+          (use Clear to remove)
+        </p>
+      )}
+
       <div className="panel table-wrap">
         {rows.length === 0 ? (
-          <p className="empty">No permits yet. There is nothing to show yet.</p>
+          <p className="empty">{permits.length === 0 ? "No permits yet. There is nothing to show yet." : "No permit matches these filters."}</p>
         ) : (
           <table className="table">
             <thead>
@@ -97,7 +181,7 @@ export default async function PermitsPage({ searchParams }) {
                   <td className="mono">{fmt(r.valid_from)}</td>
                   <td className="mono">{fmt(r.valid_to)}</td>
                   <td>
-                    <span className={`badge badge--${r.status}`}>{r.status}</span>
+                    <StatusBadge status={r.st} showDetail />
                   </td>
                 </tr>
               ))}

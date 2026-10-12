@@ -1,4 +1,4 @@
-# HSE Permits — steps A, A2, A3, B, B2, C, C2
+# HSE Permits — steps A, A2, A3, B, B2, C, C2, D
 
 The new site, built in small steps: a **permit form** that saves into the
 database, a **permit list**, documents in Cloudinary, and (step B) **sign-in by
@@ -249,8 +249,40 @@ How the rules work:
 9. As HSE, try to reach `/api/trash/purge` (for example by sending the request from the browser console): refused (403).
 10. While a permit is in the trash, try to open `/permits/edit/<id>`: it sends you to the permit page.
 
+## Step D: status logic and dashboard
+
+**Statuses.** The database stores only Open, Closed or Canceled. The site works out the rest every time a page loads, using today's date in **Oman time** (`Asia/Muscat`; the server itself runs in UTC, so this is calculated explicitly, in `lib/status.js` and `lib/omanDate.js`):
+
+| Shown | When |
+|---|---|
+| **Overdue** | stored Open and Valid to is **before today** (shows "N days overdue") |
+| **Expiring soon** | stored Open and **0 to 3 days** left until Valid to ("Ends today", "2 days left") |
+| **Open** | stored Open, more than 3 days left |
+| Closed / Canceled | shown as stored, whatever the dates are |
+
+An open permit with no readable Valid to is shown as Open with a warning. "Active / Open" on the dashboard counts Open + Expiring soon + Overdue. Permits in the trash are never counted. The old Excel word EXPIRED is not used.
+
+**Dashboard (`/`, everyone who can sign in):** alert banner when permits are overdue; cards (Total, Active / Open, Expiring soon, Overdue with the oldest days, Closed, Canceled) that open the matching list; status ring; "Ending in the next 14 days" bars (today's bar is amber); Needs attention (overdue and expiring lists, worst first); active permits by Area, Type, Applicant and Holder (top 8, click to filter). Header shows "Data as of" the Oman date.
+
+**Permit list:** now shows the computed status with "N days left / overdue", plus search (number, location, applicant, holder) and filters for Status, Area and Type, "Showing x of y". The dashboard links use the address, for example `/permits?status=overdue`, `?status=expiring`, `?status=active`, `?area=CCS`, `?type=HOT`, `?holder=NAME`. The permit page shows the same status badge.
+
+Not in D (later): My permits, People board and Copy summary (they need the name links), export (E), import (F).
+
+**Set-up for step D:** no SQL, no new packages, no new environment variables. Upload the files and let Vercel redeploy.
+
+**Step D tests** (make small test permits; edit Valid to to try each case)
+
+1. Dashboard opens for every role (also Manager and Permit user) and says "Data as of" today's Oman date.
+2. A test permit with Valid to **yesterday** shows **Overdue, "1 day overdue"** in the list and on its page, the red banner appears on the dashboard, and the Overdue card counts it.
+3. Valid to **today**: Expiring soon, "Ends today". Valid to in 3 days: Expiring soon, "3 days left". In 4 days: Open, "4 days left". (Allowed lengths: COLD BLANKET 30 days, COLD 14, HOT 7 from Valid from, so use an earlier Valid from for old dates.)
+4. Close an overdue permit: it leaves Overdue and counts under Closed. Cancel one: same under Canceled. Reopen: it is Overdue again.
+5. Move a permit to the trash: it disappears from every count, the ring and the lists.
+6. Click each card, a ring legend item and a bar: you land on `/permits` with the right filter, and "Showing x of y" is correct. **Clear** resets it.
+7. Search by part of a permit number, location and holder. Combine status + area.
+8. Between 00:00 and 04:00 Oman time the UTC date is still yesterday. If you can, look at the dashboard then: "Data as of" must show the **Oman** date, and a permit ending "today" (Oman) must be Expiring soon, not Open.
+9. With zero permits: the dashboard shows zeros and an empty grey ring, no error.
+10. The 14-day bars: a permit ending in 5 days adds one to the bar 5 places after today; an overdue permit is not in the bars.
+
 ## Not in this step (planned)
 
-status logic
-and dashboard · photo compression and crop for uploads · export · import of the
-48 current permits.
+photo compression and crop for uploads · export to Excel · import of the 48 current permits · name links, My permits and People board.

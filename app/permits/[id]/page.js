@@ -3,7 +3,10 @@ import AddFile from "../../components/AddFile";
 import DeleteFileButton from "../../components/DeleteFileButton";
 import PermitActions from "../../components/PermitActions";
 import TrashActions from "../../components/TrashActions";
+import StatusBadge from "../../components/StatusBadge";
 import { omanDateTime } from "../../../lib/format";
+import { todayOman } from "../../../lib/omanDate";
+import { computeStatus } from "../../../lib/status";
 import { getSupabase } from "../../../lib/db";
 import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
@@ -55,6 +58,7 @@ export default async function PermitPage({ params }) {
   const certSet = new Set(certificates.map((c) => c.name));
   const generalFiles = (files || []).filter((f) => f.kind !== "certificate" || !certSet.has(f.label));
   // A permit in the trash is read-only (only Root and HSE can see it at all).
+  const status = computeStatus(permit, todayOman());
   const trashed = Boolean(permit.deleted_at);
   const canManage = Boolean(viewer?.canManagePermits) && !trashed;
 
@@ -78,11 +82,14 @@ export default async function PermitPage({ params }) {
           </p>
         </>
       )}
+      {status.noValidTo && (
+        <div className="notice">This open permit has no readable end date (Valid to), so its expiry cannot be worked out.</div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <h2 className="page-title" style={{ margin: 0 }}>
           Permit <span className="mono">{permit.reference}</span>
         </h2>
-        <span className={`badge badge--${permit.status}`}>{permit.status}</span>
+        <StatusBadge status={status} showDetail />
         {canManage && (
           <Link href={`/permits/edit/${permit.id}`} className="btn btn-sm">
             Edit permit

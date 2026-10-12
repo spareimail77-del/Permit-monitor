@@ -118,3 +118,76 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .badge--disabled { background: #fde8e6; color: var(--danger); }
 .notice--danger { background: #fde8e6; border-color: #f3b4ae; color: var(--danger); }
 .temp-pass__value { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--surface); border: 1px dashed var(--ok); font-size: 20px; font-weight: 700; letter-spacing: 0.08em; user-select: all; }
+
+/* ---- step D: status colours, dashboard, list filters ---- */
+:root {
+  --st-open: #027a48;
+  --st-expiring: #b7791f;
+  --st-overdue: #b42318;
+  --st-closed: #4a5b6b;
+  --st-canceled: #98a4b0;
+}
+.badge--EXPIRING { background: #fff2d6; color: #8a5a00; }
+.badge--OVERDUE { background: #fde8e6; color: var(--st-overdue); }
+.badge--CLOSED { background: #e4e9ee; color: var(--st-closed); }
+.badge--CANCELED { background: #eef0f2; color: #6b7783; }
+.badge--OTHER { background: var(--surface-2); color: var(--ink-muted); }
+.status-detail { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-muted); }
+.status-detail--bad { color: var(--st-overdue); font-weight: 600; }
+
+.filter-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; margin-bottom: 14px; align-items: center; }
+.filter-bar .pform-input { width: auto; flex: 1 1 160px; min-width: 0; }
+.filter-bar input[name="q"] { flex: 2 1 240px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-card { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; text-decoration: none; color: inherit; border-left: 4px solid var(--rule-strong); }
+.stat-card:hover { border-color: var(--brand); }
+.stat-card__n { font-size: 28px; font-weight: 800; line-height: 1.1; }
+.stat-card__l { font-size: 13px; font-weight: 600; }
+.stat-card__sub { font-size: 12px; color: var(--ink-muted); }
+.stat-card--ok { border-left-color: var(--st-open); }
+.stat-card--warn { border-left-color: var(--st-expiring); }
+.stat-card--bad { border-left-color: var(--st-overdue); }
+.stat-card--bad .stat-card__n { color: var(--st-overdue); }
+
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px; align-items: start; }
+
+.donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.seg { stroke: var(--surface-2); }
+.seg--OPEN { stroke: var(--st-open); }
+.seg--EXPIRING { stroke: var(--st-expiring); }
+.seg--OVERDUE { stroke: var(--st-overdue); }
+.seg--CLOSED { stroke: var(--st-closed); }
+.seg--CANCELED { stroke: var(--st-canceled); }
+.donut-n { font-size: 26px; font-weight: 800; fill: var(--ink); }
+.donut-l { font-size: 11px; fill: var(--ink-muted); }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1 1 140px; }
+.legend a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; font-size: 14px; }
+.legend a:hover { text-decoration: underline; }
+.legend strong { margin-left: auto; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--surface-2); }
+.dot--OPEN { background: var(--st-open); }
+.dot--EXPIRING { background: var(--st-expiring); }
+.dot--OVERDUE { background: var(--st-overdue); }
+.dot--CLOSED { background: var(--st-closed); }
+.dot--CANCELED { background: var(--st-canceled); }
+
+.forecast { display: flex; align-items: flex-end; gap: 4px; height: 130px; }
+.forecast__col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; }
+.forecast__bar { width: 100%; max-width: 22px; background: var(--brand); border-radius: 3px 3px 0 0; }
+.forecast__bar.is-today { background: var(--st-expiring); }
+.forecast__n { font-size: 11px; font-weight: 700; min-height: 14px; }
+.forecast__d { font-size: 11px; color: var(--ink-muted); }
+
+.attn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.attn-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline; font-size: 14px; }
+.attn-where { color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attn-list .status-detail { margin: 0; white-space: nowrap; }
+
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bars li { display: grid; grid-template-columns: minmax(70px, 130px) 1fr auto; gap: 10px; align-items: center; font-size: 14px; }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; color: inherit; }
+.bar-label:hover { text-decoration: underline; }
+.bar-track { background: var(--surface-2); border-radius: 999px; height: 10px; overflow: hidden; display: block; }
+.bar-fill { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+.bar-n { font-weight: 700; min-width: 20px; text-align: right; }
