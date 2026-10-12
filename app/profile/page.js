@@ -29,7 +29,7 @@ export default async function ProfilePage() {
         Staff ID <strong className="mono">{viewer.staffId}</strong> · {roleLabel(viewer.role)}
       </p>
       <ProfileForms initialName={viewer.name === viewer.staffId ? "" : viewer.name} />
-      <div style={{ marginTop: 16 }}>
+      <div id="staff-id" style={{ marginTop: 16 }}>
         <StaffIdCard currentId={viewer.staffId} latest={latest} />
       </div>
       <p style={{ marginTop: 20 }}>

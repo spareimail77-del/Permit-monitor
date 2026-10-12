@@ -1,7 +1,8 @@
 import "./globals.css";
 import Link from "next/link";
-import SignOutButton from "./components/SignOutButton";
 import ThemeToggle from "./components/ThemeToggle";
+import TopNav from "./components/TopNav";
+import UserMenu from "./components/UserMenu";
 import { getViewer } from "../lib/viewer";
 import { roleLabel } from "../lib/permissions";
 
@@ -22,35 +23,38 @@ export default async function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         <header className="site-header">
           <div className="site-header__inner">
             <Link href="/" className="site-title">
               <span className="site-title__small">SWWS — Salalah</span>
               HSE Permits
             </Link>
-            <div className="site-header__right">
-              {viewer && (
-                <nav className="site-nav">
-                  <Link href="/permits">Permit list</Link>
-                  {viewer.canManagePermits && (
-                    <Link href="/permits/new" className="btn btn-primary btn-sm">
-                      + New permit
-                    </Link>
-                  )}
-                  {viewer.canManageOptions && <Link href="/lists">Dropdown lists</Link>}
-                  {viewer.canViewTrash && <Link href="/trash">Trash</Link>}
-                  {viewer.canManageUsers && <Link href="/admin">Admin</Link>}
-                  <Link href="/profile" className="site-nav__user">
-                    {viewer.name} <span className="site-nav__role">{roleLabel(viewer.role)}</span>
-                  </Link>
-                  <SignOutButton />
-                </nav>
-              )}
-              <ThemeToggle />
-            </div>
+            {viewer ? (
+              <>
+                <TopNav canCreate={viewer.canManagePermits} />
+                <UserMenu
+                  name={viewer.name}
+                  staffId={viewer.staffId}
+                  roleText={roleLabel(viewer.role)}
+                  canAdmin={viewer.canManageUsers}
+                  canLists={viewer.canManageOptions}
+                  canTrash={viewer.canViewTrash}
+                  canExport={viewer.canExport}
+                />
+              </>
+            ) : (
+              <div className="site-header__right">
+                <ThemeToggle />
+              </div>
+            )}
           </div>
         </header>
-        <main className="page">{children}</main>
+        <main id="main" className="page">
+          {children}
+        </main>
       </body>
     </html>
   );

@@ -81,7 +81,7 @@ export default function ProfileForms({ initialName }) {
         </div>
       </form>
 
-      <form onSubmit={savePassword} className="panel pform-card">
+      <form id="change-password" onSubmit={savePassword} className="panel pform-card">
         <h3 className="pform-title">Change password</h3>
         <div className="pform-grid">
           <div className="pform-field">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CountsSync from "./CountsSync";
 
 // Tabs of the Admin area, with a small count where something is waiting.
 export default function AdminNav({ active, counts = {} }) {
@@ -9,6 +10,7 @@ export default function AdminNav({ active, counts = {} }) {
   ];
   return (
     <nav className="admin-nav" aria-label="Admin">
+      <CountsSync counts={counts} />
       {tabs.map((t) => (
         <Link key={t.key} href={t.href} className={t.key === active ? "admin-nav__tab is-active" : "admin-nav__tab"}>
           {t.label}

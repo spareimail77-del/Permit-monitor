@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { guardAdminPage } from "../../lib/adminPage";
 import { getAdminCounts } from "../../lib/adminCounts";
+import CountsSync from "../components/CountsSync";
 import KeyMissing from "./KeyMissing";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function AdminHome() {
 
   return (
     <>
+      <CountsSync counts={c} />
       <h2 className="page-title">Admin</h2>
       <p className="page-sub">Root only.</p>
       <div className="home-grid">
