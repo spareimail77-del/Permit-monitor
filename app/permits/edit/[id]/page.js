@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import PageHeader from "../../../components/PageHeader";
 import PermitForm from "../../../components/PermitForm";
 import { getViewer } from "../../../../lib/viewer";
 import { getSupabase, fetchOptions } from "../../../../lib/db";
@@ -19,12 +20,11 @@ export default async function EditPermitPage({ params }) {
 
   if (!permit) {
     return (
-      <>
-        <h2 className="page-title">Permit not found</h2>
-        <p className="page-sub">
-          <Link href="/permits">Back to the permit list</Link>
-        </p>
-      </>
+      <PageHeader
+        title="Permit not found"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Permits", href: "/permits" }, { label: "Not found" }]}
+        sub={<Link href="/permits">Back to Permits</Link>}
+      />
     );
   }
 
@@ -56,15 +56,22 @@ export default async function EditPermitPage({ params }) {
 
   return (
     <>
-      <Link href={`/permits/${permit.id}`} style={{ display: "inline-block", marginBottom: 12 }}>
-        ← Back to the permit
-      </Link>
-      <h2 className="page-title">
-        Edit permit <span className="mono">{permit.reference}</span>
-      </h2>
-      <p className="page-sub">Fields marked * are required. Documents are added or deleted on the permit page.</p>
+      <PageHeader
+        title={
+          <>
+            Edit permit <span className="mono">{permit.reference}</span>
+          </>
+        }
+        crumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Permits", href: "/permits" },
+          { label: permit.reference, href: `/permits/${permit.id}` },
+          { label: "Edit" },
+        ]}
+        sub="Fields marked * are required. Documents are added or deleted on the permit page."
+      />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The dropdown lists could not be loaded. Has <span className="mono">supabase/01-permits.sql</span> been run?
         </div>
       )}

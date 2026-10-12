@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import PageHeader from "../../components/PageHeader";
 import PermitForm from "../../components/PermitForm";
 import { getViewer } from "../../../lib/viewer";
 import { getSupabase, fetchOptions } from "../../../lib/db";
@@ -17,10 +18,13 @@ export default async function NewPermitPage() {
 
   return (
     <>
-      <h2 className="page-title">New permit</h2>
-      <p className="page-sub">Fields marked * are required.</p>
+      <PageHeader
+        title="New permit"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Permits", href: "/permits" }, { label: "New permit" }]}
+        sub="Fields marked * are required."
+      />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The dropdown lists could not be loaded. Has <span className="mono">supabase/01-permits.sql</span> been run?
         </div>
       )}

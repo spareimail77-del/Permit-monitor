@@ -3,6 +3,7 @@ import { getSupabase } from "../lib/db";
 import { getViewer } from "../lib/viewer";
 import { todayOman } from "../lib/omanDate";
 import { STATUS_KEYS, STATUS_TEXT, addDays, computeStatus, isActiveKey } from "../lib/status";
+import PageHeader from "./components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -64,9 +65,9 @@ function StatCard({ href, n, label, sub, tone }) {
 function Attention({ title, rows, allHref, empty }) {
   return (
     <div className="panel pform-card">
-      <h3 className="pform-title">{title}</h3>
+      <h2 className="pform-title">{title}</h2>
       {rows.length === 0 ? (
-        <p className="pform-hint">{empty}</p>
+        <p className="empty empty--compact">{empty}</p>
       ) : (
         <>
           <ul className="attn-list">
@@ -84,7 +85,7 @@ function Attention({ title, rows, allHref, empty }) {
             ))}
           </ul>
           {rows.length > 8 && (
-            <p style={{ margin: "10px 0 0" }}>
+            <p className="card-foot">
               <Link href={allHref}>See all {rows.length} →</Link>
             </p>
           )}
@@ -98,9 +99,9 @@ function Bars({ title, items, field }) {
   const max = Math.max(1, ...items.map((i) => i.n));
   return (
     <div className="panel pform-card">
-      <h3 className="pform-title">{title}</h3>
+      <h2 className="pform-title">{title}</h2>
       {items.length === 0 ? (
-        <p className="pform-hint">Nothing to show.</p>
+        <p className="empty empty--compact">Nothing to show.</p>
       ) : (
         <ul className="bars">
           {items.map((i) => (
@@ -179,27 +180,25 @@ export default async function Home() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div>
-          <h2 className="page-title">Dashboard</h2>
-          <p className="page-sub" style={{ margin: 0 }}>
-            Data as of {fmt(today)} (Oman time)
-          </p>
-        </div>
-        <div className="row-actions">
-          {viewer?.canManagePermits && (
-            <Link href="/permits/new" className="btn btn-primary">
-              + New permit
+      <PageHeader
+        title="Dashboard"
+        sub={`Data as of ${fmt(today)} (Oman time)`}
+        actions={
+          <>
+            {viewer?.canManagePermits && (
+              <Link href="/permits/new" className="btn btn-primary">
+                + New permit
+              </Link>
+            )}
+            <Link href="/permits" className="btn">
+              Permits
             </Link>
-          )}
-          <Link href="/permits" className="btn">
-            Permit list
-          </Link>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {failed && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The permits could not be read. Has <span className="mono">supabase/01-permits.sql</span> been run, and are both
           environment variables set?
         </div>
@@ -230,7 +229,7 @@ export default async function Home() {
 
       <div className="dash-grid">
         <div className="panel pform-card">
-          <h3 className="pform-title">Status</h3>
+          <h2 className="pform-title">Status</h2>
           <div className="donut-wrap">
             <Donut counts={counts} total={total - other} />
             <ul className="legend">
@@ -248,7 +247,7 @@ export default async function Home() {
         </div>
 
         <div className="panel pform-card">
-          <h3 className="pform-title">Ending in the next 14 days</h3>
+          <h2 className="pform-title">Ending in the next 14 days</h2>
           <div className="forecast" role="img" aria-label="Permits ending per day">
             {forecast.map((x, i) => (
               <div key={x.d} className="forecast__col" title={`${fmt(x.d)}: ${x.n}`}>
@@ -258,19 +257,19 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <p className="pform-hint" style={{ margin: "8px 0 0" }}>
+          <p className="pform-hint card-foot">
             Open and expiring permits by their Valid to day. The first bar is today; overdue permits are not included.
           </p>
         </div>
       </div>
 
-      <h3 className="section-title">Needs attention</h3>
+      <h2 className="section-title">Needs attention</h2>
       <div className="dash-grid">
         <Attention title={`Overdue (${counts.OVERDUE})`} rows={overdue} allHref={listLink({ status: "overdue" })} empty="No overdue permits." />
         <Attention title={`Expiring soon (${counts.EXPIRING})`} rows={expiring} allHref={listLink({ status: "expiring" })} empty="Nothing ends in the next 3 days." />
       </div>
 
-      <h3 className="section-title">Active permits by…</h3>
+      <h2 className="section-title">Active permits by…</h2>
       <div className="dash-grid">
         <Bars title="Area" items={top(activePermits, (p) => p.area)} field="area" />
         <Bars title="Type of permit" items={top(activePermits, (p) => p.permit_type)} field="type" />

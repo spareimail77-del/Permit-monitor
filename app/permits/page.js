@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
@@ -60,27 +61,25 @@ export default async function PermitsPage({ searchParams }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div>
-          <h2 className="page-title">Permit list</h2>
-          <p className="page-sub" style={{ margin: 0 }}>
-            {filtered ? `Showing ${rows.length} of ${permits.length}` : `${permits.length} permit${permits.length === 1 ? "" : "s"}`}
-            {" · "}as of {fmt(today)} (Oman time)
-          </p>
-        </div>
-        <div className="row-actions">
-          {viewer?.canExport && rows.length > 0 && (
-            <a href={exportHref} className="btn" title="Downloads the rows shown below, in the Excel log layout">
-              Export to Excel ({rows.length})
-            </a>
-          )}
-          {viewer?.canManagePermits && (
-            <Link href="/permits/new" className="btn btn-primary">
-              + New permit
-            </Link>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Permits"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Permits" }]}
+        sub={`${filtered ? `Showing ${rows.length} of ${permits.length}` : `${permits.length} permit${permits.length === 1 ? "" : "s"}`} · as of ${fmt(today)} (Oman time)`}
+        actions={
+          <>
+            {viewer?.canExport && rows.length > 0 && (
+              <a href={exportHref} className="btn" title="Downloads the rows shown below, in the Excel log layout">
+                Export to Excel ({rows.length})
+              </a>
+            )}
+            {viewer?.canManagePermits && (
+              <Link href="/permits/new" className="btn btn-primary">
+                + New permit
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {searchParams?.trashed && (
         <div className="notice notice--ok">
@@ -90,7 +89,7 @@ export default async function PermitsPage({ searchParams }) {
       )}
 
       {failed && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The permits could not be read. Has <span className="mono">supabase/01-permits.sql</span> been run, and are
           both environment variables set?
         </div>
@@ -134,7 +133,7 @@ export default async function PermitsPage({ searchParams }) {
         )}
       </form>
       {(f.applicant || f.holder) && (
-        <p className="pform-hint" style={{ margin: "-6px 0 12px" }}>
+        <p className="pform-hint filter-note">
           {f.applicant && <>Applicant = <strong>{f.applicant}</strong> </>}
           {f.holder && <>Holder = <strong>{f.holder}</strong> </>}
           (use Clear to remove)
@@ -143,7 +142,7 @@ export default async function PermitsPage({ searchParams }) {
 
       <div className="panel table-wrap">
         {rows.length === 0 ? (
-          <p className="empty">{permits.length === 0 ? "No permits yet. There is nothing to show yet." : "No permit matches these filters."}</p>
+          <p className="empty">{permits.length === 0 ? "No permits yet." : "No permit matches these filters."}</p>
         ) : (
           <table className="table">
             <thead>

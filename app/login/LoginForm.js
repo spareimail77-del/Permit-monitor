@@ -35,7 +35,7 @@ export default function LoginForm({ next }) {
   }
 
   return (
-    <form onSubmit={submit} className="pform" style={{ gap: 14 }}>
+    <form onSubmit={submit} className="pform pform--tight">
       <div className="pform-field">
         <label htmlFor="li-staff">Staff ID</label>
         <input

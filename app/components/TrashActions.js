@@ -34,8 +34,8 @@ export default function TrashActions({ permitId, reference, canPurge }) {
   }
 
   return (
-    <div className="notice notice--danger" style={{ display: "grid", gap: 10 }}>
-      <p style={{ margin: 0 }}>
+    <div className="notice notice--danger notice--stack">
+      <p>
         <strong>This permit is in the trash.</strong> It is read-only until it is restored.
       </p>
       <div className="row-actions">
@@ -56,7 +56,7 @@ export default function TrashActions({ permitId, reference, canPurge }) {
           </button>
         )}
       </div>
-      {error && <p className="error-text" style={{ margin: 0 }}>{error}</p>}
+      {error && <p className="error-text">{error}</p>}
     </div>
   );
 }

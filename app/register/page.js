@@ -7,13 +7,13 @@ export default function RegisterPage() {
   return (
     <div className="login-wrap">
       <div className="panel login-card">
-        <p className="site-title__small" style={{ color: "var(--brand)" }}>
+        <p className="auth-brand">
           SWWS — Salalah
         </p>
-        <h2 className="page-title">Request an account</h2>
+        <h1 className="page-title">Request an account</h1>
         <p className="page-sub">Root must approve your request before you can sign in.</p>
         <RegisterForm />
-        <p className="pform-hint" style={{ marginTop: 16 }}>
+        <p className="pform-hint mt-4">
           <Link href="/login">← Back to sign in</Link>
         </p>
       </div>

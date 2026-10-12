@@ -10,7 +10,7 @@ const STATUS_TEXT = { pending: "Waiting", active: "Active", disabled: "Disabled"
 // Defined outside UsersList so inputs keep focus while typing.
 function RoleSelect({ value, onChange, disabled }) {
   return (
-    <select className="pform-input" style={{ width: "auto", padding: "5px 8px" }} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+    <select className="pform-input select-inline" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
       {ALL_ROLES.map((r) => (
         <option key={r} value={r}>
           {ROLE_LABELS[r]}
@@ -29,7 +29,7 @@ function UserRow({ user, isSelf, busy, onAction }) {
     <tr>
       <td>
         <strong className="mono">{user.staffId}</strong>
-        {isSelf && <span className="badge" style={{ marginLeft: 8 }}>you</span>}
+        {isSelf && <span className="badge ml-2">you</span>}
         <div className="pform-hint">{user.name || "—"}</div>
       </td>
       <td>

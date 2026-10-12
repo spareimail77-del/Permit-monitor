@@ -65,7 +65,7 @@ export default function ProfileForms({ initialName }) {
   return (
     <div className="pform">
       <form onSubmit={saveName} className="panel pform-card">
-        <h3 className="pform-title">Your name</h3>
+        <h2 className="pform-title">Your name</h2>
         <div className="pform-grid">
           <div className="pform-field">
             <label htmlFor="pr-name">Name shown on the site</label>
@@ -74,7 +74,7 @@ export default function ProfileForms({ initialName }) {
           </div>
         </div>
         <Notice state={nameState} />
-        <div className="pform-actions" style={{ marginTop: 12 }}>
+        <div className="pform-actions mt-3">
           <button type="submit" className="btn btn-primary btn-sm" disabled={nameState.busy || name.trim().length < 2}>
             {nameState.busy ? "Saving…" : "Save name"}
           </button>
@@ -82,7 +82,7 @@ export default function ProfileForms({ initialName }) {
       </form>
 
       <form id="change-password" onSubmit={savePassword} className="panel pform-card">
-        <h3 className="pform-title">Change password</h3>
+        <h2 className="pform-title">Change password</h2>
         <div className="pform-grid">
           <div className="pform-field">
             <label htmlFor="pw-current">Current password</label>
@@ -99,7 +99,7 @@ export default function ProfileForms({ initialName }) {
           </div>
         </div>
         <Notice state={passState} />
-        <div className="pform-actions" style={{ marginTop: 12 }}>
+        <div className="pform-actions mt-3">
           <button type="submit" className="btn btn-primary btn-sm" disabled={passState.busy || !current || !next || !again}>
             {passState.busy ? "Saving…" : "Change password"}
           </button>

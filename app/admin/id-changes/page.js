@@ -2,6 +2,7 @@ import { guardAdminPage } from "../../../lib/adminPage";
 import { getAdminCounts } from "../../../lib/adminCounts";
 import { omanDateTime } from "../../../lib/format";
 import AdminNav from "../../components/AdminNav";
+import PageHeader from "../../components/PageHeader";
 import KeyMissing from "../KeyMissing";
 import IdChangesList from "./IdChangesList";
 
@@ -34,11 +35,14 @@ export default async function IdChangesPage() {
 
   return (
     <>
-      <h2 className="page-title">Staff ID changes</h2>
-      <p className="page-sub">When approved, the person signs in with the new Staff ID and the same password.</p>
+      <PageHeader
+        title="Staff ID changes"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Admin", href: "/admin" }, { label: "Staff ID changes" }]}
+        sub="When approved, the person signs in with the new Staff ID and the same password."
+      />
       <AdminNav active="ids" counts={counts} />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           Could not read the requests. Has <span className="mono">supabase/04-users-admin.sql</span> been run?
         </div>
       )}

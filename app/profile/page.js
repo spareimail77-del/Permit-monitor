@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import PageHeader from "../components/PageHeader";
 import ProfileForms from "./ProfileForms";
 import StaffIdCard from "./StaffIdCard";
 import { getSupabase } from "../../lib/db";
@@ -24,17 +24,21 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <h2 className="page-title">My profile</h2>
-      <p className="page-sub">
-        Staff ID <strong className="mono">{viewer.staffId}</strong> · {roleLabel(viewer.role)}
-      </p>
-      <ProfileForms initialName={viewer.name === viewer.staffId ? "" : viewer.name} />
-      <div id="staff-id" style={{ marginTop: 16 }}>
-        <StaffIdCard currentId={viewer.staffId} latest={latest} />
+      <PageHeader
+        title="My profile"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "My profile" }]}
+        sub={
+          <>
+            Staff ID <strong className="mono">{viewer.staffId}</strong> · {roleLabel(viewer.role)}
+          </>
+        }
+      />
+      <div className="stack">
+        <ProfileForms initialName={viewer.name === viewer.staffId ? "" : viewer.name} />
+        <div id="staff-id">
+          <StaffIdCard currentId={viewer.staffId} latest={latest} />
+        </div>
       </div>
-      <p style={{ marginTop: 20 }}>
-        <Link href="/">← Back to home</Link>
-      </p>
     </>
   );
 }

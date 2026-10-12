@@ -49,12 +49,12 @@ export default function ForgotForm() {
 
   const busy = state === "saving";
   return (
-    <form onSubmit={submit} className="pform" style={{ gap: 14 }}>
+    <form onSubmit={submit} className="pform pform--tight">
       <div className="pform-field">
         <label htmlFor="fp-staff">Staff ID</label>
         <input id="fp-staff" className="pform-input" value={staffId} onChange={(e) => setStaffId(e.target.value)} autoComplete="username" autoCapitalize="none" maxLength={12} disabled={busy} autoFocus />
       </div>
-      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", height: 0, overflow: "hidden" }}>
+      <div aria-hidden="true" className="hp">
         <label htmlFor="fp-web">Website</label>
         <input id="fp-web" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
       </div>

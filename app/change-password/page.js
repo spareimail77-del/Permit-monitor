@@ -11,7 +11,7 @@ export default async function ChangePasswordPage() {
   return (
     <div className="login-wrap">
       <div className="panel login-card">
-        <h2 className="page-title">Choose a new password</h2>
+        <h1 className="page-title">Choose a new password</h1>
         <p className="page-sub">
           Signed in as <strong className="mono">{viewer.staffId}</strong>. Enter the temporary password Root gave you, then a
           password of your own.

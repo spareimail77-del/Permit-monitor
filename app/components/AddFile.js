@@ -47,7 +47,7 @@ export default function AddFile({ permitId, certificateNames = [] }) {
   }
 
   return (
-    <form onSubmit={submit} className="pform" style={{ gap: 12 }}>
+    <form onSubmit={submit} className="pform pform--tight">
       <div className="pform-grid">
         <div className="pform-field">
           <label htmlFor="af-kind">Kind of document</label>

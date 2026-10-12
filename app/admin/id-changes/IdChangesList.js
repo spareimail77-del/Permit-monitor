@@ -42,7 +42,7 @@ export default function IdChangesList({ rows }) {
     <>
       {error && <div className="notice notice--danger">{error}</div>}
 
-      <h3 className="section-title">Waiting</h3>
+      <h2 className="section-title">Waiting</h2>
       <div className="panel table-wrap">
         {open.length === 0 ? (
           <p className="empty">Nothing waiting.</p>
@@ -83,7 +83,7 @@ export default function IdChangesList({ rows }) {
 
       {old.length > 0 && (
         <>
-          <h3 className="section-title">Decided (latest 100 requests)</h3>
+          <h2 className="section-title">Decided (latest 100 requests)</h2>
           <div className="panel table-wrap">
             <table className="table">
               <thead>

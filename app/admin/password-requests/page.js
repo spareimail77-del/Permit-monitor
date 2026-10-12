@@ -2,6 +2,7 @@ import { guardAdminPage } from "../../../lib/adminPage";
 import { getAdminCounts } from "../../../lib/adminCounts";
 import { omanDateTime } from "../../../lib/format";
 import AdminNav from "../../components/AdminNav";
+import PageHeader from "../../components/PageHeader";
 import KeyMissing from "../KeyMissing";
 import RequestsList from "./RequestsList";
 
@@ -35,11 +36,14 @@ export default async function PasswordRequestsPage() {
 
   return (
     <>
-      <h2 className="page-title">Password requests</h2>
-      <p className="page-sub">People who forgot their password. Set a temporary one and give it to them.</p>
+      <PageHeader
+        title="Password requests"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Admin", href: "/admin" }, { label: "Password requests" }]}
+        sub="People who forgot their password. Set a temporary one and give it to them."
+      />
       <AdminNav active="passwords" counts={counts} />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           Could not read the requests. Has <span className="mono">supabase/04-users-admin.sql</span> been run?
         </div>
       )}

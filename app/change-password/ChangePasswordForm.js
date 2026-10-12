@@ -37,7 +37,7 @@ export default function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="pform" style={{ gap: 14 }}>
+    <form onSubmit={submit} className="pform pform--tight">
       <div className="pform-field">
         <label htmlFor="cp-current">Temporary (current) password</label>
         <input id="cp-current" type="password" className="pform-input" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" maxLength={PASSWORD_MAX} autoFocus />

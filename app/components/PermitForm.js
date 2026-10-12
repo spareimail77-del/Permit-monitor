@@ -314,7 +314,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       )}
 
       <div className="panel pform-card">
-        <h3 className="pform-title">Permit</h3>
+        <h2 className="pform-title">Permit</h2>
         <div className="pform-grid">
           <Field name="reference" label="Permit control reference number" required error={errors.reference}>
             <input
@@ -356,7 +356,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       </div>
 
       <div className="panel pform-card">
-        <h3 className="pform-title">Validity</h3>
+        <h2 className="pform-title">Validity</h2>
         <div className="pform-grid">
           <Field name="validFrom" label="Valid from" required error={errors.validFrom}>
             <input
@@ -399,7 +399,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       </div>
 
       <div className="panel pform-card">
-        <h3 className="pform-title">Certificates</h3>
+        <h2 className="pform-title">Certificates</h2>
         <div className="pform-grid">
           <div className="pform-field pform-field--wide">
             <span className="pform-label">
@@ -464,7 +464,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       </div>
 
       <div className="panel pform-card">
-        <h3 className="pform-title">People</h3>
+        <h2 className="pform-title">People</h2>
         <div className="pform-grid">
           {dd("applicant", "applicant", { label: "Permit applicant", required: true })}
           {dd("holder", "holder", { label: "Permit holder", hint: "Can be filled in later." })}
@@ -485,7 +485,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
       {isEdit && (
         <div className="panel pform-card">
-          <h3 className="pform-title">Status</h3>
+          <h2 className="pform-title">Status</h2>
           <div className="pform-grid">
             <Field name="status" label="Status" error={errors.status}>
               <select
@@ -530,8 +530,8 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
       {!isEdit && (
       <div className="panel pform-card">
-        <h3 className="pform-title">Documents (optional)</h3>
-        <p className="pform-hint" style={{ marginBottom: 12 }}>
+        <h2 className="pform-title">Documents (optional)</h2>
+        <p className="pform-hint mb-3">
           PDF, JPEG or PNG, up to 10 MB each. You can also add documents later from the permit page.
         </p>
         <div className="file-grid">
@@ -584,8 +584,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
         ))}
         <button
           type="button"
-          className="btn btn-sm"
-          style={{ marginTop: 12 }}
+          className="btn btn-sm mt-3"
           disabled={disabled}
           onClick={() => setOthers((list) => [...list, { key: crypto.randomUUID(), label: "", file: null }])}
         >

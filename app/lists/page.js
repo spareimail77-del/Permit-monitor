@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import PageHeader from "../components/PageHeader";
 import ListsAdmin from "./ListsAdmin";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
@@ -22,13 +23,13 @@ export default async function ListsPage() {
 
   return (
     <>
-      <h2 className="page-title">Dropdown lists</h2>
-      <p className="page-sub">
-        The choices on the permit form. Values are saved in UPPER CASE. A value is never deleted, only hidden: old permits
-        keep it.
-      </p>
+      <PageHeader
+        title="Dropdown lists"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Dropdown lists" }]}
+        sub="The choices on the permit form. Values are saved in UPPER CASE. A value is never deleted, only hidden: old permits keep it."
+      />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The lists could not be read. Has <span className="mono">supabase/05-edit-delete-lists.sql</span> been run?
         </div>
       )}

@@ -43,8 +43,8 @@ export default function PermitActions({ permitId, reference, status }) {
   }
 
   return (
-    <div className="panel pform-card" style={{ marginBottom: 16 }}>
-      <h3 className="pform-title">Actions</h3>
+    <div className="panel pform-card">
+      <h2 className="pform-title">Actions</h2>
       <div className="row-actions">
         {status === "OPEN" && (
           <>
@@ -93,7 +93,7 @@ export default function PermitActions({ permitId, reference, status }) {
       </div>
 
       {panel === "cancel" && (
-        <div style={{ marginTop: 14 }} className="pform">
+        <div className="pform mt-3">
           <div className="pform-field">
             <label htmlFor="pa-reason">Reason for cancelling</label>
             <input id="pa-reason" className="pform-input" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} disabled={busy} />
@@ -109,7 +109,7 @@ export default function PermitActions({ permitId, reference, status }) {
         </div>
       )}
 
-      {message.text && <p className={message.error ? "error-text" : "pform-rec"} style={{ marginTop: 10 }}>{message.text}</p>}
+      {message.text && <p className={message.error ? "error-text mt-3" : "pform-rec mt-3"}>{message.text}</p>}
     </div>
   );
 }

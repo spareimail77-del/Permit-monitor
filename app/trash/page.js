@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import PageHeader from "../components/PageHeader";
 import TrashList from "./TrashList";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
@@ -39,16 +40,15 @@ export default async function TrashPage() {
 
   return (
     <>
-      <h2 className="page-title">Trash</h2>
-      <p className="page-sub">
-        Deleted permits wait here with their documents.{" "}
-        {viewer.canPurgeTrash
-          ? "Restore one, or delete it for good (Root only)."
-          : "Root or HSE can restore them; only Root can delete them for good."}{" "}
-        A trashed permit keeps its permit number reserved.
-      </p>
+      <PageHeader
+        title="Trash"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Trash" }]}
+        sub={`Deleted permits wait here with their documents. ${
+          viewer.canPurgeTrash ? "Restore one, or delete it for good (Root only)." : "Root or HSE can restore them; only Root can delete them for good."
+        } A trashed permit keeps its permit number reserved.`}
+      />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The trash could not be read. Has <span className="mono">supabase/06-trash.sql</span> been run?
         </div>
       )}

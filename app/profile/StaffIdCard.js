@@ -34,10 +34,10 @@ export default function StaffIdCard({ currentId, latest }) {
 
   return (
     <div className="panel pform-card">
-      <h3 className="pform-title">Staff ID</h3>
+      <h2 className="pform-title">Staff ID</h2>
       {open ? (
         <>
-          <p style={{ margin: "0 0 10px" }}>
+          <p className="mb-3">
             Your request to change <span className="mono">{currentId}</span> to <strong className="mono">{latest.newId}</strong> is
             waiting for Root. Until it is approved, keep signing in with <span className="mono">{currentId}</span>.
           </p>
@@ -53,7 +53,7 @@ export default function StaffIdCard({ currentId, latest }) {
           }}
         >
           {latest && (
-            <p className="pform-hint" style={{ marginBottom: 10 }}>
+            <p className="pform-hint mb-3">
               Your last request ({latest.oldId} → {latest.newId}) was {RESULT[latest.status] || latest.status}
               {latest.note ? `: ${latest.note}` : "."}
             </p>
@@ -69,14 +69,14 @@ export default function StaffIdCard({ currentId, latest }) {
               <input id="sid-why" className="pform-input" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} />
             </div>
           </div>
-          <div className="pform-actions" style={{ marginTop: 12 }}>
+          <div className="pform-actions mt-3">
             <button type="submit" className="btn btn-primary btn-sm" disabled={state.busy || newId.trim().length < 3}>
               {state.busy ? "Sending…" : "Ask to change my Staff ID"}
             </button>
           </div>
         </form>
       )}
-      {state.text && <p className={state.error ? "error-text" : "pform-rec"} style={{ marginTop: 10 }}>{state.text}</p>}
+      {state.text && <p className={state.error ? "error-text mt-3" : "pform-rec mt-3"}>{state.text}</p>}
     </div>
   );
 }

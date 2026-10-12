@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AddFile from "../../components/AddFile";
 import DeleteFileButton from "../../components/DeleteFileButton";
+import PageHeader from "../../components/PageHeader";
 import PermitActions from "../../components/PermitActions";
 import TrashActions from "../../components/TrashActions";
 import StatusBadge from "../../components/StatusBadge";
@@ -35,12 +36,15 @@ export default async function PermitPage({ params }) {
 
   if (!permit) {
     return (
-      <>
-        <h2 className="page-title">Permit not found</h2>
-        <p className="page-sub">
-          There is no permit with this link. <Link href="/permits">Back to the permit list</Link>
-        </p>
-      </>
+      <PageHeader
+        title="Permit not found"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Permits", href: "/permits" }, { label: "Not found" }]}
+        sub={
+          <>
+            There is no permit with this link. <Link href="/permits">Back to Permits</Link>
+          </>
+        }
+      />
     );
   }
 
@@ -71,13 +75,26 @@ export default async function PermitPage({ params }) {
 
   return (
     <>
-      <Link href="/permits" style={{ display: "inline-block", marginBottom: 12 }}>
-        ← Back to the permit list
-      </Link>
+      <PageHeader
+        title={
+          <>
+            Permit <span className="mono">{permit.reference}</span>
+          </>
+        }
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Permits", href: "/permits" }, { label: permit.reference }]}
+        badge={<StatusBadge status={status} showDetail />}
+        actions={
+          canManage && (
+            <Link href={`/permits/edit/${permit.id}`} className="btn btn-sm">
+              Edit permit
+            </Link>
+          )
+        }
+      />
       {trashed && (
         <>
           <TrashActions permitId={permit.id} reference={permit.reference} canPurge={Boolean(viewer?.canPurgeTrash)} />
-          <p className="pform-hint" style={{ margin: "-6px 0 14px" }}>
+          <p className="pform-hint mb-4">
             Deleted by <span className="mono">{permit.deleted_by || "—"}</span> on {omanDateTime(permit.deleted_at)} (Oman time).
           </p>
         </>
@@ -85,20 +102,10 @@ export default async function PermitPage({ params }) {
       {status.noValidTo && (
         <div className="notice">This open permit has no readable end date (Valid to), so its expiry cannot be worked out.</div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <h2 className="page-title" style={{ margin: 0 }}>
-          Permit <span className="mono">{permit.reference}</span>
-        </h2>
-        <StatusBadge status={status} showDetail />
-        {canManage && (
-          <Link href={`/permits/edit/${permit.id}`} className="btn btn-sm">
-            Edit permit
-          </Link>
-        )}
-      </div>
 
-      <div className="panel pform-card" style={{ marginBottom: 16 }}>
-        <h3 className="pform-title">Details</h3>
+      <div className="stack">
+      <div className="panel pform-card">
+        <h2 className="pform-title">Details</h2>
         <div className="detail-grid">
           <Detail label="Area" value={permit.area} />
           <Detail label="Location" value={permit.location} />
@@ -113,15 +120,15 @@ export default async function PermitPage({ params }) {
           {permit.status === "CLOSED" && <Detail label="Closed on" value={prettyDate(permit.closed_at)} />}
           {permit.status === "CANCELED" && <Detail label="Cancel reason" value={permit.cancel_reason} />}
         </div>
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3">
           <Detail label="Job description" value={permit.job_description} />
         </div>
       </div>
 
-      <div className="panel pform-card" style={{ marginBottom: 16 }}>
-        <h3 className="pform-title">Certificates</h3>
+      <div className="panel pform-card">
+        <h2 className="pform-title">Certificates</h2>
         {certificates.length === 0 ? (
-          <p className="pform-hint">None recorded.</p>
+          <p className="empty empty--compact">None recorded.</p>
         ) : (
           <ul className="file-list">
             {certificates.map((c) => (
@@ -131,7 +138,7 @@ export default async function PermitPage({ params }) {
                 </span>
                 <span>
                   {fileFor(c).map((f) => (
-                    <span key={f.id} style={{ marginLeft: 12 }}>
+                    <span key={f.id} className="file-item">
                       <FileLink f={f} /> <span className="pform-hint">{formatBytes(f.size_bytes)}</span>
                       {canManage && <DeleteFileButton permitId={permit.id} fileId={f.id} fileName={f.file_name} />}
                     </span>
@@ -143,10 +150,10 @@ export default async function PermitPage({ params }) {
         )}
       </div>
 
-      <div className="panel pform-card" style={{ marginBottom: 16 }}>
-        <h3 className="pform-title">Documents</h3>
+      <div className="panel pform-card">
+        <h2 className="pform-title">Documents</h2>
         {generalFiles.length === 0 ? (
-          <p className="pform-hint">No documents yet.</p>
+          <p className="empty empty--compact">No documents yet.</p>
         ) : (
           <ul className="file-list">
             {generalFiles.map((f) => (
@@ -169,10 +176,11 @@ export default async function PermitPage({ params }) {
 
       {canManage && (
         <div className="panel pform-card">
-          <h3 className="pform-title">Add a document</h3>
+          <h2 className="pform-title">Add a document</h2>
           <AddFile permitId={permit.id} certificateNames={certificateNames} />
         </div>
       )}
+      </div>
     </>
   );
 }

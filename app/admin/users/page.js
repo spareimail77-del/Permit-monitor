@@ -2,6 +2,7 @@ import { guardAdminPage } from "../../../lib/adminPage";
 import { getAdminCounts } from "../../../lib/adminCounts";
 import { omanDateTime } from "../../../lib/format";
 import AdminNav from "../../components/AdminNav";
+import PageHeader from "../../components/PageHeader";
 import KeyMissing from "../KeyMissing";
 import UsersList from "./UsersList";
 
@@ -28,11 +29,14 @@ export default async function UsersPage() {
 
   return (
     <>
-      <h2 className="page-title">Users</h2>
-      <p className="page-sub">Accounts waiting for approval come first.</p>
+      <PageHeader
+        title="Users"
+        crumbs={[{ label: "Dashboard", href: "/" }, { label: "Admin", href: "/admin" }, { label: "Users" }]}
+        sub="Accounts waiting for approval come first."
+      />
       <AdminNav active="users" counts={counts} />
       {error && (
-        <div className="notice">
+        <div className="notice notice--danger">
           The users could not be read. Has <span className="mono">supabase/04-users-admin.sql</span> been run?
         </div>
       )}

@@ -57,7 +57,7 @@ export default function RegisterForm() {
 
   const busy = state === "saving";
   return (
-    <form onSubmit={submit} className="pform" style={{ gap: 14 }}>
+    <form onSubmit={submit} className="pform pform--tight">
       <div className="pform-field">
         <label htmlFor="rg-staff">Staff ID</label>
         <input id="rg-staff" className="pform-input" value={staffId} onChange={(e) => setStaffId(e.target.value)} autoComplete="username" autoCapitalize="none" maxLength={12} disabled={busy} autoFocus />
@@ -77,7 +77,7 @@ export default function RegisterForm() {
         <input id="rg-again" type="password" className="pform-input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" maxLength={PASSWORD_MAX} disabled={busy} />
       </div>
       {/* Bot trap: hidden from people. */}
-      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", height: 0, overflow: "hidden" }}>
+      <div aria-hidden="true" className="hp">
         <label htmlFor="rg-web">Website</label>
         <input id="rg-web" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
       </div>

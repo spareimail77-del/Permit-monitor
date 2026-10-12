@@ -8,13 +8,13 @@ function ListCard({ list, items, busy, onAdd, onToggle }) {
   const [text, setText] = useState("");
   return (
     <div className="panel pform-card">
-      <h3 className="pform-title">{list.label}</h3>
+      <h2 className="pform-title">{list.label}</h2>
       {items.length === 0 ? (
-        <p className="pform-hint">No values yet.</p>
+        <p className="empty empty--compact">No values yet.</p>
       ) : (
-        <ul className="file-list" style={{ marginBottom: 12 }}>
+        <ul className="file-list mb-3">
           {items.map((it) => (
-            <li key={it.id} style={it.active ? undefined : { opacity: 0.6 }}>
+            <li key={it.id} className={it.active ? undefined : "is-muted"}>
               <span>
                 {it.value} {!it.active && <span className="badge">hidden</span>}
               </span>
@@ -32,7 +32,7 @@ function ListCard({ list, items, busy, onAdd, onToggle }) {
           if (await onAdd(list.key, text)) setText("");
         }}
       >
-        <input className="pform-input" style={{ flex: "1 1 200px", width: "auto" }} placeholder="Add a value" value={text} onChange={(e) => setText(e.target.value)} maxLength={80} disabled={busy} />
+        <input className="pform-input input-grow" placeholder="Add a value" value={text} onChange={(e) => setText(e.target.value)} maxLength={80} disabled={busy} />
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !text.trim()}>
           Add
         </button>

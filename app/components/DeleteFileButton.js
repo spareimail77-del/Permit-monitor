@@ -30,11 +30,11 @@ export default function DeleteFileButton({ permitId, fileId, fileName }) {
   }
 
   return (
-    <span style={{ marginLeft: 10 }}>
-      <button type="button" className="pform-link" style={{ color: "var(--danger)" }} onClick={remove} disabled={busy}>
+    <span className="inline-action">
+      <button type="button" className="pform-link pform-link--danger" onClick={remove} disabled={busy}>
         {busy ? "Deleting…" : "Delete"}
       </button>
-      {error && <span className="error-text" style={{ marginLeft: 8, fontSize: 12 }}>{error}</span>}
+      {error && <span className="error-text error-text--sm ml-2">{error}</span>}
     </span>
   );
 }

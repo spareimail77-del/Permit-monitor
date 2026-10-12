@@ -207,6 +207,22 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
 .page { max-width: var(--page-max); margin: 0 auto; padding: var(--sp-5) var(--sp-5) var(--sp-7); }
 .page-title { font-size: var(--fs-xl); line-height: var(--lh-tight); margin-bottom: var(--sp-1); }
 .page-sub { margin: 0 0 var(--sp-5); color: var(--ink-muted); }
+
+.page-head { margin-bottom: var(--sp-5); }
+.page-head__row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.page-head__text { min-width: 0; }
+.page-head__title { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.page-head .page-title { margin: 0; }
+.page-head .page-sub { margin: var(--sp-1) 0 0; }
+.page-head__actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.crumbs { margin-bottom: var(--sp-2); font-size: var(--fs-sm); }
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); list-style: none; margin: 0; padding: 0; }
+.crumbs li { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--ink-muted); }
+.crumbs li + li::before { content: "›"; color: var(--ink-muted); }
+.crumbs a { color: var(--ink-muted); text-decoration: none; }
+.crumbs a:hover { color: var(--link); text-decoration: underline; }
+.crumbs [aria-current="page"] { color: var(--ink); font-weight: 600; }
+
 .section-title { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-3); }
 
 .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); }
@@ -273,8 +289,9 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-4); }
 .home-card { padding: 22px var(--sp-5); text-decoration: none; color: inherit; display: block; transition: border-color var(--ease); }
 .home-card:hover { border-color: var(--brand); }
-.home-card h3 { font-size: var(--fs-md); margin-bottom: 6px; color: var(--link); }
+.home-card h2 { font-size: var(--fs-md); margin-bottom: 6px; color: var(--link); }
 .home-card p { margin: 0; color: var(--ink-muted); font-size: var(--fs-base); }
+.home-card .home-card__waiting { margin-top: var(--sp-2); color: var(--danger); font-weight: 700; }
 
 /* ---- validity, documents, permit page ------------------------------------- */
 .cert-row { border: 1px solid var(--rule); border-radius: 8px; padding: var(--sp-3) 14px; background: var(--surface-2); }
@@ -360,6 +377,32 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .bar-track { background: var(--surface-2); border-radius: var(--radius-pill); height: 10px; overflow: hidden; display: block; }
 .bar-fill { display: block; height: 100%; background: var(--brand); border-radius: var(--radius-pill); }
 .bar-n { font-weight: 700; min-width: 20px; text-align: right; }
+
+/* ---- layout helpers and small variants ---------------------------------------- */
+.stack { display: grid; gap: var(--sp-4); }
+.pform--tight { gap: var(--sp-3); }
+.notice--stack { display: grid; gap: var(--sp-3); }
+.notice--stack p { margin: 0; }
+.empty--compact { padding: var(--sp-2) 0; text-align: left; }
+.card-foot { margin: var(--sp-3) 0 0; }
+.filter-note { margin: calc(-1 * var(--sp-2)) 0 var(--sp-3); }
+.file-item { margin-left: var(--sp-3); }
+.inline-action { margin-left: var(--sp-2); }
+.pform-link--danger { color: var(--danger); }
+.error-text--sm { font-size: var(--fs-xs); }
+.select-inline { width: auto; padding: 5px var(--sp-2); }
+.input-grow { flex: 1 1 200px; width: auto; }
+.is-muted { opacity: 0.6; }
+.hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+.auth-brand { margin: 0; color: var(--brand); font-size: var(--fs-xs); font-weight: 700; }
+.auth-links { display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+
+.mt-2 { margin-top: var(--sp-2); }
+.mt-3 { margin-top: var(--sp-3); }
+.mt-4 { margin-top: var(--sp-4); }
+.mb-3 { margin-bottom: var(--sp-3); }
+.mb-4 { margin-bottom: var(--sp-4); }
+.ml-2 { margin-left: var(--sp-2); }
 
 /* ---- small screens ------------------------------------------------------------ */
 @media (max-width: 720px) {

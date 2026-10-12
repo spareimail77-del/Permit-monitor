@@ -16,12 +16,12 @@ export default function TempPasswordNotice({ staffId, password, onClose }) {
   }
 
   return (
-    <div className="notice notice--ok temp-pass">
-      <p style={{ margin: "0 0 6px" }}>
+    <div className="notice notice--ok temp-pass notice--stack">
+      <p>
         Temporary password for <strong className="mono">{staffId}</strong>. It is shown only now. Give it to the person; they
         must choose a new password at their next sign-in.
       </p>
-      <p style={{ margin: "0 0 10px" }}>
+      <p>
         <span className="temp-pass__value mono">{password}</span>
       </p>
       <div className="pform-actions">

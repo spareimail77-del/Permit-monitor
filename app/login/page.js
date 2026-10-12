@@ -13,14 +13,14 @@ export default function LoginPage({ searchParams }) {
   return (
     <div className="login-wrap">
       <div className="panel login-card">
-        <p className="site-title__small" style={{ color: "var(--brand)" }}>
+        <p className="auth-brand">
           SWWS — Salalah
         </p>
-        <h2 className="page-title">HSE Permits</h2>
+        <h1 className="page-title">HSE Permits</h1>
         <p className="page-sub">Sign in with your Staff ID.</p>
         {reason && <div className="notice">{reason}</div>}
         <LoginForm next={searchParams?.next || "/"} />
-        <p className="pform-hint" style={{ marginTop: 16, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <p className="pform-hint auth-links">
           <Link href="/register">Request an account</Link>
           <Link href="/forgot-password">Forgot password?</Link>
         </p>

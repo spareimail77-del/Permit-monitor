@@ -2,6 +2,7 @@ import Link from "next/link";
 import { guardAdminPage } from "../../lib/adminPage";
 import { getAdminCounts } from "../../lib/adminCounts";
 import CountsSync from "../components/CountsSync";
+import PageHeader from "../components/PageHeader";
 import KeyMissing from "./KeyMissing";
 
 export const dynamic = "force-dynamic";
@@ -20,15 +21,14 @@ export default async function AdminHome() {
   return (
     <>
       <CountsSync counts={c} />
-      <h2 className="page-title">Admin</h2>
-      <p className="page-sub">Root only.</p>
+      <PageHeader title="Admin" crumbs={[{ label: "Dashboard", href: "/" }, { label: "Admin" }]} sub="Root only." />
       <div className="home-grid">
         {cards.map((card) => (
           <Link key={card.href} href={card.href} className="panel home-card">
-            <h3>{card.title}</h3>
+            <h2>{card.title}</h2>
             <p>{card.text}</p>
             {card.n > 0 && (
-              <p style={{ marginTop: 8, color: "var(--danger)", fontWeight: 700 }}>
+              <p className="home-card__waiting">
                 {card.n} {card.waiting}
               </p>
             )}
