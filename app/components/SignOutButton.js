@@ -20,8 +20,13 @@ export default function SignOutButton() {
   }
 
   return (
-    <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={signOut} disabled={busy}>
-      {busy ? "Signing out…" : "Sign out"}
+    <button type="button" role="menuitem" tabIndex={-1} className="menu-item menu-item--danger" onClick={signOut} disabled={busy}>
+      <span className="menu-item__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" />
+        </svg>
+      </span>
+      <span className="menu-item__text">{busy ? "Signing out…" : "Sign out"}</span>
     </button>
   );
 }

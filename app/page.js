@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getSupabase } from "../lib/db";
-import { getViewer } from "../lib/viewer";
 import { todayOman } from "../lib/omanDate";
 import { STATUS_KEYS, STATUS_TEXT, addDays, computeStatus, isActiveKey } from "../lib/status";
 import PageHeader from "./components/PageHeader";
@@ -13,6 +12,17 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const listLink = (params) => `/permits?${new URLSearchParams(params).toString()}`;
 
 // The 5 statuses, with the donut colours (the same names as the badge classes).
+const Arrow = ({ className = "" }) => (
+  <svg className={`arrow ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+const AlertIcon = () => (
+  <svg className="alert-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3l10 18H2L12 3zM12 10v5M12 18h.01" />
+  </svg>
+);
+
 const DONUT_R = 54;
 const DONUT_C = 2 * Math.PI * DONUT_R;
 
@@ -26,18 +36,21 @@ function Donut({ counts, total }) {
           const len = (counts[key] / total) * DONUT_C;
           if (len <= 0) return null;
           const el = (
-            <circle
-              key={key}
-              cx="70"
-              cy="70"
-              r={DONUT_R}
-              fill="none"
-              strokeWidth="22"
-              className={`seg seg--${key}`}
-              strokeDasharray={`${len} ${DONUT_C - len}`}
-              strokeDashoffset={-offset}
-              transform="rotate(-90 70 70)"
-            />
+            <Link key={key} href={listLink({ status: key.toLowerCase() })} aria-label={`${STATUS_TEXT[key]}: ${counts[key]}`}>
+              <circle
+                cx="70"
+                cy="70"
+                r={DONUT_R}
+                fill="none"
+                strokeWidth="22"
+                className={`seg seg--${key}`}
+                strokeDasharray={`${len} ${DONUT_C - len}`}
+                strokeDashoffset={-offset}
+                transform="rotate(-90 70 70)"
+              >
+                <title>{`${STATUS_TEXT[key]}: ${counts[key]}`}</title>
+              </circle>
+            </Link>
           );
           offset += len;
           return el;
@@ -58,6 +71,7 @@ function StatCard({ href, n, label, sub, tone }) {
       <span className="stat-card__n">{n}</span>
       <span className="stat-card__l">{label}</span>
       {sub && <span className="stat-card__sub">{sub}</span>}
+      <Arrow className="stat-card__go" />
     </Link>
   );
 }
@@ -72,8 +86,8 @@ function Attention({ title, rows, allHref, empty }) {
         <>
           <ul className="attn-list">
             {rows.slice(0, 8).map((r) => (
-              <li key={r.id}>
-                <Link href={`/permits/${r.id}`} className="mono">
+              <li key={r.id} className="attn-row">
+                <Link href={`/permits/${r.id}`} className="attn-link mono" aria-label={`Open permit ${r.reference}`}>
                   {r.reference}
                 </Link>
                 <span className="attn-where">
@@ -81,12 +95,15 @@ function Attention({ title, rows, allHref, empty }) {
                   {r.holder ? ` · ${r.holder}` : ""}
                 </span>
                 <span className={r.st.key === "OVERDUE" ? "status-detail status-detail--bad" : "status-detail"}>{r.st.detail}</span>
+                <Arrow className="row-go" />
               </li>
             ))}
           </ul>
           {rows.length > 8 && (
             <p className="card-foot">
-              <Link href={allHref}>See all {rows.length} →</Link>
+              <Link href={allHref} className="more-link">
+                See all {rows.length} <Arrow />
+              </Link>
             </p>
           )}
         </>
@@ -105,8 +122,8 @@ function Bars({ title, items, field }) {
       ) : (
         <ul className="bars">
           {items.map((i) => (
-            <li key={i.label}>
-              <Link href={listLink({ status: "active", [field]: i.label })} className="bar-label" title={i.label}>
+            <li key={i.label} className="bar-row">
+              <Link href={listLink({ status: "active", [field]: i.label })} className="bar-label" title={`${i.label}: ${i.n} active`}>
                 {i.label}
               </Link>
               <span className="bar-track">
@@ -134,7 +151,6 @@ function top(permits, getter, n = 8) {
 }
 
 export default async function Home() {
-  const viewer = await getViewer();
   const today = todayOman();
 
   const rows = [];
@@ -183,18 +199,6 @@ export default async function Home() {
       <PageHeader
         title="Dashboard"
         sub={`Data as of ${fmt(today)} (Oman time)`}
-        actions={
-          <>
-            {viewer?.canManagePermits && (
-              <Link href="/permits/new" className="btn btn-primary">
-                + New permit
-              </Link>
-            )}
-            <Link href="/permits" className="btn">
-              Permits
-            </Link>
-          </>
-        }
       />
 
       {failed && (
@@ -205,10 +209,15 @@ export default async function Home() {
       )}
 
       {counts.OVERDUE > 0 && (
-        <div className="notice notice--danger">
-          <strong>{plural(counts.OVERDUE, "permit")} overdue.</strong> The oldest ended {plural(oldest, "day")} ago.{" "}
-          <Link href={listLink({ status: "overdue" })}>Show them →</Link>
-        </div>
+        <Link href={listLink({ status: "overdue" })} className="notice notice--danger alert-banner">
+          <AlertIcon />
+          <span className="alert-banner__text">
+            <strong>{plural(counts.OVERDUE, "permit")} overdue.</strong> The oldest ended {plural(oldest, "day")} ago.
+          </span>
+          <span className="alert-banner__cta">
+            Show them <Arrow />
+          </span>
+        </Link>
       )}
 
       <div className="stat-grid">
@@ -235,7 +244,7 @@ export default async function Home() {
             <ul className="legend">
               {STATUS_KEYS.map((k) => (
                 <li key={k}>
-                  <Link href={listLink({ status: k.toLowerCase() })}>
+                  <Link href={listLink({ status: k.toLowerCase() })} data-k={k}>
                     <span className={`dot dot--${k}`} />
                     {STATUS_TEXT[k]}
                     <strong>{counts[k]}</strong>
@@ -248,11 +257,11 @@ export default async function Home() {
 
         <div className="panel pform-card">
           <h2 className="pform-title">Ending in the next 14 days</h2>
-          <div className="forecast" role="img" aria-label="Permits ending per day">
+          <div className="forecast" role="group" aria-label="Permits ending per day">
             {forecast.map((x, i) => (
-              <div key={x.d} className="forecast__col" title={`${fmt(x.d)}: ${x.n}`}>
+              <div key={x.d} className="forecast__col" data-tip={`${fmt(x.d)} · ${plural(x.n, "permit")}`} tabIndex={0}>
                 <span className="forecast__n">{x.n || ""}</span>
-                <span className={`forecast__bar${i === 0 ? " is-today" : ""}`} style={{ height: `${x.n ? Math.max(6, (x.n / fMax) * 90) : 2}px` }} />
+                <span className={`forecast__bar${i === 0 ? " is-today" : ""}`} style={{ height: `${x.n ? Math.max(6, (x.n / fMax) * 90) : 3}px` }} />
                 <span className="forecast__d">{x.d.slice(8, 10)}</span>
               </div>
             ))}
@@ -270,7 +279,7 @@ export default async function Home() {
       </div>
 
       <h2 className="section-title">Active permits by…</h2>
-      <div className="dash-grid">
+      <div className="dash-grid dash-grid--4">
         <Bars title="Area" items={top(activePermits, (p) => p.area)} field="area" />
         <Bars title="Type of permit" items={top(activePermits, (p) => p.permit_type)} field="type" />
         <Bars title="Applicant" items={top(activePermits, (p) => p.applicant)} field="applicant" />

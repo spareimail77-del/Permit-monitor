@@ -14,6 +14,21 @@ function initialsOf(name, staffId) {
   return text.toUpperCase();
 }
 
+const svg = (d) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+const ICONS = {
+  user: svg("M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"),
+  users: svg("M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 3.5a4 4 0 0 1 0 7M22 21a7 7 0 0 0-4-6.3"),
+  key: svg("M15 7a4 4 0 1 1-3.5 6L3 21v-3l2-2v-2h2l3.5-3.5A4 4 0 0 1 15 7zM16.5 8h.01"),
+  id: svg("M3 5h18v14H3zM8 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 16a3 3 0 0 1 6 0M14 9h4M14 13h4"),
+  list: svg("M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"),
+  trash: svg("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"),
+  download: svg("M12 4v12M7 11l5 5 5-5M4 20h16"),
+};
+
 function ago(ts) {
   const m = Math.round((Date.now() - ts) / 60000);
   if (m < 1) return "just now";
@@ -96,9 +111,10 @@ export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, 
   }
 
   const close = () => setOpen(false);
-  const item = (href, text, count) => (
+  const item = (href, text, icon, count) => (
     <Link key={href} href={href} role="menuitem" tabIndex={-1} className="menu-item" onClick={close}>
-      {text}
+      <span className="menu-item__icon">{ICONS[icon]}</span>
+      <span className="menu-item__text">{text}</span>
       {count > 0 && (
         <>
           <span className="menu-count" aria-hidden="true">{count}</span>
@@ -108,78 +124,86 @@ export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, 
     </Link>
   );
 
-  let refreshText = "Refresh counts";
-  let refreshHint = checkedAt ? `checked ${ago(checkedAt)}` : "";
-  if (state === "loading") {
-    refreshText = "Checking…";
-    refreshHint = "";
-  } else if (state === "failed") {
-    refreshText = "Could not refresh. Try again";
-  }
+  let refreshLabel = checkedAt ? `Refresh counts (checked ${ago(checkedAt)})` : "Refresh counts";
+  if (state === "loading") refreshLabel = "Checking…";
+  else if (state === "failed") refreshLabel = "Could not refresh. Try again";
+
+  const firstName = String(name || staffId || "").trim().split(/\s+/)[0];
 
   return (
     <div className="usermenu" ref={wrapRef} onKeyDown={onKeyDown}>
       <button
         type="button"
         ref={buttonRef}
-        className="avatar"
+        className="userchip"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Account menu for ${name}${waiting > 0 ? `, ${waiting} waiting` : ""}`}
         onClick={() => setOpen((v) => !v)}
       >
-        {initialsOf(name, staffId)}
-        {waiting > 0 && <span className="avatar__dot" aria-hidden="true" />}
+        <span className="avatar" aria-hidden="true">
+          {initialsOf(name, staffId)}
+          {waiting > 0 && <span className="avatar__dot" />}
+        </span>
+        <span className="userchip__text">
+          <span className="userchip__name">{firstName}</span>
+          <span className="userchip__role">{roleText}</span>
+        </span>
+        <svg className="userchip__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </button>
 
       {open && (
         <div className="usermenu__panel">
           <div className="usermenu__head">
-            <div className="usermenu__name">{name}</div>
-            <div className="usermenu__meta">
-              Staff ID <span className="mono">{staffId}</span>
+            <span className="avatar avatar--lg" aria-hidden="true">{initialsOf(name, staffId)}</span>
+            <div className="usermenu__who">
+              <div className="usermenu__name">{name}</div>
+              <div className="usermenu__meta">
+                ID <span className="mono">{staffId}</span> · {roleText}
+              </div>
             </div>
-            <span className="usermenu__role">{roleText}</span>
           </div>
 
           <div role="menu" aria-label="Account" ref={menuRef}>
             <div className="menu-group">
-              {item("/profile", "My profile")}
-              {item("/profile#change-password", "Change password")}
-              {item("/profile#staff-id", "Request Staff ID change")}
+              {item("/profile", "My profile", "user")}
               <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={toggle}>
                 <span className="menu-item__icon">
                   <ThemeIcon theme={theme} />
                 </span>
-                {themeLabel}
+                <span className="menu-item__text">{themeLabel}</span>
               </button>
             </div>
 
             {canAdmin && (
               <div className="menu-group" role="group" aria-labelledby="um-admin">
                 <div className="menu-heading" id="um-admin">
-                  Admin
+                  <span>Admin</span>
+                  <button type="button" role="menuitem" tabIndex={-1} className="menu-refresh" onClick={refresh} disabled={state === "loading"} aria-label={refreshLabel} title={refreshLabel} data-state={state}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 11A8 8 0 0 0 5.6 6.3L4 8M4 4v4h4M4 13a8 8 0 0 0 14.4 4.7L20 16M20 20v-4h-4" />
+                    </svg>
+                  </button>
                 </div>
-                {item("/admin/users", "Users", n.pendingUsers)}
-                {item("/admin/password-requests", "Password requests", n.passwordRequests)}
-                {item("/admin/id-changes", "Staff ID changes", n.idChanges)}
-                <button type="button" role="menuitem" tabIndex={-1} className="menu-item menu-item--quiet" onClick={refresh} disabled={state === "loading"}>
-                  {refreshText}
-                  {refreshHint && <span className="menu-item__hint">{refreshHint}</span>}
-                </button>
+                {item("/admin/users", "Users", "users", n.pendingUsers)}
+                {item("/admin/password-requests", "Password requests", "key", n.passwordRequests)}
+                {item("/admin/id-changes", "Staff ID changes", "id", n.idChanges)}
               </div>
             )}
 
             {canManage && (
               <div className="menu-group" role="group" aria-labelledby="um-manage">
                 <div className="menu-heading" id="um-manage">
-                  Manage
+                  <span>Manage</span>
                 </div>
-                {canLists && item("/lists", "Dropdown lists")}
-                {canTrash && item("/trash", "Trash")}
+                {canLists && item("/lists", "Dropdown lists", "list")}
+                {canTrash && item("/trash", "Trash", "trash")}
                 {canExport && (
                   <a href="/api/export" role="menuitem" tabIndex={-1} className="menu-item" onClick={close}>
-                    Export to Excel
+                    <span className="menu-item__icon">{ICONS.download}</span>
+                    <span className="menu-item__text">Export to Excel</span>
                   </a>
                 )}
               </div>
