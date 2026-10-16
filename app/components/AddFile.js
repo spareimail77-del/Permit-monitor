@@ -17,12 +17,18 @@ export default function AddFile({ permitId, certificateNames = [] }) {
   const [state, setState] = useState("idle"); // idle | saving
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [over, setOver] = useState(false);
 
   const kinds = Object.entries(FILE_KINDS).filter(([k]) => k !== "certificate" || certificateNames.length > 0);
 
   function say(text, error) {
     setMessage(text);
     setIsError(error);
+  }
+
+  function pick(f) {
+    setFile(f);
+    say(f ? fileProblem(f) || "" : "", Boolean(f && fileProblem(f)));
   }
 
   async function submit(e) {
@@ -92,7 +98,6 @@ export default function AddFile({ permitId, certificateNames = [] }) {
       </div>
 
       <div className="file-slot">
-        <span className="file-slot__label">File (PDF, JPEG or PNG, up to 10 MB)</span>
         {file ? (
           <span className="file-slot__chosen">
             <span className="file-slot__name">{file.name}</span>
@@ -102,17 +107,38 @@ export default function AddFile({ permitId, certificateNames = [] }) {
             </button>
           </span>
         ) : (
-          <input
-            type="file"
-            accept={FILE_ACCEPT}
-            disabled={state === "saving"}
-            onChange={(e) => {
-              const f = e.target.files?.[0] || null;
-              e.target.value = "";
-              setFile(f);
-              say(f ? fileProblem(f) || "" : "", Boolean(f && fileProblem(f)));
+          <label
+            className={`dropzone${over ? " is-over" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setOver(true);
             }}
-          />
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setOver(false);
+              if (state !== "saving") pick(e.dataTransfer.files?.[0] || null);
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
+            </svg>
+            <span>
+              <strong>Choose a file</strong> or drop it here
+            </span>
+            <span className="pform-hint">PDF, JPEG or PNG, up to 10 MB</span>
+            <input
+              type="file"
+              className="sr-only"
+              accept={FILE_ACCEPT}
+              disabled={state === "saving"}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                e.target.value = "";
+                pick(f);
+              }}
+            />
+          </label>
         )}
       </div>
 
