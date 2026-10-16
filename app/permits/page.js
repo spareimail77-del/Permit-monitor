@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
+import FilterBar from "../components/FilterBar";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
 import { todayOman } from "../../lib/omanDate";
@@ -72,11 +73,6 @@ export default async function PermitsPage({ searchParams }) {
                 Export to Excel ({rows.length})
               </a>
             )}
-            {viewer?.canManagePermits && (
-              <Link href="/permits/new" className="btn btn-primary">
-                + New permit
-              </Link>
-            )}
           </>
         }
       />
@@ -95,56 +91,23 @@ export default async function PermitsPage({ searchParams }) {
         </div>
       )}
 
-      <form method="get" action="/permits" className="panel filter-bar">
-        <input name="q" className="pform-input" defaultValue={f.q} placeholder="Search number, location, applicant, holder" aria-label="Search" />
-        <select name="status" className="pform-input" defaultValue={f.status} aria-label="Status">
-          <option value="">All statuses</option>
-          {STATUS_FILTERS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <select name="area" className="pform-input" defaultValue={f.area} aria-label="Area">
-          <option value="">All areas</option>
-          {areas.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-        <select name="type" className="pform-input" defaultValue={f.type} aria-label="Type of permit">
-          <option value="">All types</option>
-          {types.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        {f.applicant && <input type="hidden" name="applicant" value={f.applicant} />}
-        {f.holder && <input type="hidden" name="holder" value={f.holder} />}
-        <button type="submit" className="btn btn-primary btn-sm">
-          Apply
-        </button>
-        {filtered && (
-          <Link href="/permits" className="btn btn-sm">
-            Clear
-          </Link>
-        )}
-      </form>
-      {(f.applicant || f.holder) && (
-        <p className="pform-hint filter-note">
-          {f.applicant && <>Applicant = <strong>{f.applicant}</strong> </>}
-          {f.holder && <>Holder = <strong>{f.holder}</strong> </>}
-          (use Clear to remove)
-        </p>
-      )}
+      <FilterBar initial={f} statusOptions={STATUS_FILTERS} areas={areas} types={types} />
 
       <div className="panel table-wrap">
         {rows.length === 0 ? (
-          <p className="empty">{permits.length === 0 ? "No permits yet." : "No permit matches these filters."}</p>
+          <div className="empty empty--rich">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M7 3h8l4 4v14H7zM15 3v4h4M10 13h6M10 17h4" />
+            </svg>
+            <p>{permits.length === 0 ? "No permits yet." : "No permit matches these filters."}</p>
+            {filtered && (
+              <Link href="/permits" className="btn btn-sm">
+                Clear filters
+              </Link>
+            )}
+          </div>
         ) : (
-          <table className="table">
+          <table className="table table--rows table--cards">
             <thead>
               <tr>
                 <th>Permit no.</th>
@@ -160,18 +123,20 @@ export default async function PermitsPage({ searchParams }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="mono">
-                    <Link href={`/permits/${r.id}`}>{r.reference}</Link>
+                <tr key={r.id} className={`row-link row-link--${r.st.key}`}>
+                  <td className="mono" data-label="Permit no.">
+                    <Link href={`/permits/${r.id}`} className="row-link__a" aria-label={`Open permit ${r.reference}`}>
+                      {r.reference}
+                    </Link>
                   </td>
-                  <td>{r.area || "—"}</td>
-                  <td>{r.location || "—"}</td>
-                  <td>{r.permit_type || "—"}</td>
-                  <td>{r.applicant || "—"}</td>
-                  <td>{r.holder || "—"}</td>
-                  <td className="mono">{fmt(r.valid_from)}</td>
-                  <td className="mono">{fmt(r.valid_to)}</td>
-                  <td>
+                  <td data-label="Area">{r.area || "—"}</td>
+                  <td data-label="Location">{r.location || "—"}</td>
+                  <td data-label="Type">{r.permit_type || "—"}</td>
+                  <td data-label="Applicant">{r.applicant || "—"}</td>
+                  <td data-label="Holder">{r.holder || "—"}</td>
+                  <td className="mono" data-label="From">{fmt(r.valid_from)}</td>
+                  <td className="mono" data-label="To">{fmt(r.valid_to)}</td>
+                  <td data-label="Status">
                     <StatusBadge status={r.st} showDetail />
                   </td>
                 </tr>
