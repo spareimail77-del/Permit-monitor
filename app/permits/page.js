@@ -6,7 +6,8 @@ import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
 import { todayOman } from "../../lib/omanDate";
 import { STATUS_FILTERS, computeStatus } from "../../lib/status";
-import { filterPermits, filtersToQuery, hasFilters, parseFilters } from "../../lib/permitFilters";
+import { filterPermits, filtersToQuery, hasFilters, monthLabel, monthOf, parseFilters } from "../../lib/permitFilters";
+import { describeFiles, fetchFileSummary, missingDocs, withFiles } from "../../lib/permitFiles";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,43 @@ function fmt(iso) {
 }
 
 const one = (v) => (Array.isArray(v) ? v[0] : v) ?? "";
+
+// Sortable columns: header text, and how to read the value to compare.
+const STATUS_ORDER = { OVERDUE: 0, EXPIRING: 1, OPEN: 2, CLOSED: 3, CANCELED: 4, OTHER: 5 };
+const COLUMNS = [
+  { key: "reference", label: "Permit no.", get: (r) => r.reference },
+  { key: "area", label: "Area", get: (r) => r.area },
+  { key: "location", label: "Location", get: (r) => r.location },
+  { key: "type", label: "Type", get: (r) => r.permit_type },
+  { key: "applicant", label: "Applicant", get: (r) => r.applicant },
+  { key: "holder", label: "Holder", get: (r) => r.holder },
+  { key: "from", label: "From", get: (r) => r.valid_from },
+  { key: "to", label: "To", get: (r) => r.valid_to },
+  { key: "files", label: "Files", get: (r) => r.fileCount, numeric: true },
+  { key: "status", label: "Status", get: (r) => STATUS_ORDER[r.st.key] ?? 9 },
+];
+
+function sortRows(rows, sort, dir) {
+  const col = COLUMNS.find((c) => c.key === sort);
+  if (!col) return rows;
+  const sign = dir === "desc" ? -1 : 1;
+  const blank = (v) => v === null || v === undefined || v === "";
+  return [...rows].sort((a, b) => {
+    const x = col.get(a);
+    const y = col.get(b);
+    if (blank(x) && blank(y)) return 0;
+    if (blank(x)) return 1; // empty values always last
+    if (blank(y)) return -1;
+    const c = typeof x === "number" ? x - y : String(x).localeCompare(String(y), "en", { sensitivity: "base", numeric: true });
+    return c * sign;
+  });
+}
+
+const Clip = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 11.5l-8.5 8.5a5.5 5.5 0 01-7.8-7.8l8.5-8.5a3.7 3.7 0 015.2 5.2l-8.5 8.5a1.8 1.8 0 01-2.6-2.6l7.8-7.8" />
+  </svg>
+);
 
 export default async function PermitsPage({ searchParams }) {
   const viewer = await getViewer();
@@ -44,16 +82,51 @@ export default async function PermitsPage({ searchParams }) {
     if (!data || data.length < PAGE) break;
   }
 
-  const permits = all.map((r) => ({ ...r, st: computeStatus(r, today) }));
+  // Attachments: one query pass for the whole list. If it fails the list still works,
+  // only without the file column data.
+  const fileSummary = failed ? { map: new Map(), ok: false } : await fetchFileSummary(supabase);
+  const permits = withFiles(all.map((r) => ({ ...r, st: computeStatus(r, today) })), fileSummary);
 
   // Filters from the address bar (the dashboard links here with ?status=, ?area=, ...).
   // lib/permitFilters.js is shared with the Excel export, so both give the same rows.
   const f = parseFilters((name) => one(searchParams?.[name]));
   let rows = filterPermits(permits, f);
-  // Overdue / expiring first show what needs action soonest.
-  if (f.status === "overdue" || f.status === "expiring") {
+  // Column sorting (?sort=to&dir=desc). Without it: overdue / expiring show what needs
+  // action soonest, everything else stays newest-entered first.
+  const sort = COLUMNS.some((c) => c.key === one(searchParams?.sort)) ? one(searchParams.sort) : "";
+  const dir = sort && one(searchParams?.dir) === "desc" ? "desc" : "asc";
+  if (sort) {
+    rows = sortRows(rows, sort, dir);
+  } else if (f.status === "overdue" || f.status === "expiring") {
     rows = [...rows].sort((a, b) => String(a.valid_to).localeCompare(String(b.valid_to)));
   }
+
+  // Quick status tabs: counts follow every other filter, but not the status itself.
+  const base = filterPermits(permits, { ...f, status: "" });
+  const tabCount = (key) => base.filter((r) => r.st.key === key).length;
+  const tabs = [
+    { value: "", label: "All", n: base.length },
+    { value: "open", label: "Open", n: tabCount("OPEN") },
+    { value: "expiring", label: "Expiring", n: tabCount("EXPIRING") },
+    { value: "overdue", label: "Overdue", n: tabCount("OVERDUE") },
+    { value: "closed", label: "Closed", n: tabCount("CLOSED") },
+    { value: "canceled", label: "Canceled", n: tabCount("CANCELED") },
+  ];
+  const sortQuery = sort ? `sort=${sort}${dir === "desc" ? "&dir=desc" : ""}` : "";
+  const hrefFor = (filters, sortPart = sortQuery) => {
+    const qs = [filtersToQuery(filters), sortPart].filter(Boolean).join("&");
+    return qs ? `/permits?${qs}` : "/permits";
+  };
+  // Click a header: ascending, then descending, then back to the default order.
+  const sortHref = (key) => hrefFor(f, sort !== key ? `sort=${key}` : dir === "asc" ? `sort=${key}&dir=desc` : "");
+
+  // Months that have permits (by Valid from), newest first, with counts.
+  const monthCounts = new Map();
+  for (const r of permits) {
+    const m = monthOf(r.valid_from);
+    if (m) monthCounts.set(m, (monthCounts.get(m) || 0) + 1);
+  }
+  const months = [...monthCounts.keys()].sort().reverse().map((m) => ({ value: m, label: monthLabel(m), count: monthCounts.get(m) }));
 
   const areas = [...new Set(permits.map((r) => r.area).filter(Boolean))].sort();
   const types = [...new Set(permits.map((r) => r.permit_type).filter(Boolean))].sort();
@@ -91,9 +164,26 @@ export default async function PermitsPage({ searchParams }) {
         </div>
       )}
 
-      <FilterBar initial={f} statusOptions={STATUS_FILTERS} areas={areas} types={types} />
+      {!fileSummary.ok && !failed && (
+        <div className="notice">The attachment information could not be read, so the Files column and filter are unavailable.</div>
+      )}
 
-      <div className="panel table-wrap">
+      <FilterBar initial={f} statusOptions={STATUS_FILTERS} areas={areas} types={types} months={months} sort={sort} dir={dir} showFiles={fileSummary.ok} />
+
+      <nav className="status-tabs" aria-label="Quick status filter">
+        {tabs.map((t) => (
+          <Link
+            key={t.value || "all"}
+            href={hrefFor({ ...f, status: t.value })}
+            className={`status-tab${f.status === t.value ? " is-active" : ""}${t.value ? ` status-tab--${t.value}` : ""}`}
+            aria-current={f.status === t.value ? "page" : undefined}
+          >
+            {t.label} <span className="status-tab__n">{t.n}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="panel table-wrap table-wrap--tall">
         {rows.length === 0 ? (
           <div className="empty empty--rich">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -110,15 +200,17 @@ export default async function PermitsPage({ searchParams }) {
           <table className="table table--rows table--cards">
             <thead>
               <tr>
-                <th>Permit no.</th>
-                <th>Area</th>
-                <th>Location</th>
-                <th>Type</th>
-                <th>Applicant</th>
-                <th>Holder</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Status</th>
+                {COLUMNS.map((c) => {
+                  const active = sort === c.key;
+                  return (
+                    <th key={c.key} aria-sort={active ? (dir === "desc" ? "descending" : "ascending") : undefined}>
+                      <Link href={sortHref(c.key)} className={`th-sort${active ? " is-active" : ""}`} title={`Sort by ${c.label}`}>
+                        {c.label}
+                        <span className="th-sort__arrow" aria-hidden="true">{active ? (dir === "desc" ? "▼" : "▲") : "↕"}</span>
+                      </Link>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -136,6 +228,28 @@ export default async function PermitsPage({ searchParams }) {
                   <td data-label="Holder">{r.holder || "—"}</td>
                   <td className="mono" data-label="From">{fmt(r.valid_from)}</td>
                   <td className="mono" data-label="To">{fmt(r.valid_to)}</td>
+                  <td data-label="Files">
+                    {r.fileCount === undefined ? (
+                      "—"
+                    ) : (
+                      <span className="attach-cell">
+                        <Link
+                          href={`/permits/${r.id}`}
+                          className={`attach${r.fileCount ? "" : " attach--none"}`}
+                          title={r.fileCount ? `Attached: ${describeFiles(r.files)}` : "No files attached"}
+                          aria-label={r.fileCount ? `${r.fileCount} attached: ${describeFiles(r.files)}` : "No files attached"}
+                        >
+                          <Clip />
+                          <span>{r.fileCount}</span>
+                        </Link>
+                        {["OPEN", "EXPIRING", "OVERDUE"].includes(r.st.key) && missingDocs(r.files).length > 0 && (
+                          <span className="attach-warn" title={`Missing: ${missingDocs(r.files).join(", ")}`} role="img" aria-label={`Missing: ${missingDocs(r.files).join(", ")}`}>
+                            ! {missingDocs(r.files).join(" + ")}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </td>
                   <td data-label="Status">
                     <StatusBadge status={r.st} showDetail />
                   </td>

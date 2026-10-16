@@ -648,3 +648,46 @@ a .seg:hover { stroke-width: 27; }
   .topnav__link { padding: var(--sp-3); }
   .topnav__list .btn { display: block; text-align: center; padding: var(--sp-3); }
 }
+
+/* ---- Phase A: permit list (month filter, quick tabs, files column, sorting) ---- */
+.month-ctl { display: flex; align-items: stretch; gap: 4px; flex: 1 1 230px; min-width: 0; }
+.month-ctl .pform-input { flex: 1 1 auto; min-width: 0; }
+.month-btn { flex: none; display: grid; place-items: center; width: 36px; border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--field-bg); color: var(--ink); cursor: pointer; transition: background var(--ease), border-color var(--ease), transform 150ms ease; }
+.month-btn svg { width: 16px; height: 16px; }
+.month-btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--brand); }
+.month-btn:active:not(:disabled) { transform: scale(0.92); }
+.month-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.status-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-3); }
+.status-tab { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; transition: background var(--ease), border-color var(--ease), transform 150ms ease; }
+.status-tab:hover { background: var(--surface-2); border-color: var(--brand); }
+.status-tab:active { transform: scale(0.96); }
+.status-tab__n { min-width: 22px; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-muted); font-size: var(--fs-xs); font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.status-tab.is-active { background: color-mix(in srgb, var(--brand) 18%, transparent); border-color: var(--brand); }
+.status-tab.is-active .status-tab__n { background: var(--brand); color: var(--brand-ink); }
+.status-tab--expiring .status-tab__n { color: var(--st-expiring); }
+.status-tab--overdue .status-tab__n { color: var(--st-overdue); }
+.status-tab--expiring.is-active .status-tab__n, .status-tab--overdue.is-active .status-tab__n { color: var(--brand-ink); }
+
+/* attachments column */
+.attach-cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.attach { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand); font-size: var(--fs-sm); font-weight: 700; text-decoration: none; transition: background var(--ease), transform 150ms ease; }
+.attach svg { width: 14px; height: 14px; }
+.attach:hover { background: color-mix(in srgb, var(--brand) 30%, transparent); transform: scale(1.06); }
+.attach--none { background: transparent; color: var(--ink-muted); opacity: 0.55; font-weight: 500; }
+.attach-warn { position: relative; z-index: 1; padding: 1px 7px; border: 1px solid var(--warn-line); border-radius: var(--radius-pill); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; cursor: help; }
+
+/* sortable headers and a sticky header (the table scrolls inside its panel) */
+.table-wrap--tall { max-height: calc(100vh - 190px); min-height: 220px; overflow: auto; }
+.table-wrap--tall .table thead th { position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 0 var(--rule); }
+.th-sort { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; font-weight: inherit; transition: color var(--ease); }
+.th-sort:hover, .th-sort.is-active { color: var(--ink); }
+.th-sort__arrow { font-size: 10px; opacity: 0.35; transition: opacity var(--ease); }
+.th-sort:hover .th-sort__arrow, .th-sort.is-active .th-sort__arrow { opacity: 1; color: var(--brand); }
+
+@media (max-width: 720px) {
+  .table-wrap--tall { max-height: none; overflow: visible; }
+  .month-ctl { flex: 1 1 100%; }
+  .status-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .status-tab { flex: none; }
+}

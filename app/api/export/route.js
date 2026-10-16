@@ -6,6 +6,7 @@ import { can } from "../../../lib/permissions";
 import { todayOman } from "../../../lib/omanDate";
 import { computeStatus } from "../../../lib/status";
 import { filterPermits, parseFilters } from "../../../lib/permitFilters";
+import { fetchFileSummary, withFiles } from "../../../lib/permitFiles";
 import { permitToExportRow } from "../../../lib/exportRows";
 import { buildFilledWorkbook } from "../../../lib/exportMaster";
 
@@ -46,10 +47,11 @@ export async function GET(request) {
     if (!data || data.length < PAGE) break;
   }
 
-  const permits = filterPermits(
-    rows.map((r) => ({ ...r, st: computeStatus(r, today) })),
-    filters
-  ).map((r) => permitToExportRow(r, today));
+  // Attachment data is only read when the "files" filter is used.
+  let withSt = rows.map((r) => ({ ...r, st: computeStatus(r, today) }));
+  if (filters.files) withSt = withFiles(withSt, await fetchFileSummary(supabase));
+
+  const permits = filterPermits(withSt, filters).map((r) => permitToExportRow(r, today));
 
   let masterBuffer;
   try {
