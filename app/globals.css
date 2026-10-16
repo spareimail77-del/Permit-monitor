@@ -570,7 +570,8 @@ a .seg:hover { stroke-width: 27; }
 .table--rows tbody tr.row-link { position: relative; cursor: pointer; }
 .row-link__a, .attn-link { display: inline-block; padding: 2px 10px; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--link); font-weight: 700; text-decoration: none; transition: background var(--ease), color var(--ease), transform 150ms ease; }
 .row-link:hover .row-link__a, .attn-row:hover .attn-link { background: var(--brand); color: var(--brand-ink); }
-.row-link:active .row-link__a, .attn-row:active .attn-link { transform: scale(0.95); }
+/* Press feedback uses opacity, NOT transform: a transformed link becomes the containing block of its stretched ::after, so on mouse-down the clickable area shrank to the small pill and the click on the rest of the row was lost. */
+.row-link:active .row-link__a, .attn-row:active .attn-link { opacity: 0.8; }
 .row-link__a::after { content: ""; position: absolute; inset: 0; }
 .row-link__a:focus-visible { outline: none; }
 .row-link__a:focus-visible::after { outline: 2px solid var(--focus); outline-offset: -2px; }
