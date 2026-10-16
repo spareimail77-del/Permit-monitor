@@ -1,13 +1,13 @@
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
-import StatusBadge from "../components/StatusBadge";
 import FilterBar from "../components/FilterBar";
+import PermitsTable from "../components/PermitsTable";
 import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
 import { todayOman } from "../../lib/omanDate";
 import { STATUS_FILTERS, computeStatus } from "../../lib/status";
 import { filterPermits, filtersToQuery, hasFilters, monthLabel, monthOf, parseFilters } from "../../lib/permitFilters";
-import { describeFiles, fetchFileSummary, missingDocs, withFiles } from "../../lib/permitFiles";
+import { describeFiles, fetchFileSummary, withFiles } from "../../lib/permitFiles";
 
 export const dynamic = "force-dynamic";
 
@@ -51,12 +51,6 @@ function sortRows(rows, sort, dir) {
     return c * sign;
   });
 }
-
-const Clip = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21 11.5l-8.5 8.5a5.5 5.5 0 01-7.8-7.8l8.5-8.5a3.7 3.7 0 015.2 5.2l-8.5 8.5a1.8 1.8 0 01-2.6-2.6l7.8-7.8" />
-  </svg>
-);
 
 export default async function PermitsPage({ searchParams }) {
   const viewer = await getViewer();
@@ -133,6 +127,24 @@ export default async function PermitsPage({ searchParams }) {
   const filtered = hasFilters(f);
   const exportHref = `/api/export${filtersToQuery(f) ? `?${filtersToQuery(f)}` : ""}`;
 
+  // What the (client) table needs: plain data only.
+  const tableRows = rows.map((r) => ({
+    id: r.id,
+    reference: r.reference,
+    area: r.area,
+    location: r.location,
+    permit_type: r.permit_type,
+    applicant: r.applicant,
+    holder: r.holder,
+    valid_from: r.valid_from,
+    valid_to: r.valid_to,
+    status: r.status,
+    st: r.st,
+    fileCount: r.fileCount,
+    fileTip: r.files ? describeFiles(r.files) : "",
+  }));
+  const tableColumns = COLUMNS.map((c) => ({ key: c.key, label: c.label, href: sortHref(c.key), active: sort === c.key, dir }));
+
   return (
     <>
       <PageHeader
@@ -197,66 +209,12 @@ export default async function PermitsPage({ searchParams }) {
             )}
           </div>
         ) : (
-          <table className="table table--rows table--cards">
-            <thead>
-              <tr>
-                {COLUMNS.map((c) => {
-                  const active = sort === c.key;
-                  return (
-                    <th key={c.key} aria-sort={active ? (dir === "desc" ? "descending" : "ascending") : undefined}>
-                      <Link href={sortHref(c.key)} className={`th-sort${active ? " is-active" : ""}`} title={`Sort by ${c.label}`}>
-                        {c.label}
-                        <span className="th-sort__arrow" aria-hidden="true">{active ? (dir === "desc" ? "▼" : "▲") : "↕"}</span>
-                      </Link>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className={`row-link row-link--${r.st.key}`}>
-                  <td className="mono" data-label="Permit no.">
-                    <Link href={`/permits/${r.id}`} className="row-link__a" aria-label={`Open permit ${r.reference}`}>
-                      {r.reference}
-                    </Link>
-                  </td>
-                  <td data-label="Area">{r.area || "—"}</td>
-                  <td data-label="Location">{r.location || "—"}</td>
-                  <td data-label="Type">{r.permit_type || "—"}</td>
-                  <td data-label="Applicant">{r.applicant || "—"}</td>
-                  <td data-label="Holder">{r.holder || "—"}</td>
-                  <td className="mono" data-label="From">{fmt(r.valid_from)}</td>
-                  <td className="mono" data-label="To">{fmt(r.valid_to)}</td>
-                  <td data-label="Files">
-                    {r.fileCount === undefined ? (
-                      "—"
-                    ) : (
-                      <span className="attach-cell">
-                        <Link
-                          href={`/permits/${r.id}`}
-                          className={`attach${r.fileCount ? "" : " attach--none"}`}
-                          title={r.fileCount ? `Attached: ${describeFiles(r.files)}` : "No files attached"}
-                          aria-label={r.fileCount ? `${r.fileCount} attached: ${describeFiles(r.files)}` : "No files attached"}
-                        >
-                          <Clip />
-                          <span>{r.fileCount}</span>
-                        </Link>
-                        {["OPEN", "EXPIRING", "OVERDUE"].includes(r.st.key) && missingDocs(r.files).length > 0 && (
-                          <span className="attach-warn" title={`Missing: ${missingDocs(r.files).join(", ")}`} role="img" aria-label={`Missing: ${missingDocs(r.files).join(", ")}`}>
-                            ! {missingDocs(r.files).join(" + ")}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </td>
-                  <td data-label="Status">
-                    <StatusBadge status={r.st} showDetail />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <PermitsTable
+            rows={tableRows}
+            columns={tableColumns}
+            canManage={Boolean(viewer?.canManagePermits)}
+            canExport={Boolean(viewer?.canExport)}
+          />
         )}
       </div>
     </>

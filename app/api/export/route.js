@@ -27,7 +27,12 @@ export async function GET(request) {
   if (!can(viewer.role, "export_data")) return Response.json({ error: "Not authorized." }, { status: 403 });
 
   const url = new URL(request.url);
-  const filters = parseFilters((name) => url.searchParams.get(name));
+  // ?ids=1,2,3 = "Export selected" from the permit list: exactly those permits, no other filter.
+  const idsParam = url.searchParams.get("ids");
+  const ids = idsParam
+    ? new Set(idsParam.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200))
+    : null;
+  const filters = ids ? parseFilters(() => "") : parseFilters((name) => url.searchParams.get(name));
   const today = todayOman();
 
   const supabase = getSupabase();
@@ -51,7 +56,9 @@ export async function GET(request) {
   let withSt = rows.map((r) => ({ ...r, st: computeStatus(r, today) }));
   if (filters.files) withSt = withFiles(withSt, await fetchFileSummary(supabase));
 
-  const permits = filterPermits(withSt, filters).map((r) => permitToExportRow(r, today));
+  const permits = filterPermits(withSt, filters)
+    .filter((r) => !ids || ids.has(r.id))
+    .map((r) => permitToExportRow(r, today));
 
   let masterBuffer;
   try {
