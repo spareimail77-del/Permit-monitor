@@ -1143,3 +1143,13 @@ a .seg:hover { stroke-width: 16; }
   .pform-grid--permit { grid-template-columns: minmax(0, 1fr); }
   .pform-field--span2 { grid-column: 1 / -1; }
 }
+
+/* ---- permit panel: even field heights, no jumping, calendar icon inside the box ---- */
+.pform input.pform-input, .pform select.pform-input, .pform .dp-box { height: 42px; }
+.pform .dp-box .dp-input { height: 100%; padding-top: 0; padding-bottom: 0; }
+.dp-open { border-left: 0; width: 40px; }
+.pform-slot { min-height: 1.5em; line-height: 1.5; }
+.pform-slot--row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.pform-slot__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pform-slot--row .pform-link { flex: none; }
+.pform-field--span2 textarea.pform-input { flex: 1 1 auto; min-height: 72px; }

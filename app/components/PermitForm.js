@@ -370,6 +370,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
               invalid={Boolean(errors.validFrom)}
               disabled={disabled}
             />
+            <p className="pform-hint pform-slot">The first day counts as day 1.</p>
           </Field>
           <Field name="validTo" label="Valid to (expiry)" required error={errors.validTo || toProblem}>
             <DatePicker
@@ -384,25 +385,28 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
               invalid={Boolean(errors.validTo || toProblem)}
               disabled={disabled}
             />
-            {latest && (
-              <p className="pform-rec">
-                Latest: {prettyDate(latest.date)} · {latest.days} days{" "}
+            {latest ? (
+              <p className="pform-rec pform-slot pform-slot--row">
+                <span className="pform-slot__text">
+                  Latest: {prettyDate(latest.date)} · {latest.days} days
+                </span>
                 {values.validTo !== latest.date && (
                   <button type="button" className="pform-link pform-link--green" onClick={() => set("validTo", latest.date)} disabled={disabled}>
                     Use it
                   </button>
                 )}
               </p>
-            )}
-            {!latest && values.permitType && (
-              <p className="pform-hint">No time limit is set for this type of permit.</p>
+            ) : (
+              <p className="pform-hint pform-slot">
+                {values.permitType ? "No time limit is set for this type of permit." : "Pick the type and start date to see the limit."}
+              </p>
             )}
           </Field>
           <Field name="jobDescription" label="Job description" required span2 error={errors.jobDescription}>
             <textarea
               id="pf-jobDescription"
               className="pform-input"
-              rows={3}
+              rows={2}
               value={values.jobDescription}
               onChange={(e) => set("jobDescription", e.target.value)}
               disabled={disabled}
