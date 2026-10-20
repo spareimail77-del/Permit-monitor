@@ -402,7 +402,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             <textarea
               id="pf-jobDescription"
               className="pform-input"
-              rows={2}
+              rows={3}
               value={values.jobDescription}
               onChange={(e) => set("jobDescription", e.target.value)}
               disabled={disabled}
