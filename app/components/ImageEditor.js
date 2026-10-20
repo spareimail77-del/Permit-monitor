@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MAX_FILE_BYTES, fileProblem, formatBytes } from "../../lib/fileRules";
 import {
+  DEFAULT_PERCENT,
   FILTERS,
-  LEVELS,
+  MAX_PERCENT,
+  MIN_PERCENT,
   cropCanvas,
   decodeImage,
   defaultCorners,
   fullCorners,
+  levelFor,
   processForOutput,
   quadProblem,
   rotateCanvas,
@@ -18,8 +21,9 @@ import {
 // Photo editor that opens when a picture is chosen for upload.
 //   Step 1  Crop: four free corners (like a document scanner), a magnifier while dragging,
 //           rotate, reset.
-//   Step 2  Compress: filter, a compression slider that starts at the lowest level,
-//           the real result shown with its size, and a full screen view.
+//   Step 2  Compress: filter, a quality slider in percent that starts at the lowest (10%),
+//           the real result in a scrollable preview with its size, and a full screen view.
+//           The picture is only re-compressed a moment after the slider stops moving.
 // Nothing is uploaded here: onDone(file) hands the finished picture back, onDone(null) = cancelled.
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -53,7 +57,9 @@ export default function ImageEditor({ file, onDone }) {
   const [step, setStep] = useState("crop"); // crop | adjust
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [active, setActive] = useState(null); // { kind: "corner" | "edge", index }
-  const [level, setLevel] = useState(0); // starts at the lowest compression
+  const [percent, setPercent] = useState(DEFAULT_PERCENT); // what the slider shows
+  const [applied, setApplied] = useState(DEFAULT_PERCENT); // what the preview was made with
+  const [zoom, setZoom] = useState("width"); // preview: width | real
   const [filter, setFilter] = useState("original");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { blob, url, width, height }
@@ -245,7 +251,7 @@ export default function ImageEditor({ file, onDone }) {
     setBusy(true);
     const t = setTimeout(async () => {
       try {
-        const r = await processForOutput(croppedRef.current, LEVELS[level], filter);
+        const r = await processForOutput(croppedRef.current, levelFor(applied), filter);
         if (mine !== token.current) return;
         if (urlRef.current) URL.revokeObjectURL(urlRef.current);
         const url = URL.createObjectURL(r.blob);
@@ -259,7 +265,17 @@ export default function ImageEditor({ file, onDone }) {
       }
     }, 120);
     return () => clearTimeout(t);
-  }, [step, croppedAt, level, filter]);
+  }, [step, croppedAt, applied, filter]);
+
+  // The picture is compressed only after the slider has rested for a couple of seconds,
+  // so dragging it (or scrolling the preview) never makes the browser work in between.
+  const IDLE_MS = 2000;
+  useEffect(() => {
+    if (percent === applied) return undefined;
+    const t = setTimeout(() => setApplied(percent), IDLE_MS);
+    return () => clearTimeout(t);
+  }, [percent, applied]);
+  const pending = percent !== applied;
 
   const tooBig = result && result.blob.size > MAX_FILE_BYTES;
   const originalOk = !fileProblem(file);
@@ -427,12 +443,18 @@ export default function ImageEditor({ file, onDone }) {
           <>
             <div className="ie-adjust">
               <div className="ie-preview">
-                {result ? (
-                  <button type="button" className="ie-preview__btn" onClick={() => setFullOpen(true)} aria-label="View the photo full screen">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={result.url} alt="Preview of the cropped photo" className={busy ? "is-busy" : ""} />
-                  </button>
-                ) : null}
+                <div className="ie-scroll" tabIndex={0} aria-label="Preview of the cropped photo. Scroll to check the details.">
+                  {result ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={result.url}
+                      alt="Preview of the cropped photo"
+                      draggable={false}
+                      className={busy || pending ? "is-busy" : ""}
+                      style={zoom === "real" ? { width: result.width / Math.max(1, Math.min(2, window.devicePixelRatio || 1)), maxWidth: "none" } : undefined}
+                    />
+                  ) : null}
+                </div>
                 {busy && (
                   <div className="ie-center ie-center--over" role="status">
                     <span className="ie-spin" aria-hidden="true" />
@@ -440,9 +462,19 @@ export default function ImageEditor({ file, onDone }) {
                   </div>
                 )}
                 {result && (
-                  <button type="button" className="ie-fsbtn" onClick={() => setFullOpen(true)}>
-                    <Icon d={ICONS.expand} size={16} /> Full screen
-                  </button>
+                  <>
+                    <div className="ie-zoom" role="group" aria-label="Preview size">
+                      <button type="button" className={`ie-chip${zoom === "width" ? " is-on" : ""}`} aria-pressed={zoom === "width"} onClick={() => setZoom("width")}>
+                        Fit width
+                      </button>
+                      <button type="button" className={`ie-chip${zoom === "real" ? " is-on" : ""}`} aria-pressed={zoom === "real"} onClick={() => setZoom("real")}>
+                        Actual size
+                      </button>
+                    </div>
+                    <button type="button" className="ie-fsbtn" onClick={() => setFullOpen(true)}>
+                      <Icon d={ICONS.expand} size={16} /> Full screen
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -461,30 +493,40 @@ export default function ImageEditor({ file, onDone }) {
                 <section>
                   <div className="ie-row">
                     <h3 className="ie-h3">
-                      <label htmlFor="ie-level">Compression</label>
+                      <label htmlFor="ie-level">Quality</label>
                     </h3>
                     <strong className="ie-level">
-                      {LEVELS[level].name}
-                      {level === 0 ? " (default)" : ""}
+                      {percent}%{percent === DEFAULT_PERCENT ? " (lowest, default)" : ""}
                     </strong>
                   </div>
                   <input
                     id="ie-level"
                     className="ie-range"
                     type="range"
-                    min={0}
-                    max={LEVELS.length - 1}
-                    step={1}
-                    value={level}
-                    onChange={(e) => setLevel(Number(e.target.value))}
-                    aria-valuetext={`${LEVELS[level].name} compression`}
-                    style={{ "--p": `${(level / (LEVELS.length - 1)) * 100}%` }}
+                    min={MIN_PERCENT}
+                    max={MAX_PERCENT}
+                    step={5}
+                    value={percent}
+                    onChange={(e) => setPercent(Number(e.target.value))}
+                    aria-valuetext={`${percent} percent quality`}
+                    style={{ "--p": `${((percent - MIN_PERCENT) / (MAX_PERCENT - MIN_PERCENT)) * 100}%` }}
                   />
                   <div className="ie-ticks" aria-hidden="true">
                     <span>Smallest file</span>
                     <span>Sharpest</span>
                   </div>
-                  <p className="ie-note">Check small text in full screen. If it is hard to read, move the slider to the right.</p>
+                  <p className="ie-note" aria-live="polite">
+                    {pending ? (
+                      <>
+                        The preview updates about 2 seconds after you stop moving the slider.{" "}
+                        <button type="button" className="pform-link" onClick={() => setApplied(percent)}>
+                          Update now
+                        </button>
+                      </>
+                    ) : (
+                      "Scroll the preview and use Actual size to check small text. If it is hard to read, move the slider to the right."
+                    )}
+                  </p>
                 </section>
 
                 <section className="ie-stats" aria-live="polite">
