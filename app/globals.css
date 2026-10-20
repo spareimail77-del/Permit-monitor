@@ -820,7 +820,12 @@ a .seg:hover { stroke-width: 27; }
 .dash-grid.dash-top { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
 .dash-top > .panel { min-height: 400px; }
 .dash-status { display: flex; flex-direction: column; }
-.dash-status .donut-wrap { flex: 1; justify-content: center; align-content: center; }
+.dash-top .dash-status .donut-wrap { flex: 1; flex-wrap: nowrap; justify-content: center; align-items: center; gap: var(--sp-6); }
+.dash-top .dash-status .donut-wrap > svg { flex: none; width: clamp(200px, 22vw, 260px); height: auto; aspect-ratio: 1; }
+.dash-top .dash-status .legend { flex: 0 1 210px; min-width: 0; gap: 0; }
+.dash-top .dash-status .legend li + li a { border-top: 1px solid var(--rule); }
+.dash-top .dash-status .legend a { margin: 0; padding: 12px var(--sp-2); border-radius: 0; font-size: var(--fs-base); }
+.dash-top .dash-status .legend strong { font-size: var(--fs-md); }
 .dash-forecast { margin-bottom: var(--sp-4); animation: rise 0.55s ease-out 160ms backwards; }
 
 /* ---- "Needs attention" tile (Overdue / Expiring tabs) --------------------- */
@@ -871,6 +876,9 @@ a .seg:hover { stroke-width: 27; }
 @media (max-width: 860px) {
   .dash-grid.dash-top { grid-template-columns: minmax(0, 1fr); }
   .dash-top > .panel { min-height: 0; }
+  .dash-top .dash-status .donut-wrap { flex-direction: column; flex-wrap: wrap; gap: var(--sp-4); }
+  .dash-top .dash-status .donut-wrap > svg { width: min(240px, 70vw); }
+  .dash-top .dash-status .legend { width: 100%; flex: none; }
   .dash-top .ns { height: 480px; } /* fixed on a phone so the page does not get very long */
   .ns-row { padding: 10px var(--sp-3); }
 }
