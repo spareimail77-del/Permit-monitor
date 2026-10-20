@@ -3,6 +3,7 @@ import { getSupabase } from "../lib/db";
 import { todayOman } from "../lib/omanDate";
 import { STATUS_KEYS, STATUS_TEXT, addDays, computeStatus, isActiveKey } from "../lib/status";
 import PageHeader from "./components/PageHeader";
+import NeedsAttention from "./components/NeedsAttention";
 
 export const dynamic = "force-dynamic";
 
@@ -76,42 +77,6 @@ function StatCard({ href, n, label, sub, tone }) {
   );
 }
 
-function Attention({ title, rows, allHref, empty }) {
-  return (
-    <div className="panel pform-card">
-      <h2 className="pform-title">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="empty empty--compact">{empty}</p>
-      ) : (
-        <>
-          <ul className="attn-list">
-            {rows.slice(0, 8).map((r) => (
-              <li key={r.id} className="attn-row">
-                <Link href={`/permits/${r.id}`} className="attn-link mono" aria-label={`Open permit ${r.reference}`}>
-                  {r.reference}
-                </Link>
-                <span className="attn-where">
-                  {r.location || "—"}
-                  {r.holder ? ` · ${r.holder}` : ""}
-                </span>
-                <span className={r.st.key === "OVERDUE" ? "status-detail status-detail--bad" : "status-detail"}>{r.st.detail}</span>
-                <Arrow className="row-go" />
-              </li>
-            ))}
-          </ul>
-          {rows.length > 8 && (
-            <p className="card-foot">
-              <Link href={allHref} className="more-link">
-                See all {rows.length} <Arrow />
-              </Link>
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 function Bars({ title, items, field }) {
   const max = Math.max(1, ...items.map((i) => i.n));
   return (
@@ -181,8 +146,25 @@ export default async function Home() {
   const active = counts.OPEN + counts.EXPIRING + counts.OVERDUE;
 
   const overdue = permits.filter((p) => p.st.key === "OVERDUE").sort((a, b) => b.st.daysOverdue - a.st.daysOverdue);
-  const expiring = permits.filter((p) => p.st.key === "EXPIRING").sort((a, b) => a.st.daysLeft - b.st.daysLeft);
-  const oldest = overdue[0]?.st.daysOverdue || 0;
+    const oldest = overdue[0]?.st.daysOverdue || 0;
+
+  // Rows for the "Needs attention" tile. Expiring looks 7 days ahead, so it also
+  // holds permits whose status is still plain Open (4 to 7 days left).
+  const slim = (p) => ({
+    id: p.id,
+    reference: p.reference,
+    location: p.location || "",
+    holder: p.holder || "",
+    type: p.permit_type || "",
+    validTo: p.valid_to || "",
+    daysLeft: p.st.daysLeft,
+    daysOverdue: p.st.daysOverdue,
+  });
+  const overdueRows = overdue.map(slim);
+  const expiringRows = permits
+    .filter((p) => (p.st.key === "OPEN" || p.st.key === "EXPIRING") && p.st.daysLeft !== null && p.st.daysLeft <= 7)
+    .sort((a, b) => a.st.daysLeft - b.st.daysLeft)
+    .map(slim);
 
   const activePermits = permits.filter((p) => isActiveKey(p.st.key));
 
@@ -273,10 +255,7 @@ export default async function Home() {
       </div>
 
       <h2 className="section-title">Needs attention</h2>
-      <div className="dash-grid">
-        <Attention title={`Overdue (${counts.OVERDUE})`} rows={overdue} allHref={listLink({ status: "overdue" })} empty="No overdue permits." />
-        <Attention title={`Expiring soon (${counts.EXPIRING})`} rows={expiring} allHref={listLink({ status: "expiring" })} empty="Nothing ends in the next 3 days." />
-      </div>
+      <NeedsAttention overdue={overdueRows} expiring={expiringRows} overdueHref={listLink({ status: "overdue" })} />
 
       <h2 className="section-title">Active permits by…</h2>
       <div className="dash-grid dash-grid--4">
