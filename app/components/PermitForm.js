@@ -136,6 +136,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [certFiles, setCertFiles] = useState({}); // name -> File
   const [permitCopy, setPermitCopy] = useState(null);
   const [jsa, setJsa] = useState(null);
+  const [showJsa, setShowJsa] = useState(false); // JSA is optional: hidden until asked for
   const [others, setOthers] = useState([]); // [{ key, label, file }]
   const [fileErrors, setFileErrors] = useState({}); // slot -> message
   const [errors, setErrors] = useState({});
@@ -212,9 +213,23 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
     setCertFiles({});
     setPermitCopy(null);
     setJsa(null);
+    setShowJsa(false);
     setOthers([]);
     setFileErrors({});
     setErrors({});
+  }
+
+  function collectFileItems() {
+    const items = [];
+    if (permitCopy) items.push({ file: permitCopy, kind: "permit_copy", label: "" });
+    if (showJsa && jsa) items.push({ file: jsa, kind: "jsa", label: "" });
+    for (const name of certs) {
+      if (!isNA(name) && certFiles[name]) items.push({ file: certFiles[name], kind: "certificate", label: name });
+    }
+    for (const o of others) {
+      if (o.file) items.push({ file: o.file, kind: "other", label: o.label.trim() });
+    }
+    return items;
   }
 
   async function handleSubmit(e) {
@@ -248,6 +263,23 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
           setMessage(data.error || "The permit could not be saved.");
           return;
         }
+        const items = collectFileItems();
+        if (items.length) {
+          const upload = await uploadPermitFiles(permitId, items);
+          if (upload.failed.length) {
+            setState("error");
+            setMessage(
+              `Permit saved, but these files could not be added: ${upload.failed.map((f) => f.name).join(", ")}. Choose them again and press Save changes.`
+            );
+            // Keep only the files that failed so a retry does not upload the others twice.
+            const failedNames = new Set(upload.failed.map((f) => f.name));
+            setPermitCopy((f) => (f && failedNames.has(f.name) ? f : null));
+            setJsa((f) => (f && failedNames.has(f.name) ? f : null));
+            setCertFiles((c) => Object.fromEntries(Object.entries(c).filter(([, f]) => f && failedNames.has(f.name))));
+            setOthers((list) => list.filter((o) => o.file && failedNames.has(o.file.name)));
+            return;
+          }
+        }
         router.push(`/permits/${permitId}`);
         router.refresh();
       } catch {
@@ -272,15 +304,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
       // The permit is saved. Now the optional files.
       const ref = values.reference.trim();
-      const items = [];
-      if (permitCopy) items.push({ file: permitCopy, kind: "permit_copy", label: "" });
-      if (jsa) items.push({ file: jsa, kind: "jsa", label: "" });
-      for (const name of certs) {
-        if (!isNA(name) && certFiles[name]) items.push({ file: certFiles[name], kind: "certificate", label: name });
-      }
-      for (const o of others) {
-        if (o.file) items.push({ file: o.file, kind: "other", label: o.label.trim() });
-      }
+      const items = collectFileItems();
       const upload = items.length ? await uploadPermitFiles(data.id, items) : { saved: 0, failed: [] };
 
       setSavedRefs((r) => [...r, ref]);
@@ -447,7 +471,6 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
                   maxLength={60}
                 />
                 {errors[certNumberKey(name)] && <p className="pform-error">{errors[certNumberKey(name)]}</p>}
-                {!isEdit && (
                 <FileSlot
                   label={`Copy of the ${name} certificate (optional)`}
                   file={certFiles[name]}
@@ -456,7 +479,6 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
                   onPick={(f) => pickFile(`cert:${name}`, f, (file) => setCertFiles((c) => ({ ...c, [name]: file })))}
                   onClear={() => setCertFiles((c) => ({ ...c, [name]: undefined }))}
                 />
-                )}
               </div>
             )
           )}
@@ -528,11 +550,13 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
         </div>
       )}
 
-      {!isEdit && (
       <div className="panel pform-card">
-        <h2 className="pform-title">Documents (optional)</h2>
+        <h2 className="pform-title">{isEdit ? "Add documents (optional)" : "Documents (optional)"}</h2>
         <p className="pform-hint mb-3">
-          PDF, JPEG or PNG, up to 10 MB each. You can also add documents later from the permit page.
+          PDF, JPEG or PNG, up to 10 MB each.{" "}
+          {isEdit
+            ? "Files you choose here are added to the permit when you press Save changes. Existing files stay on the permit page."
+            : "You can also add documents later from the permit page."}
         </p>
         <div className="file-grid">
           <FileSlot
@@ -543,14 +567,29 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             onPick={(f) => pickFile("permitCopy", f, setPermitCopy)}
             onClear={() => setPermitCopy(null)}
           />
-          <FileSlot
-            label="JSA"
-            file={jsa}
-            error={fileErrors.jsa}
-            disabled={disabled}
-            onPick={(f) => pickFile("jsa", f, setJsa)}
-            onClear={() => setJsa(null)}
-          />
+          {showJsa && (
+            <div>
+              <FileSlot
+                label="JSA"
+                file={jsa}
+                error={fileErrors.jsa}
+                disabled={disabled}
+                onPick={(f) => pickFile("jsa", f, setJsa)}
+                onClear={() => setJsa(null)}
+              />
+              <button
+                type="button"
+                className="pform-link"
+                disabled={disabled}
+                onClick={() => {
+                  setShowJsa(false);
+                  setJsa(null);
+                }}
+              >
+                Remove JSA
+              </button>
+            </div>
+          )}
         </div>
 
         {others.map((o) => (
@@ -590,8 +629,12 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
         >
           + Add another document
         </button>
+        {!showJsa && (
+          <button type="button" className="btn btn-sm mt-3" style={{ marginLeft: 8 }} disabled={disabled} onClick={() => setShowJsa(true)}>
+            + Add JSA
+          </button>
+        )}
       </div>
-      )}
 
       {state === "error" && message && <p className="error-text">{message}</p>}
 

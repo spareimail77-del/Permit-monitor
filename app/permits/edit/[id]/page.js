@@ -68,7 +68,7 @@ export default async function EditPermitPage({ params }) {
           { label: permit.reference, href: `/permits/${permit.id}` },
           { label: "Edit" },
         ]}
-        sub="Fields marked * are required. Documents are added or deleted on the permit page."
+        sub="Fields marked * are required. You can add documents below; delete documents on the permit page."
       />
       {error && (
         <div className="notice notice--danger">
