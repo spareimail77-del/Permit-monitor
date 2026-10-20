@@ -45,9 +45,9 @@ const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
 
 // Defined outside PermitForm on purpose: components defined inside another
 // component are rebuilt on every keystroke and the field loses focus.
-function Field({ name, label, required, wide, hint, error, children }) {
+function Field({ name, label, required, wide, span2, hint, error, children }) {
   return (
-    <div className={`pform-field${wide ? " pform-field--wide" : ""}`}>
+    <div className={`pform-field${wide ? " pform-field--wide" : ""}${span2 ? " pform-field--span2" : ""}`}>
       <label htmlFor={`pf-${name}`}>
         {label}
         {required && <span className="pform-req"> *</span>}
@@ -335,7 +335,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
       <div className="panel pform-card">
         <h2 className="pform-title">Permit</h2>
-        <div className="pform-grid">
+        <div className="pform-grid pform-grid--permit">
           <Field name="reference" label="Permit control reference number" required error={errors.reference}>
             <input
               id="pf-reference"
@@ -361,23 +361,6 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             />
           </Field>
           {dd("permitType", "permit_type", { label: "Type of permit", required: true })}
-          <Field name="jobDescription" label="Job description" required wide error={errors.jobDescription}>
-            <textarea
-              id="pf-jobDescription"
-              className="pform-input"
-              rows={3}
-              value={values.jobDescription}
-              onChange={(e) => set("jobDescription", e.target.value)}
-              disabled={disabled}
-              maxLength={1000}
-            />
-          </Field>
-        </div>
-      </div>
-
-      <div className="panel pform-card">
-        <h2 className="pform-title">Validity</h2>
-        <div className="pform-grid">
           <Field name="validFrom" label="Valid from" required error={errors.validFrom}>
             <DatePicker
               id="pf-validFrom"
@@ -403,7 +386,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             />
             {latest && (
               <p className="pform-rec">
-                Latest allowed: {prettyDate(latest.date)} ({latest.label}, {latest.days} days){" "}
+                Latest: {prettyDate(latest.date)} · {latest.days} days{" "}
                 {values.validTo !== latest.date && (
                   <button type="button" className="pform-link pform-link--green" onClick={() => set("validTo", latest.date)} disabled={disabled}>
                     Use it
@@ -414,6 +397,17 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             {!latest && values.permitType && (
               <p className="pform-hint">No time limit is set for this type of permit.</p>
             )}
+          </Field>
+          <Field name="jobDescription" label="Job description" required span2 error={errors.jobDescription}>
+            <textarea
+              id="pf-jobDescription"
+              className="pform-input"
+              rows={2}
+              value={values.jobDescription}
+              onChange={(e) => set("jobDescription", e.target.value)}
+              disabled={disabled}
+              maxLength={1000}
+            />
           </Field>
         </div>
       </div>
