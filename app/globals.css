@@ -1182,3 +1182,63 @@ a .seg:hover { stroke-width: 16; }
 .bk-unset { display: flex; justify-content: space-between; gap: var(--sp-2); padding: 6px 0 0; font-size: var(--fs-xs); color: var(--ink-muted); }
 @media (max-width: 1100px) { .bk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .bk-grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); } .bk-row { padding: 10px var(--sp-2); } }
+
+/* ---- dropdown lists admin ---------------------------------------------------- */
+.ls { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.ls-rail { position: sticky; top: var(--sp-4); }
+.ls-tabs { display: grid; gap: 2px; padding: var(--sp-2); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); }
+.ls-tab { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 10px var(--sp-3); border: 0; border-radius: 9px; background: transparent; color: var(--ink-muted); font: inherit; font-size: var(--fs-sm); font-weight: 600; text-align: left; cursor: pointer; transition: background var(--ease), color var(--ease); }
+.ls-tab:hover { background: var(--row-hover); color: var(--ink); }
+.ls-tab:focus-visible, .ls-chip__btn:focus-visible, .ls-toast button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ls-tab.is-on { background: color-mix(in srgb, var(--brand) 16%, var(--surface)); color: var(--ink); box-shadow: inset 3px 0 0 var(--brand); }
+.ls-tab__n { min-width: 24px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-xs); font-weight: 700; text-align: center; }
+.ls-tab.is-on .ls-tab__n { background: var(--brand); color: var(--brand-ink); }
+
+.ls-panel { padding: var(--sp-4) var(--sp-5) var(--sp-5); min-width: 0; }
+.ls-head { margin-bottom: var(--sp-3); }
+.ls-title { margin: 0; font-size: var(--fs-md); }
+.ls-sub { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--ink-muted); }
+.ls-add { margin-bottom: var(--sp-4); padding-bottom: var(--sp-4); border-bottom: 1px solid var(--rule); }
+.ls-add__field { display: flex; gap: var(--sp-2); }
+.ls-add__field .pform-input { flex: 1; min-width: 0; height: 42px; }
+.ls-add__field .btn { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 42px; }
+.ls-add__hint { margin: 6px 2px 0; min-height: 1.4em; font-size: var(--fs-xs); color: var(--ink-muted); }
+.ls-add__hint .is-warn { color: var(--warn-ink); font-weight: 600; }
+.ls-empty { margin: var(--sp-4) 0; color: var(--ink-muted); }
+
+.ls-chips { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2); }
+.ls-chip { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main btn" "bar bar"; align-items: center; gap: 6px var(--sp-2); padding: 10px 8px 10px var(--sp-3); border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); transition: border-color var(--ease), background var(--ease), opacity var(--ease); }
+.ls-chip:hover { border-color: var(--rule-strong); background: var(--row-hover); }
+.ls-chip.is-busy { opacity: 0.55; }
+.ls-chip__main { grid-area: main; display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.ls-chip__name { font-weight: 700; font-size: var(--fs-sm); overflow-wrap: anywhere; line-height: 1.3; }
+.ls-chip__use { flex: none; padding: 0 7px; border-radius: var(--radius-pill); background: var(--surface); color: var(--ink-muted); font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ls-chip__bar { grid-area: bar; display: block; height: 4px; border-radius: 4px; background: var(--surface); overflow: hidden; }
+.ls-chip__bar span { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+.ls-chip__btn { grid-area: btn; display: inline-flex; align-items: center; gap: 6px; padding: 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-muted); font: inherit; font-size: var(--fs-xs); font-weight: 700; cursor: pointer; transition: background var(--ease), color var(--ease); }
+.ls-chip__btn:hover:not(:disabled) { background: var(--surface); color: var(--danger-ink); }
+.ls-chip__btn:disabled { cursor: default; }
+.ls-chip__btn--show { padding: 6px 10px; color: var(--link); }
+.ls-chip__btn--show:hover:not(:disabled) { color: var(--link); }
+.ls-chip--hidden { grid-template-areas: "main btn"; border-style: dashed; background: transparent; }
+.ls-chip--hidden .ls-chip__name { color: var(--ink-muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.ls-hidden { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--rule); }
+.ls-hidden__title { margin: 0; font-size: var(--fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
+.ls-hidden__sub { margin: 2px 0 var(--sp-3); font-size: var(--fs-xs); color: var(--ink-muted); }
+
+.ls-toast { position: fixed; left: 50%; bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px)); z-index: 80; transform: translateX(-50%); display: flex; align-items: center; gap: var(--sp-3); max-width: calc(100vw - 24px); padding: 10px 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5); animation: bulk-in 220ms ease-out; }
+.ls-toast svg { color: var(--ok); flex: none; }
+.ls-toast.is-error { border-color: var(--danger); color: var(--danger-ink); }
+.ls-toast__undo { padding: 4px 10px; border: 0; border-radius: var(--radius-pill); background: var(--brand); color: var(--brand-ink); font: inherit; font-weight: 800; cursor: pointer; }
+.ls-toast__x { border: 0; background: transparent; color: var(--ink-muted); font-size: 18px; line-height: 1; cursor: pointer; }
+
+@media (max-width: 800px) {
+  .ls { grid-template-columns: minmax(0, 1fr); }
+  .ls-rail { position: static; margin: 0 calc(-1 * var(--sp-3)); padding: 0 var(--sp-3); overflow-x: auto; scrollbar-width: none; }
+  .ls-rail::-webkit-scrollbar { display: none; }
+  .ls-tabs { display: flex; gap: var(--sp-2); width: max-content; padding: var(--sp-1); border-radius: var(--radius-pill); }
+  .ls-tab { flex: none; border-radius: var(--radius-pill); white-space: nowrap; box-shadow: none !important; }
+  .ls-panel { padding: var(--sp-4); }
+  .ls-chips { grid-template-columns: minmax(0, 1fr); }
+  .ls-add__field .btn { padding-inline: 14px; }
+}
