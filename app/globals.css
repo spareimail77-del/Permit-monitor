@@ -317,8 +317,8 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .seg--OVERDUE { stroke: var(--st-overdue); }
 .seg--CLOSED { stroke: var(--st-closed); }
 .seg--CANCELED { stroke: var(--st-canceled); }
-.donut-n { font-size: 26px; font-weight: 800; fill: var(--ink); }
-.donut-l { font-size: 11px; fill: var(--ink-muted); }
+.donut-n { font-size: 30px; font-weight: 700; fill: var(--ink); }
+.donut-l { font-size: 8.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ink-muted); }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1 1 140px; }
 .legend strong { margin-left: auto; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--surface-2); }
@@ -504,7 +504,7 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 
 /* dashboard: donut and legend */
 a .seg { cursor: pointer; transition: stroke-width 200ms ease, opacity 200ms ease; }
-a .seg:hover { stroke-width: 27; }
+a .seg:hover { stroke-width: 16; }
 .donut-wrap:has(a .seg:hover) a .seg:not(:hover) { opacity: 0.4; }
 .legend { gap: 2px; }
 .legend a { display: flex; align-items: center; gap: var(--sp-2); margin: 0 calc(-1 * var(--sp-2)); padding: 8px var(--sp-2); border-radius: 8px; text-decoration: none; color: inherit; font-size: var(--fs-base); transition: background var(--ease); }
@@ -516,7 +516,7 @@ a .seg:hover { stroke-width: 27; }
 .donut-wrap:has(.legend a[data-k="EXPIRING"]:hover) a .seg.seg--EXPIRING,
 .donut-wrap:has(.legend a[data-k="OVERDUE"]:hover) a .seg.seg--OVERDUE,
 .donut-wrap:has(.legend a[data-k="CLOSED"]:hover) a .seg.seg--CLOSED,
-.donut-wrap:has(.legend a[data-k="CANCELED"]:hover) a .seg.seg--CANCELED { opacity: 1; stroke-width: 27; }
+.donut-wrap:has(.legend a[data-k="CANCELED"]:hover) a .seg.seg--CANCELED { opacity: 1; stroke-width: 16; }
 
 /* dashboard: 14-day chart */
 .forecast__col { position: relative; border-radius: 6px; outline-offset: 2px; transition: background var(--ease); }
@@ -822,7 +822,7 @@ a .seg:hover { stroke-width: 27; }
 .dash-status { display: flex; flex-direction: column; }
 .dash-top .dash-status .donut-wrap { flex: 1; flex-wrap: nowrap; justify-content: center; align-items: center; gap: var(--sp-6); }
 .dash-top .dash-status .donut-wrap > svg { flex: none; width: clamp(200px, 22vw, 260px); height: auto; aspect-ratio: 1; }
-.dash-top .dash-status .legend { flex: 0 1 210px; min-width: 0; gap: 0; }
+.dash-top .dash-status .legend { flex: 0 1 230px; min-width: 0; gap: 0; }
 .dash-top .dash-status .legend li + li a { border-top: 1px solid var(--rule); }
 .dash-top .dash-status .legend a { margin: 0; padding: 12px var(--sp-2); border-radius: 0; font-size: var(--fs-base); }
 .dash-top .dash-status .legend strong { font-size: var(--fs-md); }
@@ -886,3 +886,8 @@ a .seg:hover { stroke-width: 27; }
   .ns-row { gap: var(--sp-2); }
   .ns-date { font-size: var(--fs-xs); }
 }
+
+/* donut legend: count, then the share in percent */
+.legend__pct { min-width: 38px; text-align: right; font-size: var(--fs-xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.dash-top .dash-status .legend strong { margin-left: auto; }
+.dash-top .dash-status .legend .dot { width: 10px; height: 10px; }
