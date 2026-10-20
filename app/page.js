@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getSupabase } from "../lib/db";
 import { todayOman } from "../lib/omanDate";
-import { STATUS_KEYS, STATUS_TEXT, addDays, computeStatus, isActiveKey } from "../lib/status";
+import { STATUS_KEYS, STATUS_TEXT, computeStatus, isActiveKey } from "../lib/status";
 import PageHeader from "./components/PageHeader";
 import NeedsAttention from "./components/NeedsAttention";
+import PermitTimeline from "./components/PermitTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +132,7 @@ export default async function Home() {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await getSupabase()
       .from("permits")
-      .select("id, reference, area, location, permit_type, applicant, holder, valid_to, status")
+      .select("id, reference, area, location, permit_type, applicant, holder, valid_from, valid_to, status")
       .is("deleted_at", null)
       .range(from, from + PAGE - 1);
     if (error) {
@@ -176,13 +177,19 @@ export default async function Home() {
 
   const activePermits = permits.filter((p) => isActiveKey(p.st.key));
 
-  // 14-day forecast: how many OPEN / EXPIRING permits end on each of the next 14 days.
-  const days = Array.from({ length: 14 }, (_, i) => addDays(today, i));
-  const forecast = days.map((d) => ({
-    d,
-    n: activePermits.filter((p) => p.st.key !== "OVERDUE" && p.valid_to === d).length,
-  }));
-  const fMax = Math.max(1, ...forecast.map((x) => x.n));
+  // Open and expiring permits for the timeline tile (overdue ones have their own tile).
+  const timelineItems = permits
+    .filter((p) => (p.st.key === "OPEN" || p.st.key === "EXPIRING") && p.st.daysLeft !== null)
+    .map((p) => ({
+      id: p.id,
+      reference: p.reference,
+      area: p.area || "",
+      location: p.location || "",
+      type: p.permit_type || "",
+      from: p.valid_from || "",
+      to: p.valid_to,
+      daysLeft: p.st.daysLeft,
+    }));
 
   return (
     <>
@@ -249,21 +256,7 @@ export default async function Home() {
         <NeedsAttention overdue={overdueRows} expiring={expiringRows} overdueHref={listLink({ status: "overdue" })} />
       </div>
 
-      <div className="panel pform-card dash-forecast">
-        <h2 className="pform-title">Ending in the next 14 days</h2>
-        <div className="forecast" role="group" aria-label="Permits ending per day">
-          {forecast.map((x, i) => (
-            <div key={x.d} className="forecast__col" data-tip={`${fmt(x.d)} · ${plural(x.n, "permit")}`} tabIndex={0}>
-              <span className="forecast__n">{x.n || ""}</span>
-              <span className={`forecast__bar${i === 0 ? " is-today" : ""}`} style={{ height: `${x.n ? Math.max(6, (x.n / fMax) * 90) : 3}px` }} />
-              <span className="forecast__d">{x.d.slice(8, 10)}</span>
-            </div>
-          ))}
-        </div>
-        <p className="pform-hint card-foot">
-          Open and expiring permits by their Valid to day. The first bar is today; overdue permits are not included.
-        </p>
-      </div>
+      <PermitTimeline items={timelineItems} today={today} />
 
       <h2 className="section-title">Active permits by…</h2>
       <div className="dash-grid dash-grid--4">
