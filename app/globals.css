@@ -1073,3 +1073,64 @@ a .seg:hover { stroke-width: 16; }
 @media (prefers-reduced-motion: reduce) {
   .ie-backdrop, .ie, .ie-full, .ie-spin { animation-duration: 0.01ms; }
 }
+
+/* ---- date picker (calendar) ----------------------------------------------- */
+.pform-card:has(.dp-pop) { position: relative; z-index: 5; }
+.dp { position: relative; }
+.dp-box { display: flex; align-items: stretch; border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--field-bg); transition: border-color var(--ease); }
+.dp-box:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+.dp-box.is-bad { border-color: var(--danger); }
+.dp-box.is-disabled { opacity: 0.6; }
+.dp-input { flex: 1; min-width: 0; padding: 9px var(--sp-3); border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--fs-base); font-variant-numeric: tabular-nums; outline: none; }
+.dp-input::placeholder { color: var(--ink-muted); opacity: 0.8; }
+.dp-open { display: inline-grid; place-items: center; width: 42px; border: 0; border-left: 1px solid var(--rule); border-radius: 0 8px 8px 0; background: transparent; color: var(--ink-muted); cursor: pointer; transition: color var(--ease), background var(--ease); }
+.dp-open:hover { color: var(--brand); background: var(--row-hover); }
+.dp-open:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.dp-backdrop { position: fixed; inset: 0; z-index: 59; background: transparent; }
+.dp-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; width: 336px; max-width: calc(100vw - 24px); padding: var(--sp-3); border: 1px solid var(--rule-strong); border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); animation: pop 160ms ease-out; }
+.dp-pop--up { top: auto; bottom: calc(100% + 6px); }
+.dp-grab { display: none; }
+.dp-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.dp-nav { display: flex; gap: 2px; }
+.dp-title { flex: 1; text-align: center; font-weight: 800; font-size: var(--fs-base); }
+.dp-nbtn { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; transition: background var(--ease); }
+.dp-nbtn:hover { background: var(--row-hover); }
+.dp-nbtn:focus-visible, .dp-day:focus-visible, .dp-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.dp-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.dp-grid th { padding: 6px 0; font-size: var(--fs-xs); font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.dp-grid th.is-we { color: var(--ink); opacity: 0.9; }
+.dp-grid td { padding: 1px 0; }
+.dp-day { position: relative; display: block; width: 100%; height: 40px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: background var(--ease), transform 120ms ease; }
+.dp-day:hover:not(.is-off):not(.is-sel) { background: var(--row-hover); }
+.dp-day.is-out { opacity: 0.4; }
+.dp-day.is-we:not(.in-band):not(.is-sel) { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.dp-day.is-today { box-shadow: inset 0 0 0 2px var(--brand); }
+.dp-day.in-band { border-radius: 0; background: color-mix(in srgb, var(--brand) 18%, transparent); }
+.dp-day.band-start { border-radius: 10px 0 0 10px; }
+.dp-day.band-end { border-radius: 0 10px 10px 0; }
+.dp-day.band-start.band-end { border-radius: 10px; }
+.dp-day.is-off { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+.dp-day.is-sel { border-radius: 10px; background: var(--brand); color: var(--brand-ink); font-weight: 800; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.dp-day.is-sel.is-today { box-shadow: inset 0 0 0 2px var(--surface), 0 2px 8px rgba(0, 0, 0, 0.35); }
+.dp-legend { display: flex; align-items: center; gap: 8px; margin: var(--sp-2) 0 0; font-size: var(--fs-xs); color: var(--ink-muted); }
+.dp-legend__sw { width: 18px; height: 10px; border-radius: 4px; background: color-mix(in srgb, var(--brand) 28%, transparent); }
+.dp-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--rule); }
+.dp-foot__gap { flex: 1; }
+.dp-link { padding: 6px 4px; border: 0; background: transparent; color: var(--link); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; border-radius: 6px; }
+.dp-link:hover:not(:disabled) { text-decoration: underline; }
+.dp-link:disabled { opacity: 0.4; cursor: not-allowed; }
+.dp-link--green { color: var(--ok-ink, var(--brand)); }
+.dp-link--danger { color: var(--danger-ink); }
+.dp-close { color: var(--ink-muted); }
+
+/* phone: a bottom sheet, so the calendar never covers what you are filling in */
+@media (max-width: 640px) {
+  .dp-backdrop { background: rgba(5, 10, 16, 0.6); }
+  .dp-pop, .dp-pop--up { position: fixed; top: auto; bottom: 0; left: 0; right: 0; width: auto; max-width: none; padding: var(--sp-2) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); border-radius: 20px 20px 0 0; border-bottom: 0; animation: dp-sheet 220ms ease-out; }
+  .dp-grab { display: block; width: 42px; height: 5px; margin: 4px auto var(--sp-2); border-radius: 5px; background: var(--rule-strong); }
+  .dp-day { height: 46px; font-size: var(--fs-base); }
+  .dp-nbtn { width: 42px; height: 42px; }
+}
+@keyframes dp-sheet { from { transform: translateY(40px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dp-pop { animation-duration: 0.01ms; } }

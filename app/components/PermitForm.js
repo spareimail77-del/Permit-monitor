@@ -1,6 +1,7 @@
 "use client";
 
 import { editImageFile } from "../../lib/editImage";
+import DatePicker from "./DatePicker";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,15 +42,6 @@ function emptyValues() {
 }
 
 const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
-
-// Opens the calendar when the date box itself is clicked (not only its icon).
-function openPicker(e) {
-  try {
-    e.currentTarget.showPicker?.();
-  } catch {
-    /* some browsers refuse; the icon still works */
-  }
-}
 
 // Defined outside PermitForm on purpose: components defined inside another
 // component are rebuilt on every keystroke and the field loses focus.
@@ -387,26 +379,26 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
         <h2 className="pform-title">Validity</h2>
         <div className="pform-grid">
           <Field name="validFrom" label="Valid from" required error={errors.validFrom}>
-            <input
+            <DatePicker
               id="pf-validFrom"
-              type="date"
-              className="pform-input"
+              ariaLabel="Valid from"
               value={values.validFrom}
-              onChange={(e) => set("validFrom", e.target.value)}
-              onClick={openPicker}
+              onChange={(v) => set("validFrom", v)}
+              invalid={Boolean(errors.validFrom)}
               disabled={disabled}
             />
           </Field>
           <Field name="validTo" label="Valid to (expiry)" required error={errors.validTo || toProblem}>
-            <input
+            <DatePicker
               id="pf-validTo"
-              type="date"
-              className="pform-input"
+              ariaLabel="Valid to"
               value={values.validTo}
+              onChange={(v) => set("validTo", v)}
               min={isValidISODate(values.validFrom) ? values.validFrom : undefined}
               max={latest ? latest.date : undefined}
-              onChange={(e) => set("validTo", e.target.value)}
-              onClick={openPicker}
+              rangeFrom={isValidISODate(values.validFrom) ? values.validFrom : undefined}
+              shortcuts={latest ? [{ label: `Latest allowed (${latest.date.split("-").reverse().join("-")})`, value: latest.date }] : []}
+              invalid={Boolean(errors.validTo || toProblem)}
               disabled={disabled}
             />
             {latest && (
