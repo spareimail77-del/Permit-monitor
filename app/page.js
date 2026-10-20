@@ -86,33 +86,65 @@ function StatCard({ href, n, label, sub, tone }) {
   );
 }
 
-function Bars({ title, items, field }) {
+const BK_SHOWN = 5; // rows shown per column; the rest opens with "more"
+
+// One column of the "Active permits by..." tile: a ranked list with the share of all
+// active permits. Names wrap (never cut with "..."), the rest folds into "more".
+function BreakdownColumn({ title, items, field, total }) {
   const max = Math.max(1, ...items.map((i) => i.n));
+  const counted = items.reduce((sum, i) => sum + i.n, 0);
+  const unset = Math.max(0, total - counted);
+  const shown = items.slice(0, BK_SHOWN);
+  const rest = items.slice(BK_SHOWN);
+  const row = (i) => (
+    <li key={i.label} className="bk-row">
+      <Link href={listLink({ status: "active", [field]: i.label })} className="bk-label" title={`${i.label}: ${i.n} active`}>
+        {i.label}
+      </Link>
+      <span className="bk-n">
+        {i.n}
+        <small>{total ? Math.round((i.n / total) * 100) : 0}%</small>
+      </span>
+      <span className="bk-track" aria-hidden="true">
+        <span className="bk-fill" style={{ width: `${(i.n / max) * 100}%` }} />
+      </span>
+    </li>
+  );
   return (
-    <div className="panel pform-card">
-      <h2 className="pform-title">{title}</h2>
+    <section className="bk-col" aria-label={`Active permits by ${title}`}>
+      <h3 className="bk-title">
+        {title}
+        <span className="bk-total">{items.length}</span>
+      </h3>
       {items.length === 0 ? (
         <p className="empty empty--compact">Nothing to show.</p>
       ) : (
-        <ul className="bars">
-          {items.map((i) => (
-            <li key={i.label} className="bar-row">
-              <Link href={listLink({ status: "active", [field]: i.label })} className="bar-label" title={`${i.label}: ${i.n} active`}>
-                {i.label}
-              </Link>
-              <span className="bar-track">
-                <span className="bar-fill" style={{ width: `${(i.n / max) * 100}%` }} />
-              </span>
-              <span className="bar-n">{i.n}</span>
+        <ul className="bk-list">
+          {shown.map(row)}
+          {rest.length > 0 && (
+            <li className="bk-more">
+              <details>
+                <summary>
+                  <span className="bk-more__open">+{rest.length} more</span>
+                  <span className="bk-more__close">Show less</span>
+                </summary>
+                <ul className="bk-list">{rest.map(row)}</ul>
+              </details>
             </li>
-          ))}
+          )}
+          {unset > 0 && (
+            <li className="bk-unset">
+              <span>Not set</span>
+              <span className="bk-n">{unset}</span>
+            </li>
+          )}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
 
-function top(permits, getter, n = 8) {
+function top(permits, getter, n = Infinity) {
   const map = new Map();
   for (const p of permits) {
     const v = getter(p);
@@ -259,11 +291,13 @@ export default async function Home() {
       <PermitTimeline items={timelineItems} today={today} />
 
       <h2 className="section-title">Active permits by…</h2>
-      <div className="dash-grid dash-grid--4">
-        <Bars title="Area" items={top(activePermits, (p) => p.area)} field="area" />
-        <Bars title="Type of permit" items={top(activePermits, (p) => p.permit_type)} field="type" />
-        <Bars title="Applicant" items={top(activePermits, (p) => p.applicant)} field="applicant" />
-        <Bars title="Holder" items={top(activePermits, (p) => p.holder)} field="holder" />
+      <div className="panel pform-card bk">
+        <div className="bk-grid">
+          <BreakdownColumn title="Area" items={top(activePermits, (p) => p.area)} field="area" total={activePermits.length} />
+          <BreakdownColumn title="Type of permit" items={top(activePermits, (p) => p.permit_type)} field="type" total={activePermits.length} />
+          <BreakdownColumn title="Applicant" items={top(activePermits, (p) => p.applicant)} field="applicant" total={activePermits.length} />
+          <BreakdownColumn title="Holder" items={top(activePermits, (p) => p.holder)} field="holder" total={activePermits.length} />
+        </div>
       </div>
     </>
   );
