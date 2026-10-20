@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FILE_KINDS, fileProblem, formatBytes } from "../../lib/fileRules";
 import { uploadPermitFiles } from "../../lib/uploadFiles";
+import { editImageFile } from "../../lib/editImage";
 
 const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
 
@@ -26,7 +27,10 @@ export default function AddFile({ permitId, certificateNames = [] }) {
     setIsError(error);
   }
 
-  function pick(f) {
+  async function pick(picked) {
+    // Photos open the crop and compress editor first; PDFs go straight through.
+    const f = picked ? await editImageFile(picked) : null;
+    if (picked && !f) return; // cancelled in the editor
     setFile(f);
     say(f ? fileProblem(f) || "" : "", Boolean(f && fileProblem(f)));
   }

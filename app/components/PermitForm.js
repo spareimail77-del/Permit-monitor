@@ -1,5 +1,6 @@
 "use client";
 
+import { editImageFile } from "../../lib/editImage";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -167,7 +168,10 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
     });
   }
 
-  function pickFile(slot, file, apply) {
+  async function pickFile(slot, picked, apply) {
+    // Photos open the crop and compress editor first; PDFs go straight through.
+    const file = await editImageFile(picked);
+    if (!file) return; // cancelled in the editor
     const problem = fileProblem(file);
     setFileErrors((e) => ({ ...e, [slot]: problem || undefined }));
     if (!problem) apply(file);
