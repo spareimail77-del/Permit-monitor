@@ -148,8 +148,8 @@ export default async function Home() {
   const overdue = permits.filter((p) => p.st.key === "OVERDUE").sort((a, b) => b.st.daysOverdue - a.st.daysOverdue);
     const oldest = overdue[0]?.st.daysOverdue || 0;
 
-  // Rows for the "Needs attention" tile. Expiring looks 7 days ahead, so it also
-  // holds permits whose status is still plain Open (4 to 7 days left).
+  // Rows for the "Needs attention" tile. Expiring holds EVERY open permit
+  // (soonest first), not only the "Expiring soon" status.
   const slim = (p) => ({
     id: p.id,
     reference: p.reference,
@@ -162,7 +162,7 @@ export default async function Home() {
   });
   const overdueRows = overdue.map(slim);
   const expiringRows = permits
-    .filter((p) => (p.st.key === "OPEN" || p.st.key === "EXPIRING") && p.st.daysLeft !== null && p.st.daysLeft <= 7)
+    .filter((p) => (p.st.key === "OPEN" || p.st.key === "EXPIRING") && p.st.daysLeft !== null)
     .sort((a, b) => a.st.daysLeft - b.st.daysLeft)
     .map(slim);
 
@@ -218,8 +218,8 @@ export default async function Home() {
         {other > 0 && <StatCard href="/permits" n={other} label="Other / unrecognized" sub="status not known" />}
       </div>
 
-      <div className="dash-grid">
-        <div className="panel pform-card">
+      <div className="dash-grid dash-top">
+        <div className="panel pform-card dash-status">
           <h2 className="pform-title">Status</h2>
           <div className="donut-wrap">
             <Donut counts={counts} total={total - other} />
@@ -237,25 +237,24 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="panel pform-card">
-          <h2 className="pform-title">Ending in the next 14 days</h2>
-          <div className="forecast" role="group" aria-label="Permits ending per day">
-            {forecast.map((x, i) => (
-              <div key={x.d} className="forecast__col" data-tip={`${fmt(x.d)} · ${plural(x.n, "permit")}`} tabIndex={0}>
-                <span className="forecast__n">{x.n || ""}</span>
-                <span className={`forecast__bar${i === 0 ? " is-today" : ""}`} style={{ height: `${x.n ? Math.max(6, (x.n / fMax) * 90) : 3}px` }} />
-                <span className="forecast__d">{x.d.slice(8, 10)}</span>
-              </div>
-            ))}
-          </div>
-          <p className="pform-hint card-foot">
-            Open and expiring permits by their Valid to day. The first bar is today; overdue permits are not included.
-          </p>
-        </div>
+        <NeedsAttention overdue={overdueRows} expiring={expiringRows} overdueHref={listLink({ status: "overdue" })} />
       </div>
 
-      <h2 className="section-title">Needs attention</h2>
-      <NeedsAttention overdue={overdueRows} expiring={expiringRows} overdueHref={listLink({ status: "overdue" })} />
+      <div className="panel pform-card dash-forecast">
+        <h2 className="pform-title">Ending in the next 14 days</h2>
+        <div className="forecast" role="group" aria-label="Permits ending per day">
+          {forecast.map((x, i) => (
+            <div key={x.d} className="forecast__col" data-tip={`${fmt(x.d)} · ${plural(x.n, "permit")}`} tabIndex={0}>
+              <span className="forecast__n">{x.n || ""}</span>
+              <span className={`forecast__bar${i === 0 ? " is-today" : ""}`} style={{ height: `${x.n ? Math.max(6, (x.n / fMax) * 90) : 3}px` }} />
+              <span className="forecast__d">{x.d.slice(8, 10)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="pform-hint card-foot">
+          Open and expiring permits by their Valid to day. The first bar is today; overdue permits are not included.
+        </p>
+      </div>
 
       <h2 className="section-title">Active permits by…</h2>
       <div className="dash-grid dash-grid--4">
