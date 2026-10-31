@@ -52,6 +52,9 @@ export default async function EditPermitPage({ params }) {
     certNumbers: Object.fromEntries(certs.map((c) => [c.name, c.number || ""])),
     status: permit.status,
     cancelReason: permit.cancel_reason || "",
+    // When this permit was last saved. Sent back with Save: if someone else saved it in
+    // the meantime, the server refuses instead of overwriting their changes.
+    updatedAt: permit.updated_at || "",
   };
 
   return (

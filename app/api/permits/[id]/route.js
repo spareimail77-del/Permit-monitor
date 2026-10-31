@@ -70,17 +70,41 @@ export async function PATCH(request, { params }) {
     return bad("Unknown action.");
   }
 
-  const { data, error } = await supabase
-    .from("permits")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select("id");
+  // Editing the form: save only if nobody saved the permit since this person opened it.
+  // The check is part of the UPDATE itself (one step), so two saves at the same moment
+  // cannot both win. A client that sends no version (an old open page) is not checked.
+  const expected =
+    body.action === "edit" && typeof body.expectedUpdatedAt === "string" && body.expectedUpdatedAt && body.expectedUpdatedAt.length <= 64
+      ? body.expectedUpdatedAt
+      : "";
+
+  const newVersion = new Date().toISOString();
+  let query = supabase.from("permits").update({ ...patch, updated_at: newVersion }).eq("id", id);
+  if (expected) query = query.eq("updated_at", expected);
+  const { data, error } = await query.select("id, updated_at");
   if (error) {
     console.error("Updating a permit failed:", error);
     return bad("The permit could not be saved. Please try again.", 500);
   }
-  if (!data || data.length === 0) return bad("You are not allowed to change this permit.", 403);
-  return Response.json({ ok: true });
+  if (!data || data.length === 0) {
+    if (expected) {
+      // Nothing was saved. Is it because someone else saved the permit first?
+      const { data: now } = await supabase.from("permits").select("id, updated_at, deleted_at").eq("id", id).maybeSingle();
+      if (now && now.updated_at !== expected) {
+        return Response.json(
+          {
+            error: now.deleted_at
+              ? "This permit was moved to the trash by someone else. Your changes were not saved."
+              : "Someone else changed this permit while you were editing. Your changes were NOT saved, so theirs are not lost. Reload to see their version, then make your changes again.",
+            code: "conflict",
+          },
+          { status: 409 }
+        );
+      }
+    }
+    return bad("You are not allowed to change this permit.", 403);
+  }
+  return Response.json({ ok: true, updatedAt: data[0].updated_at });
 }
 
 // "Delete" = move to the trash (nothing is erased). Root and HSE can restore it

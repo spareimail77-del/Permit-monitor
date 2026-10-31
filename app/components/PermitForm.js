@@ -137,6 +137,9 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null); // { ref, id, saved, failed }
   const [savedRefs, setSavedRefs] = useState([]);
+  // Edit mode: the version of the permit this form started from (see the PATCH route).
+  const [updatedAt, setUpdatedAt] = useState(initial?.updatedAt || "");
+  const [conflict, setConflict] = useState(false);
 
   const taken = useMemo(
     () => new Set([...existingRefs, ...savedRefs].map((r) => String(r).trim().toUpperCase())),
@@ -250,15 +253,19 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
         const res = await fetch(`/api/permits/${permitId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, action: "edit", status, cancelReason }),
+          body: JSON.stringify({ ...payload, action: "edit", status, cancelReason, expectedUpdatedAt: updatedAt }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setErrors(data.fields || {});
           setState("error");
+          setConflict(data.code === "conflict");
           setMessage(data.error || "The permit could not be saved.");
           return;
         }
+        setConflict(false);
+        // The permit is now at a new version: a retry (for example of failed files) must use it.
+        if (data.updatedAt) setUpdatedAt(data.updatedAt);
         const items = collectFileItems();
         if (items.length) {
           const upload = await uploadPermitFiles(permitId, items);
@@ -631,6 +638,14 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       </div>
 
       {state === "error" && message && <p className="error-text">{message}</p>}
+      {state === "error" && conflict && (
+        <p>
+          <button type="button" className="btn btn-sm" onClick={() => window.location.reload()}>
+            Reload the latest version
+          </button>{" "}
+          <span className="pform-hint">Your typing on this page will be lost, so copy anything you need first.</span>
+        </p>
+      )}
 
       <div className="pform-actions">
         <button type="submit" className="btn btn-primary" disabled={disabled}>
