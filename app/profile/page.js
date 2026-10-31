@@ -3,7 +3,7 @@ import PageHeader from "../components/PageHeader";
 import ProfileForms from "./ProfileForms";
 import StaffIdCard from "./StaffIdCard";
 import { getSupabase } from "../../lib/db";
-import { getViewer } from "../../lib/viewer";
+import { getViewerStrict as getViewer } from "../../lib/viewer";
 import { roleLabel } from "../../lib/permissions";
 
 export const dynamic = "force-dynamic";

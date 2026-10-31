@@ -1,5 +1,5 @@
 import { getSupabase } from "../../../../lib/db";
-import { getViewer } from "../../../../lib/viewer";
+import { getViewerStrict as getViewer } from "../../../../lib/viewer";
 import { can } from "../../../../lib/permissions";
 import { todayOman } from "../../../../lib/omanDate";
 import { statusPatch } from "../../../../lib/permitRules";

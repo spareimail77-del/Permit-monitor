@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { getSupabase } from "../../../lib/db";
-import { getViewer } from "../../../lib/viewer";
+import { getViewerStrict as getViewer } from "../../../lib/viewer";
 import { can } from "../../../lib/permissions";
 import { todayOman } from "../../../lib/omanDate";
 import { computeStatus } from "../../../lib/status";

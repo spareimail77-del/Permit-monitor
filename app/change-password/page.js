@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import ChangePasswordForm from "./ChangePasswordForm";
-import { getViewer } from "../../lib/viewer";
+import { getViewerStrict as getViewer } from "../../lib/viewer";
 
 export const dynamic = "force-dynamic";
 
