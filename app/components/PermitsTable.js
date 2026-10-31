@@ -24,7 +24,7 @@ const Clip = () => (
   </svg>
 );
 
-export default function PermitsTable({ rows, columns, canManage, canExport }) {
+export default function PermitsTable({ rows, columns, onSort, canManage, canExport }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set());
   const [menu, setMenu] = useState(null); // { id, left, top?, bottom? }
@@ -195,10 +195,10 @@ export default function PermitsTable({ rows, columns, canManage, canExport }) {
             )}
             {columns.map((c) => (
               <th key={c.key} aria-sort={c.active ? (c.dir === "desc" ? "descending" : "ascending") : undefined}>
-                <Link href={c.href} className={`th-sort${c.active ? " is-active" : ""}`} title={`Sort by ${c.label}`}>
+                <button type="button" onClick={() => onSort(c.key)} className={`th-sort${c.active ? " is-active" : ""}`} title={`Sort by ${c.label}`}>
                   {c.label}
                   <span className="th-sort__arrow" aria-hidden="true">{c.active ? (c.dir === "desc" ? "▼" : "▲") : "↕"}</span>
-                </Link>
+                </button>
               </th>
             ))}
             {canManage && (

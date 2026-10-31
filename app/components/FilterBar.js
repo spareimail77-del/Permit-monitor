@@ -1,59 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-
-const KEYS = ["q", "status", "area", "type", "applicant", "holder", "month", "files"];
-const EMPTY = { q: "", status: "", area: "", type: "", applicant: "", holder: "", month: "", files: "" };
 const FILES_TEXT = { has: "Has files", none: "No files" };
-// `sort` and `dir` (column sorting) are not filters: they are kept as they are.
-const toQuery = (v, sort, dir) => {
-  const p = new URLSearchParams();
-  for (const k of KEYS) if (v[k]) p.set(k, v[k]);
-  if (sort) {
-    p.set("sort", sort);
-    if (dir === "desc") p.set("dir", "desc");
-  }
-  return p.toString();
-};
 
-// The filter bar of the permit list. Choosing a status, area or type applies at once;
-// typing in the search box applies after a short pause. Every active filter shows as a
-// chip that can be removed with one click. Without JavaScript the Apply button still
-// works, because this is a normal GET form.
-export default function FilterBar({ initial, statusOptions, areas, types, months = [], sort = "", dir = "", showFiles = true }) {
-  const router = useRouter();
-  const [v, setV] = useState(initial);
-  const [pending, start] = useTransition();
-  const last = useRef(toQuery(initial, sort, dir));
-  const timer = useRef(null);
-  const key = toQuery(initial, sort, dir);
-
-  // The address changed from outside (a dashboard link, the back button): follow it.
-  useEffect(() => {
-    if (key !== last.current) {
-      last.current = key;
-      setV(initial);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  useEffect(() => () => clearTimeout(timer.current), []);
-
-  function go(next) {
-    clearTimeout(timer.current);
-    const qs = toQuery(next, sort, dir);
-    last.current = qs;
-    start(() => router.push(qs ? `/permits?${qs}` : "/permits"));
-  }
-
-  function change(name, value, delay = 0) {
-    const next = { ...v, [name]: value };
-    setV(next);
-    clearTimeout(timer.current);
-    if (delay) timer.current = setTimeout(() => go(next), delay);
-    else go(next);
-  }
+// The filter bar of the permit list. It is controlled by PermitsBrowser, which filters
+// the already-loaded permits in the browser, so every change shows at once (the search
+// box too, as you type). Every active filter shows as a chip that can be removed with one click.
+export default function FilterBar({ value: v, onChange, onClear, statusOptions, areas, types, months = [], showFiles = true }) {
+  const change = (name, value) => onChange(name, value, name === "q" ? { replace: true } : undefined);
 
   const statusText = (statusOptions.find((s) => s.value === v.status) || {}).label || v.status;
   // Months that have permits, newest first. A month typed into the address that has
@@ -76,15 +29,10 @@ export default function FilterBar({ initial, statusOptions, areas, types, months
   ].filter(Boolean);
 
   return (
-    <div className="filters" data-pending={pending ? "true" : undefined}>
+    <div className="filters">
       <form
-        method="get"
-        action="/permits"
         className="panel filter-bar"
-        onSubmit={(e) => {
-          e.preventDefault();
-          go(v);
-        }}
+        onSubmit={(e) => e.preventDefault()}
       >
         <label className="search-field">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -95,7 +43,7 @@ export default function FilterBar({ initial, statusOptions, areas, types, months
             name="q"
             className="pform-input"
             value={v.q}
-            onChange={(e) => change("q", e.target.value, 400)}
+            onChange={(e) => change("q", e.target.value)}
             placeholder="Search number, location, applicant, holder"
             aria-label="Search"
             autoComplete="off"
@@ -148,11 +96,6 @@ export default function FilterBar({ initial, statusOptions, areas, types, months
             <option value="none">No files</option>
           </select>
         )}
-        {v.applicant && <input type="hidden" name="applicant" value={v.applicant} />}
-        {v.holder && <input type="hidden" name="holder" value={v.holder} />}
-        <button type="submit" className="btn btn-primary btn-sm filter-apply">
-          Apply
-        </button>
       </form>
 
       {chips.length > 0 && (
@@ -168,7 +111,7 @@ export default function FilterBar({ initial, statusOptions, areas, types, months
             </li>
           ))}
           <li>
-            <button type="button" className="chip-clear" onClick={() => { setV(EMPTY); go(EMPTY); }}>
+            <button type="button" className="chip-clear" onClick={onClear}>
               Clear all
             </button>
           </li>

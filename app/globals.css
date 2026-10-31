@@ -682,6 +682,8 @@ a .seg:hover { stroke-width: 16; }
 /* no inner vertical scroll: the page scrolls, the table only scrolls sideways when it is too wide */
 .table-wrap--tall { overflow-x: auto; overflow-y: visible; }
 .th-sort { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; font-weight: inherit; transition: color var(--ease); }
+button.th-sort, button.status-tab { font-family: inherit; cursor: pointer; }
+button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; text-transform: inherit; letter-spacing: inherit; text-align: left; }
 .th-sort:hover, .th-sort.is-active { color: var(--ink); }
 .th-sort__arrow { font-size: 10px; opacity: 0.35; transition: opacity var(--ease); }
 .th-sort:hover .th-sort__arrow, .th-sort.is-active .th-sort__arrow { opacity: 1; color: var(--brand); }
@@ -1242,3 +1244,7 @@ a .seg:hover { stroke-width: 16; }
   .ls-chips { grid-template-columns: minmax(0, 1fr); }
   .ls-add__field .btn { padding-inline: 14px; }
 }
+
+/* Page loading indicator (app/loading.js) */
+.page-loading { position: relative; height: 3px; margin: 0 0 var(--sp-4); overflow: hidden; border-radius: 2px; }
+.page-loading__bar { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--brand), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: slide 0.9s ease-in-out infinite; }
