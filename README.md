@@ -319,3 +319,21 @@ Not in D (later): My permits, People board and Copy summary (they need the name 
 ## Not in this step (planned)
 
 import of the 48 current permits (F) · photo compression and crop for uploads · name links, My permits and People board.
+
+## Speed-up steps (list, sign-in check, dashboard, dropdowns)
+
+- The permit list loads once and filters, sorts and counts in the browser (no database call per click).
+- Middleware keeps a signed 60-second note of who is signed in (`lib/sessionCache.js`), so pages skip the profile lookup. Data-changing routes still check the live database. It uses `SUPABASE_SERVICE_ROLE_KEY` as the signing secret, or `SESSION_CACHE_SECRET` if you set one.
+- The dashboard reads only OPEN permits in full; closed and canceled permits are counted by the database.
+- Dropdown order and Lists counts come from `option_usage()`.
+
+**Set-up**
+
+1. Supabase -> SQL Editor: run all of `supabase/07-option-usage.sql`. It only adds a function; no data changes. If you skip it, the site still works (slower dropdown ordering).
+2. Upload the files to GitHub and let Vercel redeploy.
+
+**Tests**
+
+1. Home page: the numbers (total, closed, canceled, overdue) match the Permits list tabs.
+2. New permit form: dropdowns list the most used value first; opens quickly.
+3. Lists page: the "used" counts next to each value are right; a value in use still cannot be deleted.

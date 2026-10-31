@@ -159,31 +159,44 @@ function top(permits, getter, n = Infinity) {
 export default async function Home() {
   const today = todayOman();
 
-  const rows = [];
-  let failed = false;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await getSupabase()
-      .from("permits")
-      .select("id, reference, area, location, permit_type, applicant, holder, valid_from, valid_to, status")
-      .is("deleted_at", null)
-      .range(from, from + PAGE - 1);
-    if (error) {
-      console.error("Reading permits for the dashboard failed:", error);
-      failed = true;
-      break;
+  // The dashboard only needs the full details of OPEN permits (status, timeline, breakdowns).
+  // Closed and canceled permits are only counted, by the database, so the page no longer
+  // reads the whole history. The three counts and the open permits are read at the same time.
+  const supabase = getSupabase();
+  const countQuery = (status) => {
+    let q = supabase.from("permits").select("id", { count: "exact", head: true }).is("deleted_at", null);
+    if (status) q = q.eq("status", status);
+    return q;
+  };
+  const readOpen = async () => {
+    const out = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("permits")
+        .select("id, reference, area, location, permit_type, applicant, holder, valid_from, valid_to, status")
+        .is("deleted_at", null)
+        .eq("status", "OPEN")
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) return { error };
+      out.push(...(data || []));
+      if (!data || data.length < PAGE) break;
     }
-    rows.push(...(data || []));
-    if (!data || data.length < PAGE) break;
-  }
+    return { rows: out };
+  };
+  const [openRead, totalRes, closedRes, canceledRes] = await Promise.all([readOpen(), countQuery(), countQuery("CLOSED"), countQuery("CANCELED")]);
+  const firstError = openRead.error || totalRes.error || closedRes.error || canceledRes.error;
+  const failed = Boolean(firstError);
+  if (firstError) console.error("Reading permits for the dashboard failed:", firstError);
 
-  const permits = rows.map((r) => ({ ...r, st: computeStatus(r, today) }));
+  const permits = (openRead.rows || []).map((r) => ({ ...r, st: computeStatus(r, today) }));
   const counts = Object.fromEntries(STATUS_KEYS.map((k) => [k, 0]));
-  let other = 0;
-  for (const p of permits) {
-    if (counts[p.st.key] !== undefined) counts[p.st.key] += 1;
-    else other += 1;
-  }
-  const total = permits.length;
+  for (const p of permits) if (counts[p.st.key] !== undefined) counts[p.st.key] += 1;
+  counts.CLOSED = closedRes.count || 0;
+  counts.CANCELED = canceledRes.count || 0;
+  const total = failed ? 0 : totalRes.count || 0;
+  // Anything not open / closed / canceled (the database does not allow it, so normally 0).
+  const other = Math.max(0, total - permits.length - counts.CLOSED - counts.CANCELED);
   const active = counts.OPEN + counts.EXPIRING + counts.OVERDUE;
 
   const overdue = permits.filter((p) => p.st.key === "OVERDUE").sort((a, b) => b.st.daysOverdue - a.st.daysOverdue);
