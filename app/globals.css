@@ -811,6 +811,57 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 }
 
 @media print {
+  /* Print always uses the LIGHT colours, even when the screen is in dark mode: the
+     dark tokens would otherwise print dark tiles with pale text. html[data-theme] is
+     more specific than both theme blocks above, so it wins in either theme. */
+  html, html[data-theme] {
+    color-scheme: light;
+
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef2f5;
+    --field-bg: #ffffff;
+    --row-hover: #f6f9fb;
+    --header-bg: #ffffff;
+
+    --ink: #14202b;
+    --ink-muted: #52626f;
+    --rule: #dde4ea;
+    --rule-strong: #c3ced8;
+
+    --brand: #0f766e;
+    --brand-hover: #0b5f58;
+    --brand-ink: #ffffff;
+    --link: #0f766e;
+    --focus: #0f766e;
+
+    --ok: #027a48;
+    --ok-bg: #e7f6ee;
+    --ok-ink: #05603a;
+    --ok-line: #a5dcbf;
+    --warn: #b7791f;
+    --warn-bg: #fff4d6;
+    --warn-ink: #7a4f00;
+    --warn-line: #f1d98a;
+    --danger: #b42318;
+    --danger-bg: #fde8e6;
+    --danger-ink: #912018;
+    --danger-line: #f3b4ae;
+    --danger-solid: #b42318;
+    --on-danger: #ffffff;
+    --neutral-bg: #e4e9ee;
+    --neutral-ink: #3f4f5d;
+
+    --st-open: #027a48;
+    --st-expiring: #b7791f;
+    --st-overdue: #b42318;
+    --st-closed: #4a5b6b;
+    --st-canceled: #98a4b0;
+
+    --brand-2: #14a89b;
+    --shadow-pop: 0 10px 28px rgba(20, 32, 43, 0.14);
+    --shadow-card: 0 8px 22px rgba(20, 32, 43, 0.12);
+  }
   .site-header, .pd-noprint, .skip-link { display: none !important; }
   body { background: #fff !important; color: #000 !important; }
   .pd-hero, .pd-card { animation: none !important; box-shadow: none !important; break-inside: avoid; }
