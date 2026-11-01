@@ -16,6 +16,8 @@ const ICON = {
   hide: "M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.6 9.6 0 0 1 12 5c5 0 8.5 4.2 9.5 7a11 11 0 0 1-2.5 3.7M6.6 6.6A11 11 0 0 0 2.5 12c1 2.8 4.5 7 9.5 7a9.4 9.4 0 0 0 4-.9",
   show: "M2.5 12c1-2.8 4.5-7 9.5-7s8.5 4.2 9.5 7c-1 2.8-4.5 7-9.5 7s-8.5-4.2-9.5-7zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
   plus: "M12 5v14M5 12h14",
+  edit: "M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16v4zM13.5 6.5l4 4",
+  trash: "M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3",
   check: "M5 12.5l4.5 4.5L19 7.5",
 };
 
@@ -27,6 +29,7 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null); // { text, error, undo }
   const [ov, setOv] = useState({}); // instant (not yet confirmed) active flags by id
+  const [editing, setEditing] = useState(null); // { id, text }: renaming a location
   const toastTimer = useRef(null);
   const tabRefs = useRef({});
 
@@ -84,6 +87,33 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
     else say({ text: `${it.value} is shown in the dropdown again.` }, 3500);
   }
 
+  // Location list, Root only: rename or delete a value.
+  async function saveRename(it) {
+    const next = editing?.text.trim().replace(/\s+/g, " ").toUpperCase();
+    if (!next || pendingId) return;
+    if (next === it.value) return setEditing(null);
+    setPendingId(it.id);
+    const r = await call(`/api/lists/${it.id}`, "PATCH", { value: next });
+    setPendingId(null);
+    if (!r.ok) return say({ text: r.error, error: true });
+    setEditing(null);
+    router.refresh();
+    say({ text: `${it.value} is now ${next}. Permits already saved keep the old text.` }, 5000);
+  }
+
+  async function removeItem(it) {
+    if (pendingId) return;
+    if (!window.confirm(`Delete ${it.value} from the location list?\n\nPermits that already use it keep their text. This cannot be undone (you can add it again later).`)) return;
+    setPendingId(it.id);
+    const r = await call(`/api/lists/${it.id}`, "DELETE");
+    setPendingId(null);
+    if (!r.ok) return say({ text: r.error, error: true });
+    router.refresh();
+    say({ text: `${it.value} deleted from the list.` }, 3500);
+  }
+
+  const canEditLocation = current === "location" && isRoot;
+
   // What the typed value will be, and whether it already exists.
   const typed = text.trim().replace(/\s+/g, " ").toUpperCase();
   const existing = typed ? items.find((i) => i.value.toUpperCase() === typed) : null;
@@ -110,6 +140,46 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
     setText("");
     tabRefs.current[next]?.focus();
   }
+
+  const nameCell = (it) =>
+    editing?.id === it.id ? (
+      <span className="ls-edit">
+        <input
+          className="pform-input ls-edit__input"
+          value={editing.text}
+          maxLength={80}
+          autoFocus
+          aria-label={`New name for ${it.value}`}
+          onChange={(e) => setEditing({ id: it.id, text: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              saveRename(it);
+            } else if (e.key === "Escape") setEditing(null);
+          }}
+        />
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => saveRename(it)} disabled={Boolean(pendingId)}>
+          Save
+        </button>
+        <button type="button" className="btn btn-sm" onClick={() => setEditing(null)}>
+          Cancel
+        </button>
+      </span>
+    ) : (
+      <span className="ls-chip__name">{it.value}</span>
+    );
+
+  const rootTools = (it) =>
+    canEditLocation && editing?.id !== it.id ? (
+      <>
+        <button type="button" className="ls-chip__btn ls-chip__btn--edit" disabled={Boolean(pendingId)} onClick={() => setEditing({ id: it.id, text: it.value })} aria-label={`Rename ${it.value}`} title="Rename">
+          <Svg d={ICON.edit} />
+        </button>
+        <button type="button" className="ls-chip__btn" disabled={Boolean(pendingId)} onClick={() => removeItem(it)} aria-label={`Delete ${it.value}`} title="Delete from the list">
+          <Svg d={ICON.trash} />
+        </button>
+      </>
+    ) : null;
 
   return (
     <div className="ls">
@@ -208,7 +278,7 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
             {shown.map((it) => (
               <li key={it.id} className={`ls-chip${pendingId === it.id ? " is-busy" : ""}`}>
                 <span className="ls-chip__main">
-                  <span className="ls-chip__name">{it.value}</span>
+                  {nameCell(it)}
                   {tracksUse && (
                     <span className="ls-chip__use" title={it.used ? `Used by ${it.used} permit${it.used === 1 ? "" : "s"}` : "Not used by any permit yet"}>
                       {it.used ? it.used : "unused"}
@@ -221,16 +291,19 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
                   </span>
                 )}
                 {!locked && (
-                <button
-                  type="button"
-                  className="ls-chip__btn"
-                  disabled={Boolean(pendingId)}
-                  onClick={() => setActive(it, false, { withUndo: true })}
-                  aria-label={`Hide ${it.value} from the dropdown`}
-                  title="Hide from the dropdown"
-                >
-                  <Svg d={ICON.hide} />
-                </button>
+                  <span className="ls-chip__btns">
+                    {rootTools(it)}
+                    <button
+                      type="button"
+                      className="ls-chip__btn"
+                      disabled={Boolean(pendingId)}
+                      onClick={() => setActive(it, false, { withUndo: true })}
+                      aria-label={`Hide ${it.value} from the dropdown`}
+                      title="Hide from the dropdown"
+                    >
+                      <Svg d={ICON.hide} />
+                    </button>
+                  </span>
                 )}
               </li>
             ))}
@@ -245,13 +318,16 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
               {hidden.map((it) => (
                 <li key={it.id} className={`ls-chip ls-chip--hidden${pendingId === it.id ? " is-busy" : ""}`}>
                   <span className="ls-chip__main">
-                    <span className="ls-chip__name">{it.value}</span>
+                    {nameCell(it)}
                     {it.used > 0 && <span className="ls-chip__use">{it.used}</span>}
                   </span>
                   {!locked && (
+                    <span className="ls-chip__btns">
+                    {rootTools(it)}
                     <button type="button" className="ls-chip__btn ls-chip__btn--show" disabled={Boolean(pendingId)} onClick={() => setActive(it, true)} aria-label={`Show ${it.value} in the dropdown again`}>
                       <Svg d={ICON.show} /> Show
                     </button>
+                    </span>
                   )}
                 </li>
               ))}

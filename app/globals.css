@@ -1320,3 +1320,9 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 .lp-chip--add { border-style: dashed; color: var(--link); }
 .lp-chip:disabled, .lp-tag__x:disabled { opacity: 0.55; cursor: not-allowed; }
 .lp-tag--old { padding-right: 10px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule-strong); }
+
+/* Lists: rename / delete tools on Location values (Root) */
+.ls-chip__btns { grid-area: btn; display: inline-flex; align-items: center; gap: 2px; }
+.ls-chip__btn--edit:hover:not(:disabled) { color: var(--link); }
+.ls-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
+.ls-edit__input { flex: 1 1 140px; min-width: 0; padding: 6px 10px; font-size: var(--fs-sm); }
