@@ -147,9 +147,9 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [picked, setPicked] = useState(() => parseLocations(initial?.values?.location || "", options.location || []) || []);
   const [legacyLocation, setLegacyLocation] = useState(() => {
     const text = initial?.values?.location || "";
-    return text && parseLocations(text, options.location || []) === null && (options.location || []).length > 0 ? text : "";
+    return text && parseLocations(text, options.location || []) === null ? text : "";
   });
-  const pickerOn = locationList.length > 0 || canAddLocation; // else (no list yet) a plain text box
+  const pickerOn = true; // locations are always picked from the list, never typed freely
   const [conflict, setConflict] = useState(false);
 
   const taken = useMemo(

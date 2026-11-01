@@ -342,7 +342,7 @@ import of the 48 current permits (F) Â· photo compression and crop for uploads Â
 
 - Locations are a dropdown list like Area, but **only Root** can add or hide them (Lists page, or the "+ Add" chip on the permit form). HSE can pick from the list.
 - On the permit form the person types, matching locations appear as chips (typos, spaces, dashes and leading zeros are forgiven), and they click a chip. Several can be picked: `MPS - 1 & MPS - 2`, `MPS - 1, MPS - 2 & MPS - 3`.
-- The server re-checks every pick against the list. Old permits keep their old text. While the list is empty the field stays a plain text box.
+- The server re-checks every pick against the list. Old permits keep their old text. The location can never be typed freely: with an empty list nobody can save a permit until Root adds the first location (Root can do it from the permit form).
 - Matching runs in the browser (`lib/locationMatch.js`): no database calls while typing.
 
 **Set-up:** Supabase -> SQL Editor: run all of `supabase/08-locations.sql` **before** deploying the code. It only adds `location` as a list name and makes the list Root-only; no permit data changes.

@@ -119,6 +119,7 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
         <p className="pform-hint">{empty ? "No locations have been set up yet." : "No match. Check the spelling, or ask Root to add this location."}</p>
       )}
       {!typed && empty && canAdd && <p className="pform-hint">The list is empty. Type the first location, then click “Add”.</p>}
+      {!typed && empty && !canAdd && <p className="pform-error">No locations have been set up yet. Ask Root to add them.</p>}
       {typed && chips.length > 0 && <p className="pform-hint">Press Enter to pick the first one.</p>}
       {problem && <p className="pform-error">{problem}</p>}
     </div>
