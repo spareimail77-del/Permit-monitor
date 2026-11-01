@@ -78,7 +78,7 @@ export default async function EditPermitPage({ params }) {
           The dropdown lists could not be loaded. Has <span className="mono">supabase/01-permits.sql</span> been run?
         </div>
       )}
-      <PermitForm mode="edit" permitId={permit.id} initial={initial} options={lists} />
+      <PermitForm mode="edit" permitId={permit.id} initial={initial} options={lists} canAddLocation={viewer.role === "root"} />
     </>
   );
 }

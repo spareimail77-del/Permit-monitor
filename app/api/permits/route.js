@@ -1,5 +1,6 @@
 import { getSupabase } from "../../../lib/db";
 import { validatePermitInput } from "../../../lib/permitRules";
+import { resolveLocation } from "../../../lib/locationServer";
 
 // Saves one new permit from the form. The same checks run in the browser
 // (instant messages) and here (the real check).
@@ -17,6 +18,12 @@ export async function POST(request) {
   }
 
   const supabase = getSupabase();
+
+  // The location must come from the Location list (once Root has set one up).
+  const loc = await resolveLocation(supabase, body, clean.location);
+  if (loc.error) return Response.json({ error: loc.error, fields: { location: loc.error } }, { status: 400 });
+  clean.location = loc.location;
+
   const { data, error } = await supabase
     .from("permits")
     .insert({

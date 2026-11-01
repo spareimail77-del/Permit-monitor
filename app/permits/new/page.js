@@ -28,7 +28,7 @@ export default async function NewPermitPage() {
           The dropdown lists could not be loaded. Has <span className="mono">supabase/01-permits.sql</span> been run?
         </div>
       )}
-      <PermitForm options={lists} existingRefs={(refs || []).map((r) => r.reference)} />
+      <PermitForm options={lists} existingRefs={(refs || []).map((r) => r.reference)} canAddLocation={viewer.role === "root"} />
     </>
   );
 }

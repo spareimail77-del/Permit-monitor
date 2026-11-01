@@ -34,10 +34,10 @@ export default async function ListsPage() {
       />
       {error && (
         <div className="notice notice--danger">
-          The lists could not be read. Has <span className="mono">supabase/05-edit-delete-lists.sql</span> been run?
+          The lists could not be read. Have <span className="mono">supabase/05-edit-delete-lists.sql</span> and <span className="mono">08-locations.sql</span> been run?
         </div>
       )}
-      <ListsAdmin lists={OPTION_LISTS} values={byList} />
+      <ListsAdmin lists={OPTION_LISTS} values={byList} isRoot={viewer.role === "root"} />
     </>
   );
 }

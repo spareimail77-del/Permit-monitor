@@ -2,6 +2,7 @@ import { getSupabase } from "../../../../lib/db";
 import { getViewerStrict as getViewer } from "../../../../lib/viewer";
 import { todayOman } from "../../../../lib/omanDate";
 import { statusPatch, validatePermitInput, validateStatusInput } from "../../../../lib/permitRules";
+import { resolveLocation } from "../../../../lib/locationServer";
 
 // Root and HSE only: middleware checks the URL (/api/permits needs
 // manage_permits) and the database policies check again.
@@ -23,7 +24,7 @@ export async function PATCH(request, { params }) {
   const supabase = getSupabase();
   const { data: permit, error: readError } = await supabase
     .from("permits")
-    .select("id, reference, status, closed_at, deleted_at")
+    .select("id, reference, status, closed_at, deleted_at, location")
     .eq("id", id)
     .maybeSingle();
   if (readError || !permit) return bad("This permit does not exist.", 404);
@@ -51,6 +52,10 @@ export async function PATCH(request, { params }) {
     if (Object.keys(all).length > 0) {
       return bad("Please fix the marked fields.", 400, { fields: all });
     }
+    // The location must come from the Location list, unless it is left exactly as it was.
+    const loc = await resolveLocation(supabase, body, clean.location, permit.location || "");
+    if (loc.error) return bad(loc.error, 400, { fields: { location: loc.error } });
+    clean.location = loc.location;
     patch = {
       area: clean.area,
       location: clean.location,

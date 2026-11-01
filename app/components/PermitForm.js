@@ -20,6 +20,8 @@ import {
 } from "../../lib/permitRules";
 import { fileProblem, formatBytes } from "../../lib/fileRules";
 import { uploadPermitFiles } from "../../lib/uploadFiles";
+import LocationPicker from "./LocationPicker";
+import { joinLocations, parseLocations } from "../../lib/locationMatch";
 
 // The permit form: the web version of typing one row in the Excel log.
 // Dropdown values come from the permit_options table.
@@ -118,7 +120,7 @@ function FileSlot({ label, file, error, disabled, onPick, onClear }) {
 // mode "new": the add form. mode "edit": changes a saved permit. In edit mode the
 // permit number is locked, files are handled on the permit page, and there is a
 // Status section. `initial` = { values, certs, certNumbers, status, cancelReason }.
-export default function PermitForm({ options, existingRefs = [], mode = "new", permitId = null, initial = null }) {
+export default function PermitForm({ options, existingRefs = [], mode = "new", permitId = null, initial = null, canAddLocation = false }) {
   const router = useRouter();
   const isEdit = mode === "edit";
   const [values, setValues] = useState(() => initial?.values || emptyValues());
@@ -139,6 +141,15 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [savedRefs, setSavedRefs] = useState([]);
   // Edit mode: the version of the permit this form started from (see the PATCH route).
   const [updatedAt, setUpdatedAt] = useState(initial?.updatedAt || "");
+  // Location: picked from the Location list (chips). Old permits may hold free text from before:
+  // it is kept as it is until the person chooses to change it.
+  const [locationList, setLocationList] = useState(options.location || []);
+  const [picked, setPicked] = useState(() => parseLocations(initial?.values?.location || "", options.location || []) || []);
+  const [legacyLocation, setLegacyLocation] = useState(() => {
+    const text = initial?.values?.location || "";
+    return text && parseLocations(text, options.location || []) === null && (options.location || []).length > 0 ? text : "";
+  });
+  const pickerOn = locationList.length > 0 || canAddLocation; // else (no list yet) a plain text box
   const [conflict, setConflict] = useState(false);
 
   const taken = useMemo(
@@ -147,6 +158,11 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   );
 
   const disabled = state === "saving";
+
+  function pickLocations(next) {
+    setPicked(next);
+    set("location", joinLocations(next));
+  }
 
   function set(field, value) {
     setValues((v) => ({ ...v, [field]: value }));
@@ -198,6 +214,8 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   function buildPayload() {
     return {
       ...values,
+      // The picked location names; the server checks them against the list and builds the text.
+      ...(pickerOn && !legacyLocation && picked.length ? { locations: picked } : {}),
       certificates: certs.map((name) => ({
         name,
         number: isNA(name) ? "NA" : certNumbers[name] || "",
@@ -207,6 +225,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
 
   function resetAll() {
     setValues(emptyValues());
+    setPicked([]);
     setCerts([]);
     setCertNumbers({});
     setCertFiles({});
@@ -357,15 +376,48 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
             {refTaken && !errors.reference && <p className="pform-error">This permit number is already used (it may be in the trash).</p>}
           </Field>
           {dd("area", "area", { required: true })}
-          <Field name="location" label="Location" required error={errors.location}>
-            <input
-              id="pf-location"
-              className="pform-input"
-              value={values.location}
-              onChange={(e) => set("location", e.target.value)}
-              disabled={disabled}
-              maxLength={200}
-            />
+          <Field name="location" label="Location" required error={errors.location} hint={pickerOn && !legacyLocation ? "Type, then click a location. Choose two or more if the job covers several places." : undefined}>
+            {pickerOn && legacyLocation ? (
+              <div className="lp">
+                <div className="lp-box">
+                  <span className="lp-tag lp-tag--old">{legacyLocation}</span>
+                </div>
+                <p className="pform-hint">
+                  Saved before the location list existed, so it is kept as it is.{" "}
+                  <button
+                    type="button"
+                    className="pform-link"
+                    disabled={disabled}
+                    onClick={() => {
+                      setLegacyLocation("");
+                      pickLocations([]);
+                    }}
+                  >
+                    Change it
+                  </button>
+                </p>
+              </div>
+            ) : pickerOn ? (
+              <LocationPicker
+                id="pf-location"
+                value={picked}
+                onChange={pickLocations}
+                options={locationList}
+                canAdd={canAddLocation}
+                onAdded={(v) => setLocationList((l) => (l.includes(v) ? l : [...l, v]))}
+                disabled={disabled}
+                invalid={Boolean(errors.location)}
+              />
+            ) : (
+              <input
+                id="pf-location"
+                className="pform-input"
+                value={values.location}
+                onChange={(e) => set("location", e.target.value)}
+                disabled={disabled}
+                maxLength={200}
+              />
+            )}
           </Field>
           {dd("permitType", "permit_type", { label: "Type of permit", required: true })}
           <Field name="validFrom" label="Valid from" required error={errors.validFrom}>

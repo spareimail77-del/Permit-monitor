@@ -19,7 +19,7 @@ const ICON = {
   check: "M5 12.5l4.5 4.5L19 7.5",
 };
 
-export default function ListsAdmin({ lists, values }) {
+export default function ListsAdmin({ lists, values, isRoot = false }) {
   const router = useRouter();
   const [current, setCurrent] = useState(lists[0].key);
   const [text, setText] = useState("");
@@ -52,13 +52,17 @@ export default function ListsAdmin({ lists, values }) {
   }
 
   const listItems = (key) =>
-    (values[key] || []).map((it) => (it.id in ov ? { ...it, active: ov[it.id] } : it)).sort((a, b) => b.used - a.used || a.value.localeCompare(b.value));
+    (values[key] || []).map((it) => (it.id in ov ? { ...it, active: ov[it.id] } : it)).sort((a, b) => b.used - a.used || a.value.localeCompare(b.value, "en", { numeric: true }));
 
   const items = useMemo(() => listItems(current), [current, values, ov]); // eslint-disable-line react-hooks/exhaustive-deps
   const shown = items.filter((i) => i.active);
   const hidden = items.filter((i) => !i.active);
   const maxUsed = Math.max(1, ...shown.map((i) => i.used));
   const meta = lists.find((l) => l.key === current);
+  // The Location list is changed by Root only; everyone else sees it but cannot edit it.
+  // Locations are stored as text on the permit, so "used by" counts are not tracked for them.
+  const locked = current === "location" && !isRoot;
+  const tracksUse = current !== "location";
 
   async function setActive(it, active, { withUndo } = {}) {
     if (pendingId) return;
@@ -144,11 +148,20 @@ export default function ListsAdmin({ lists, values }) {
           <div>
             <h2 className="ls-title">{meta.label}</h2>
             <p className="ls-sub">
-              {shown.length} shown{hidden.length > 0 ? ` · ${hidden.length} hidden` : ""} · most used first
+              {shown.length} shown{hidden.length > 0 ? ` · ${hidden.length} hidden` : ""} · {tracksUse ? "most used first" : "in name order"}
             </p>
           </div>
         </header>
 
+        {current === "location" && (
+          <p className="ls-add__hint">
+            {isRoot
+              ? "Write each place the way it should always look, for example MPS - 1. On the permit form people type, then click a matching chip, so spellings stay the same."
+              : "Only Root can add or hide locations. You can see the list here; ask Root if one is missing."}
+          </p>
+        )}
+
+        {!locked && (
         <form className="ls-add" onSubmit={add}>
           <div className="ls-add__field">
             <input
@@ -186,22 +199,28 @@ export default function ListsAdmin({ lists, values }) {
             )}
           </p>
         </form>
+        )}
 
         {shown.length === 0 ? (
-          <p className="ls-empty">No values yet. Add the first one above.</p>
+          <p className="ls-empty">{locked ? "No locations yet. Ask Root to add them." : "No values yet. Add the first one above."}</p>
         ) : (
           <ul className="ls-chips" aria-label={`${meta.label}: shown in the dropdown`}>
             {shown.map((it) => (
               <li key={it.id} className={`ls-chip${pendingId === it.id ? " is-busy" : ""}`}>
                 <span className="ls-chip__main">
                   <span className="ls-chip__name">{it.value}</span>
-                  <span className="ls-chip__use" title={it.used ? `Used by ${it.used} permit${it.used === 1 ? "" : "s"}` : "Not used by any permit yet"}>
-                    {it.used ? it.used : "unused"}
+                  {tracksUse && (
+                    <span className="ls-chip__use" title={it.used ? `Used by ${it.used} permit${it.used === 1 ? "" : "s"}` : "Not used by any permit yet"}>
+                      {it.used ? it.used : "unused"}
+                    </span>
+                  )}
+                </span>
+                {tracksUse && (
+                  <span className="ls-chip__bar" aria-hidden="true">
+                    <span style={{ width: `${(it.used / maxUsed) * 100}%` }} />
                   </span>
-                </span>
-                <span className="ls-chip__bar" aria-hidden="true">
-                  <span style={{ width: `${(it.used / maxUsed) * 100}%` }} />
-                </span>
+                )}
+                {!locked && (
                 <button
                   type="button"
                   className="ls-chip__btn"
@@ -212,6 +231,7 @@ export default function ListsAdmin({ lists, values }) {
                 >
                   <Svg d={ICON.hide} />
                 </button>
+                )}
               </li>
             ))}
           </ul>
@@ -228,9 +248,11 @@ export default function ListsAdmin({ lists, values }) {
                     <span className="ls-chip__name">{it.value}</span>
                     {it.used > 0 && <span className="ls-chip__use">{it.used}</span>}
                   </span>
-                  <button type="button" className="ls-chip__btn ls-chip__btn--show" disabled={Boolean(pendingId)} onClick={() => setActive(it, true)} aria-label={`Show ${it.value} in the dropdown again`}>
-                    <Svg d={ICON.show} /> Show
-                  </button>
+                  {!locked && (
+                    <button type="button" className="ls-chip__btn ls-chip__btn--show" disabled={Boolean(pendingId)} onClick={() => setActive(it, true)} aria-label={`Show ${it.value} in the dropdown again`}>
+                      <Svg d={ICON.show} /> Show
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

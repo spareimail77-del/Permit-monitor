@@ -337,3 +337,12 @@ import of the 48 current permits (F) Â· photo compression and crop for uploads Â
 1. Home page: the numbers (total, closed, canceled, overdue) match the Permits list tabs.
 2. New permit form: dropdowns list the most used value first; opens quickly.
 3. Lists page: the "used" counts next to each value are right; a value in use still cannot be deleted.
+
+## Location list (Root-managed)
+
+- Locations are a dropdown list like Area, but **only Root** can add or hide them (Lists page, or the "+ Add" chip on the permit form). HSE can pick from the list.
+- On the permit form the person types, matching locations appear as chips (typos, spaces, dashes and leading zeros are forgiven), and they click a chip. Several can be picked: `MPS - 1 & MPS - 2`, `MPS - 1, MPS - 2 & MPS - 3`.
+- The server re-checks every pick against the list. Old permits keep their old text. While the list is empty the field stays a plain text box.
+- Matching runs in the browser (`lib/locationMatch.js`): no database calls while typing.
+
+**Set-up:** Supabase -> SQL Editor: run all of `supabase/08-locations.sql` **before** deploying the code. It only adds `location` as a list name and makes the list Root-only; no permit data changes.
