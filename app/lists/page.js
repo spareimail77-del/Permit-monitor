@@ -30,7 +30,7 @@ export default async function ListsPage() {
       <PageHeader
         title="Dropdown lists"
         crumbs={[{ label: "Dashboard", href: "/" }, { label: "Dropdown lists" }]}
-        sub="The choices on the permit form, most used first. Values are saved in UPPER CASE. A value is never deleted, only hidden: old permits keep it."
+        sub="The choices on the permit form, most used first. Values are saved in UPPER CASE. Hide, rename or delete a value here: permits already saved always keep the text they have."
       />
       {error && (
         <div className="notice notice--danger">

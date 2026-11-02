@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 // Dropdown lists: pick a list on the left, edit its values on the right.
 // Values are shown most used first (the permit form uses the same order).
-// A value is never deleted, only hidden; hiding can be undone straight away.
+// Hide is the quick, reversible choice (undo). Rename and delete change the list only: permits
+// already saved keep the text they have.
 
 const Svg = ({ d, size = 16 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -103,16 +104,17 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
 
   async function removeItem(it) {
     if (pendingId) return;
-    if (!window.confirm(`Delete ${it.value} from the location list?\n\nPermits that already use it keep their text. This cannot be undone (you can add it again later).`)) return;
+    const usedNote = tracksUse && it.used > 0 ? `\n\n${it.used} permit${it.used === 1 ? " uses" : "s use"} it. They keep the text "${it.value}", but it will no longer be offered in the dropdown. (Hide is the gentler choice.)` : "\n\nPermits that already use it keep their text.";
+    if (!window.confirm(`Delete ${it.value} from the ${meta?.label?.toLowerCase() || "list"} list?${usedNote}\n\nThis cannot be undone (you can add it again later).`)) return;
     setPendingId(it.id);
     const r = await call(`/api/lists/${it.id}`, "DELETE");
     setPendingId(null);
     if (!r.ok) return say({ text: r.error, error: true });
     router.refresh();
-    say({ text: `${it.value} deleted from the list.` }, 3500);
+    say({ text: `${it.value} deleted from the list. Permits already saved keep the text.` }, 4500);
   }
 
-  const canEditLocation = current === "location" && isRoot;
+  const canEditItems = !locked; // rename / delete (Location: Root only)
 
   // What the typed value will be, and whether it already exists.
   const typed = text.trim().replace(/\s+/g, " ").toUpperCase();
@@ -170,7 +172,7 @@ export default function ListsAdmin({ lists, values, isRoot = false }) {
     );
 
   const rootTools = (it) =>
-    canEditLocation && editing?.id !== it.id ? (
+    canEditItems && editing?.id !== it.id ? (
       <>
         <button type="button" className="ls-chip__btn ls-chip__btn--edit" disabled={Boolean(pendingId)} onClick={() => setEditing({ id: it.id, text: it.value })} aria-label={`Rename ${it.value}`} title="Rename">
           <Svg d={ICON.edit} />
