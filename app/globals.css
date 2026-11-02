@@ -664,7 +664,6 @@ a .seg:hover { stroke-width: 16; }
   .topnav__cta .topnav__icon { color: inherit; width: 20px; height: 20px; }
   .topnav__plus { display: none; }
 }
-}
 
 /* ---- Phase A: permit list (month filter, quick tabs, files column, sorting) ---- */
 .month-ctl { display: flex; align-items: stretch; gap: 4px; flex: 1 1 230px; min-width: 0; }
