@@ -18,8 +18,9 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
   const inputRef = useRef(null);
 
   const all = useMemo(() => suggest(text, options, value, 1000), [text, options, value]);
-  const chips = all.slice(0, SHOWN);
   const typed = text.trim().replace(/\s+/g, " ").toUpperCase();
+  // Nothing is offered until the person starts typing (a long list of tags would only be clutter).
+  const chips = typed ? all.slice(0, SHOWN) : [];
   // Root can add what was typed when it is not (a spelling of) a place already in the list.
   const canAddTyped = canAdd && typed && !options.some((o) => locKey(o) === locKey(typed));
 
@@ -96,11 +97,12 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
           disabled={disabled}
           maxLength={80}
           autoComplete="off"
-          placeholder={value.length ? "Add another location…" : "Type, then click a location below"}
+          placeholder={value.length ? "Add another location…" : "Start typing a location, e.g. MPS"}
           aria-label="Type to find a location"
         />
       </div>
 
+      {(chips.length > 0 || canAddTyped) && (
       <div className="lp-chips" role="group" aria-label="Matching locations">
         {chips.map((loc, i) => (
           <button key={loc} type="button" className={`lp-chip${typed && i === 0 ? " is-top" : ""}`} onClick={() => choose(loc)} disabled={disabled}>
@@ -113,8 +115,9 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
           </button>
         )}
       </div>
+      )}
 
-      {all.length > SHOWN && <p className="pform-hint">{all.length - SHOWN} more: keep typing to narrow them down.</p>}
+      {typed && all.length > SHOWN && <p className="pform-hint">{all.length - SHOWN} more: keep typing to narrow them down.</p>}
       {!chips.length && !canAddTyped && typed && (
         <p className="pform-hint">{empty ? "No locations have been set up yet." : "No match. Check the spelling, or ask Root to add this location."}</p>
       )}
