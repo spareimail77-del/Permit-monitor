@@ -36,10 +36,21 @@ export default function TopNav({ canCreate }) {
     };
   }, [open]);
 
+  // The icons only show in the phone menu (CSS hides them on a wide screen).
   const items = [
-    { href: "/", label: "Dashboard", active: pathname === "/" },
-    { href: "/permits", label: "Permits", active: pathname === "/permits" || (pathname.startsWith("/permits/") && pathname !== "/permits/new") },
+    { href: "/", label: "Dashboard", icon: "M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z", active: pathname === "/" },
+    {
+      href: "/permits",
+      label: "Permits",
+      icon: "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h4",
+      active: pathname === "/permits" || (pathname.startsWith("/permits/") && pathname !== "/permits/new"),
+    },
   ];
+  const Icon = ({ d }) => (
+    <svg className="topnav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
 
   return (
     <nav className="topnav" aria-label="Main" ref={navRef}>
@@ -56,18 +67,22 @@ export default function TopNav({ canCreate }) {
           {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
         </svg>
       </button>
+      {/* Phone only: dims the page behind the open menu; a tap on it closes the menu. */}
+      <div className={open ? "topnav__backdrop is-open" : "topnav__backdrop"} onClick={() => setOpen(false)} aria-hidden="true" />
       <ul id="topnav-list" className={open ? "topnav__list is-open" : "topnav__list"}>
         {items.map((it) => (
           <li key={it.href}>
             <Link href={it.href} className="topnav__link" aria-current={it.active ? "page" : undefined}>
+              <Icon d={it.icon} />
               {it.label}
             </Link>
           </li>
         ))}
         {canCreate && (
-          <li>
+          <li className="topnav__cta">
             <Link href="/permits/new" className="btn btn-primary btn-sm" aria-current={pathname === "/permits/new" ? "page" : undefined}>
-              + New permit
+              <Icon d="M12 5v14M5 12h14" />
+              <span className="topnav__plus" aria-hidden="true">+</span>New permit
             </Link>
           </li>
         )}
