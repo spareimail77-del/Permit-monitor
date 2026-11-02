@@ -346,3 +346,15 @@ import of the 48 current permits (F) Â· photo compression and crop for uploads Â
 - Matching runs in the browser (`lib/locationMatch.js`): no database calls while typing.
 
 **Set-up:** Supabase -> SQL Editor: run all of `supabase/08-locations.sql` **before** deploying the code. It only adds `location` as a list name and makes the list Root-only; no permit data changes.
+
+## Guest links (read-only visitors)
+
+Root creates a link under **Admin -> Guest links**. Whoever opens it presses **Start guest view** and gets a read-only view of the permits for a limited time, with no login.
+
+- The link can be used **once**, and the time starts when **Start** is pressed (not when the link is opened, so chat link previews cannot use it up).
+- A guest is a temporary account with the role `guest`. It can see the dashboard and permits, but **not** attachments, dropdown lists, trash, export, admin, profile or password pages. It cannot add or change anything.
+- This is enforced in the database (`supabase/11-guest-links.sql`): a guest whose time is over gets no data at all. Root can see each link's status (not opened / active / ended / cancelled), when it was opened and when it ends, and can end a guest view at once ("End now").
+- Only a scrambled (hashed) copy of each link is stored; the link is shown to Root once, when created.
+- Needs `SUPABASE_SERVICE_ROLE_KEY` (already used by the Admin pages).
+
+**Set-up:** Supabase -> SQL Editor: run all of `supabase/11-guest-links.sql` **before** deploying the code. Needs 01 to 10 already run.

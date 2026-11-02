@@ -1341,3 +1341,43 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 .ls-chip__btn--edit:hover:not(:disabled) { color: var(--link); }
 .ls-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
 .ls-edit__input { flex: 1 1 140px; min-width: 0; padding: 6px 10px; font-size: var(--fs-sm); }
+
+/* Guest links: the invitation page, the guest banner, and Root's list (app/guest, app/admin/guest-links) */
+.guest-card { max-width: 560px; margin: var(--sp-7) auto; padding: var(--sp-6); }
+.guest-card__title { margin: 0 0 var(--sp-3); font-size: var(--fs-xl); }
+.guest-card__text { margin: 0 0 var(--sp-3); color: var(--ink-muted); line-height: 1.6; }
+.guest-card__actions { display: grid; gap: var(--sp-3); margin-top: var(--sp-4); }
+.guest-card__actions .btn { min-height: 48px; font-size: var(--fs-md); }
+.guest-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2) var(--sp-4); padding: 8px var(--sp-4); background: var(--warn-bg); border-bottom: 1px solid var(--warn-line); color: var(--warn-ink); font-size: var(--fs-sm); text-align: center; }
+.guest-banner__time { font-variant-numeric: tabular-nums; font-weight: 700; }
+.gl { display: grid; gap: var(--sp-4); }
+.gl-create, .gl-list { padding: var(--sp-4); }
+.gl-h { margin: 0 0 var(--sp-3); font-size: var(--fs-lg); }
+.gl-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3) var(--sp-4); align-items: start; }
+.gl-form__wide { grid-column: 1 / -1; }
+.gl-form__go { grid-column: 1 / -1; }
+.gl-new { margin-top: var(--sp-4); padding: var(--sp-3); border: 1px solid var(--brand); border-radius: 12px; background: color-mix(in srgb, var(--brand) 10%, transparent); display: grid; gap: var(--sp-2); }
+.gl-new__title { margin: 0; }
+.gl-new__row { display: flex; gap: var(--sp-2); }
+.gl-new__row .pform-input { flex: 1; min-width: 0; }
+.gl-list__head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+.gl-list__head .gl-h { margin: 0; }
+.gl-rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.gl-row { display: flex; gap: var(--sp-3); justify-content: space-between; align-items: flex-start; padding: var(--sp-3) 0; border-top: 1px solid var(--rule); }
+.gl-row__top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.gl-row__label { font-size: var(--fs-md); }
+.gl-row__when { margin: 4px 0; font-size: var(--fs-sm); }
+.gl-row__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+.gl-state { display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill); font-size: var(--fs-xs); font-weight: 700; background: var(--neutral-bg); color: var(--neutral-ink); }
+.gl-state--active { background: color-mix(in srgb, var(--st-open) 20%, transparent); color: var(--st-open); }
+.gl-state--not_opened { background: color-mix(in srgb, var(--st-expiring) 20%, transparent); color: var(--st-expiring); }
+.gl-state--revoked { background: color-mix(in srgb, var(--st-overdue) 20%, transparent); color: var(--st-overdue); }
+@media (max-width: 720px) {
+  .gl-form { grid-template-columns: 1fr; }
+  .gl-row { flex-direction: column; }
+  .gl-row__actions { justify-content: flex-start; }
+  .gl-new__row { flex-direction: column; }
+  .guest-card { margin: var(--sp-4) auto; padding: var(--sp-4); }
+}
+.guest-card__actions .btn-primary, .gl-form__go .btn-primary, .gl-new__row .btn-primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.guest-card__actions .btn-primary:disabled, .gl-form__go .btn-primary:disabled { opacity: 0.55; }

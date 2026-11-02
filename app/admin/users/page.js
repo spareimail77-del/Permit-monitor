@@ -13,7 +13,7 @@ export default async function UsersPage() {
   if (!admin) return <KeyMissing />;
 
   const [{ data, error }, counts] = await Promise.all([
-    admin.from("profiles").select("id, staff_id, display_name, role, status, must_change_password, created_at").order("created_at", { ascending: false }).limit(1000),
+    admin.from("profiles").select("id, staff_id, display_name, role, status, must_change_password, created_at").neq("role", "guest").order("created_at", { ascending: false }).limit(1000),
     getAdminCounts(admin),
   ]);
 

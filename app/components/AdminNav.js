@@ -7,6 +7,7 @@ export default function AdminNav({ active, counts = {} }) {
     { key: "users", href: "/admin/users", label: "Users", n: counts.pendingUsers },
     { key: "passwords", href: "/admin/password-requests", label: "Password requests", n: counts.passwordRequests },
     { key: "ids", href: "/admin/id-changes", label: "Staff ID changes", n: counts.idChanges },
+    { key: "guests", href: "/admin/guest-links", label: "Guest links" },
   ];
   return (
     <nav className="admin-nav" aria-label="Admin">

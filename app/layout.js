@@ -3,6 +3,7 @@ import Link from "next/link";
 import ThemeToggle from "./components/ThemeToggle";
 import TopNav from "./components/TopNav";
 import UserMenu from "./components/UserMenu";
+import GuestBanner from "./components/GuestBanner";
 import { getViewer } from "../lib/viewer";
 import { roleLabel } from "../lib/permissions";
 
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }) {
                   canLists={viewer.canManageOptions}
                   canTrash={viewer.canViewTrash}
                   canExport={viewer.canExport}
+                  canAccount={viewer.canManageAccount}
                 />
               </>
             ) : (
@@ -52,6 +54,7 @@ export default async function RootLayout({ children }) {
             )}
           </div>
         </header>
+        {viewer?.isGuest && <GuestBanner remainingMs={viewer.guestRemainingMs ?? 0} />}
         <main id="main" className="page">
           {children}
         </main>

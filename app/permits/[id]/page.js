@@ -83,7 +83,9 @@ export default async function PermitPage({ params }) {
     );
   }
 
-  const { data: files } = await supabase
+  const { data: files } = viewer && !viewer.canViewFiles
+    ? { data: [] }
+    : await supabase
     .from("permit_files")
     .select("id, kind, label, file_name, storage_path, size_bytes, created_at")
     .eq("permit_id", id)
@@ -197,6 +199,7 @@ export default async function PermitPage({ params }) {
         </section>
       </div>
 
+      {viewer?.canViewFiles !== false && (
       <section className="pd-card">
         <div className="pd-card__head">
           <h2>Attachments</h2>
@@ -241,6 +244,7 @@ export default async function PermitPage({ params }) {
           </div>
         )}
       </section>
+      )}
 
       {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} />}
     </div>

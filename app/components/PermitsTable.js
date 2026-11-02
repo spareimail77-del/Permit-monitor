@@ -24,7 +24,7 @@ const Clip = () => (
   </svg>
 );
 
-export default function PermitsTable({ rows, columns, onSort, canManage, canExport }) {
+export default function PermitsTable({ rows, columns, onSort, canManage, canExport, showFiles = true }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set());
   const [menu, setMenu] = useState(null); // { id, left, top?, bottom? }
@@ -230,6 +230,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
               <td data-label="Holder">{r.holder || "—"}</td>
               <td className="mono" data-label="From">{fmt(r.valid_from)}</td>
               <td className="mono" data-label="To">{fmt(r.valid_to)}</td>
+              {showFiles && (
               <td data-label="Files">
                 {r.fileCount === undefined ? (
                   "—"
@@ -247,6 +248,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                   </span>
                 )}
               </td>
+              )}
               <td data-label="Status">
                 <StatusBadge status={r.st} showDetail />
               </td>

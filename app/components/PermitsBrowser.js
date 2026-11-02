@@ -64,7 +64,7 @@ function readSort(get) {
   return { sort, dir: sort && get("dir") === "desc" ? "desc" : "asc" };
 }
 
-export default function PermitsBrowser({ permits, today, filesOk, canManage, canExport }) {
+export default function PermitsBrowser({ permits, today, filesOk, canManage, canExport, hideFiles = false }) {
   const searchParams = useSearchParams();
   const initial = useMemo(() => {
     const get = (n) => searchParams.get(n) ?? "";
@@ -152,7 +152,7 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
   }, [all, f, sort, dir]);
 
   const tableRows = useMemo(() => view.rows.map((r) => ({ ...r, fileTip: r.files ? describeFiles(r.files) : "" })), [view.rows]);
-  const tableColumns = COLUMNS.map((c) => ({ key: c.key, label: c.label, active: sort === c.key, dir }));
+  const tableColumns = COLUMNS.filter((c) => !(hideFiles && c.key === "files")).map((c) => ({ key: c.key, label: c.label, active: sort === c.key, dir }));
 
   const filtered = hasFilters(f);
   const tabs = [
@@ -181,9 +181,9 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
         }
       />
 
-      {!filesOk && <div className="notice">The attachment information could not be read, so the Files column and filter are unavailable.</div>}
+      {!filesOk && !hideFiles && <div className="notice">The attachment information could not be read, so the Files column and filter are unavailable.</div>}
 
-      <FilterBar value={f} onChange={onFilter} onClear={onClear} statusOptions={STATUS_FILTERS} areas={view.areas} types={view.types} months={view.months} showFiles={filesOk} />
+      <FilterBar value={f} onChange={onFilter} onClear={onClear} statusOptions={STATUS_FILTERS} areas={view.areas} types={view.types} months={view.months} showFiles={filesOk && !hideFiles} />
 
       <nav className="status-tabs" aria-label="Quick status filter">
         {tabs.map((t) => (
@@ -213,7 +213,7 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
             )}
           </div>
         ) : (
-          <PermitsTable rows={tableRows} columns={tableColumns} onSort={onSort} canManage={canManage} canExport={canExport} />
+          <PermitsTable rows={tableRows} columns={tableColumns} onSort={onSort} canManage={canManage} canExport={canExport} showFiles={!hideFiles} />
         )}
       </div>
     </>

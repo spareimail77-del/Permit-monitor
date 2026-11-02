@@ -27,6 +27,7 @@ const ICONS = {
   list: svg("M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"),
   trash: svg("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"),
   download: svg("M12 4v12M7 11l5 5 5-5M4 20h16"),
+  link: svg("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"),
 };
 
 function ago(ts) {
@@ -42,7 +43,7 @@ function ago(ts) {
 // Arrow Down opens it; arrows, Home and End move; Esc closes and returns focus to
 // the button; Tab closes. What is listed depends on the role (the flags come from
 // lib/viewer.js; the pages and the database still check again).
-export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, canTrash, canExport }) {
+export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, canTrash, canExport, canAccount = true }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -161,14 +162,20 @@ export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, 
             <div className="usermenu__who">
               <div className="usermenu__name">{name}</div>
               <div className="usermenu__meta">
-                ID <span className="mono">{staffId}</span> · {roleText}
+                {canAccount ? (
+                  <>
+                    ID <span className="mono">{staffId}</span> · {roleText}
+                  </>
+                ) : (
+                  <>{roleText} · read only</>
+                )}
               </div>
             </div>
           </div>
 
           <div role="menu" aria-label="Account" ref={menuRef}>
             <div className="menu-group">
-              {item("/profile", "My profile", "user")}
+              {canAccount && item("/profile", "My profile", "user")}
               <button type="button" role="menuitem" tabIndex={-1} className="menu-item" onClick={toggle}>
                 <span className="menu-item__icon">
                   <ThemeIcon theme={theme} />
@@ -190,6 +197,7 @@ export default function UserMenu({ name, staffId, roleText, canAdmin, canLists, 
                 {item("/admin/users", "Users", "users", n.pendingUsers)}
                 {item("/admin/password-requests", "Password requests", "key", n.passwordRequests)}
                 {item("/admin/id-changes", "Staff ID changes", "id", n.idChanges)}
+                {item("/admin/guest-links", "Guest links", "link")}
               </div>
             )}
 

@@ -16,6 +16,7 @@ export default async function AdminHome() {
     { href: "/admin/users", title: "Users", n: c.pendingUsers, waiting: "account request(s) waiting", text: "Approve requests, change roles, disable or remove accounts." },
     { href: "/admin/password-requests", title: "Password requests", n: c.passwordRequests, waiting: "request(s) waiting", text: "Give a temporary password to someone who forgot theirs." },
     { href: "/admin/id-changes", title: "Staff ID changes", n: c.idChanges, waiting: "request(s) waiting", text: "Approve or reject a change of Staff ID." },
+    { href: "/admin/guest-links", title: "Guest links", n: 0, waiting: "", text: "Let someone look around, read only, for a limited time. See if the link was opened." },
   ];
 
   return (

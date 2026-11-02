@@ -38,7 +38,9 @@ export default async function PermitsPage({ searchParams }) {
     return rows;
   };
 
-  const [rows, fileSummary] = await Promise.all([readPermits(), fetchFileSummary(supabase)]);
+  // A guest cannot see attachments at all, so nothing is asked about them.
+  const hideFiles = viewer?.canViewFiles === false;
+  const [rows, fileSummary] = await Promise.all([readPermits(), hideFiles ? { ok: false, map: new Map() } : fetchFileSummary(supabase)]);
   const failed = rows === null;
 
   const permits = (rows || []).map((r) => ({
@@ -69,6 +71,7 @@ export default async function PermitsPage({ searchParams }) {
         filesOk={fileSummary.ok || failed}
         canManage={Boolean(viewer?.canManagePermits)}
         canExport={Boolean(viewer?.canExport)}
+        hideFiles={hideFiles}
       />
     </>
   );
