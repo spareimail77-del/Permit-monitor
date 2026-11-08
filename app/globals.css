@@ -1317,7 +1317,7 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 
 /* Location picker (app/components/LocationPicker.js) */
 .lp { display: grid; gap: var(--sp-2); }
-.lp-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 42px; padding: 5px var(--sp-2); border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--field-bg); cursor: text; transition: border-color var(--ease), box-shadow var(--ease); }
+.lp-box { max-height: 260px; overflow-y: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 42px; padding: 5px var(--sp-2); border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--field-bg); cursor: text; transition: border-color var(--ease), box-shadow var(--ease); }
 .lp-box:hover { border-color: var(--ink-muted); }
 .lp-box:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
 .lp.is-invalid .lp-box { border-color: var(--danger); }
@@ -1333,6 +1333,9 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 .lp-chip:active { transform: scale(0.97); }
 .lp-chip.is-top { border-color: var(--brand); }
 .lp-chip--add { border-style: dashed; color: var(--link); }
+.lp-chip--all { border-style: dashed; border-color: var(--brand); font-weight: 700; }
+.lp-count.is-near { color: var(--danger); }
+.loc-more { margin-left: 4px; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-2); border: 1px solid var(--rule-strong); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; color: var(--ink-muted); }
 .lp-chip:disabled, .lp-tag__x:disabled { opacity: 0.55; cursor: not-allowed; }
 .lp-tag--old { padding-right: 10px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule-strong); }
 
