@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { locKey, suggest } from "../../lib/locationMatch";
+import { locKey, matchScore, suggest } from "../../lib/locationMatch";
+import { MAX_LOCATIONS } from "../../lib/locationLimits";
 
 // The Location field of the permit form. The person TYPES, matching locations appear as
 // chips, and they CLICK a chip. Only listed locations can be chosen (the server checks too).
@@ -18,14 +19,17 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
   const inputRef = useRef(null);
 
   const all = useMemo(() => suggest(text, options, value, 1000), [text, options, value]);
+  const left = Math.max(0, MAX_LOCATIONS - value.length);
+  const full = left === 0;
   const typed = text.trim().replace(/\s+/g, " ").toUpperCase();
   // Nothing is offered until the person starts typing (a long list of tags would only be clutter).
   const chips = typed ? all.slice(0, SHOWN) : [];
   // Root can add what was typed when it is not (a spelling of) a place already in the list.
-  const canAddTyped = canAdd && typed && !options.some((o) => locKey(o) === locKey(typed));
+  const canAddTyped = canAdd && typed && value.length < MAX_LOCATIONS && !options.some((o) => locKey(o) === locKey(typed));
 
   function choose(loc) {
-    if (disabled) return;
+    if (disabled || full) return;
+    if (value.some((v) => locKey(v) === locKey(loc))) return; // never twice
     onChange([...value, loc]);
     setText("");
     setProblem("");
@@ -37,8 +41,26 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
     inputRef.current?.focus();
   }
 
+  // Everything that clearly STARTS WITH / CONTAINS what was typed (so "APS-30" takes
+  // APS-30/1..4). Spelling-mistake guesses are left out on purpose: they could be wrong.
+  const exact = typed ? all.filter((l) => matchScore(typed, l) >= 600) : [];
+  const canAll = !full && exact.length > 1;
+  function addAll() {
+    if (disabled || !canAll || exact.length > left) return;
+    onChange([...value, ...exact]);
+    setText("");
+    setProblem("");
+    inputRef.current?.focus();
+  }
+  function clearAll() {
+    if (disabled) return;
+    onChange([]);
+    setText("");
+    inputRef.current?.focus();
+  }
+
   async function addTyped() {
-    if (!canAddTyped || adding) return;
+    if (!canAddTyped || adding || full) return;
     setAdding(true);
     setProblem("");
     try {
@@ -63,7 +85,7 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
   function onKeyDown(e) {
     if (e.key === "Enter") {
       e.preventDefault(); // Enter must not save the whole form
-      if (typed && chips[0]) choose(chips[0]);
+      if (typed && chips[0] && !full) choose(chips[0]);
     } else if (e.key === "Backspace" && !text && value.length) {
       remove(value.length - 1);
     } else if (e.key === "Escape") {
@@ -94,16 +116,41 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
             setProblem("");
           }}
           onKeyDown={onKeyDown}
-          disabled={disabled}
+          disabled={disabled || full}
           maxLength={80}
           autoComplete="off"
-          placeholder={value.length ? "Add another location…" : "Start typing a location, e.g. MPS"}
+          placeholder={full ? `Maximum of ${MAX_LOCATIONS} reached` : value.length ? "Add another location…" : "Start typing a location, e.g. MPS"}
           aria-label="Type to find a location"
         />
       </div>
 
-      {(chips.length > 0 || canAddTyped) && (
+      {(value.length > 0 || full) && (
+        <p className={`pform-hint lp-count${left <= 3 ? " is-near" : ""}`} aria-live="polite">
+          {value.length} of {MAX_LOCATIONS} locations{full ? " (maximum reached; remove one to add another)" : left <= 3 ? ` (${left} left)` : ""}
+          {value.length > 1 && (
+            <>
+              {" · "}
+              <button type="button" className="pform-link" onClick={clearAll} disabled={disabled}>
+                Clear all
+              </button>
+            </>
+          )}
+        </p>
+      )}
+
+      {!full && (chips.length > 0 || canAddTyped) && (
       <div className="lp-chips" role="group" aria-label="Matching locations">
+        {canAll && (
+          <button
+            type="button"
+            className="lp-chip lp-chip--all"
+            onClick={addAll}
+            disabled={disabled || exact.length > left}
+            title={exact.length > left ? `Only ${left} more can be added` : exact.join(", ")}
+          >
+            {exact.length > left ? `${exact.length} match (only ${left} slots left)` : `+ Add all ${exact.length} matching`}
+          </button>
+        )}
         {chips.map((loc, i) => (
           <button key={loc} type="button" className={`lp-chip${typed && i === 0 ? " is-top" : ""}`} onClick={() => choose(loc)} disabled={disabled}>
             {loc}
@@ -117,13 +164,13 @@ export default function LocationPicker({ id, value, onChange, options, canAdd, o
       </div>
       )}
 
-      {typed && all.length > SHOWN && <p className="pform-hint">{all.length - SHOWN} more: keep typing to narrow them down.</p>}
-      {!chips.length && !canAddTyped && typed && (
+      {!full && typed && all.length > SHOWN && <p className="pform-hint">{all.length - SHOWN} more: keep typing to narrow them down.</p>}
+      {!full && !chips.length && !canAddTyped && typed && (
         <p className="pform-hint">{empty ? "No locations have been set up yet." : "No match. Check the spelling, or ask Root to add this location."}</p>
       )}
       {!typed && empty && canAdd && <p className="pform-hint">The list is empty. Type the first location, then click “Add”.</p>}
       {!typed && empty && !canAdd && <p className="pform-error">No locations have been set up yet. Ask Root to add them.</p>}
-      {typed && chips.length > 0 && <p className="pform-hint">Press Enter to pick the first one.</p>}
+      {!full && typed && chips.length > 0 && <p className="pform-hint">Press Enter to pick the first one.</p>}
       {problem && <p className="pform-error">{problem}</p>}
     </div>
   );

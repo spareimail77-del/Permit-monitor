@@ -229,7 +229,7 @@ export default function PermitTimeline({ items, today }) {
                       {r.reference}
                     </Link>
                     <span className="ns-where">
-                      <span className="ns-loc">{r.location || "—"}</span>
+                      <span className="ns-loc" title={r.location || undefined}>{r.location || "—"}</span>
                       <span className="ns-meta">{[r.area, r.type].filter(Boolean).join(" · ") || "—"}</span>
                     </span>
                     <span className="ns-date">

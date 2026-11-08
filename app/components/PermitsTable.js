@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
+import LocationText from "./LocationText";
 
 // The permit list table. Everyone sees the rows; only Root and HSE (canManage) get the
 // checkboxes, the row menu, the bottom bar and the delete / close actions. The server
@@ -224,7 +225,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                 </Link>
               </td>
               <td data-label="Area">{r.area || "—"}</td>
-              <td data-label="Location">{r.location || "—"}</td>
+              <td data-label="Location"><LocationText text={r.location} /></td>
               <td data-label="Type">{r.permit_type || "—"}</td>
               <td data-label="Applicant">{r.applicant || "—"}</td>
               <td data-label="Holder">{r.holder || "—"}</td>

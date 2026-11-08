@@ -92,7 +92,7 @@ export default function NeedsAttention({ overdue, expiring, overdueHref }) {
                         {r.reference}
                       </Link>
                       <span className="ns-where">
-                        <span className="ns-loc">{r.location || "—"}</span>
+                        <span className="ns-loc" title={r.location || undefined}>{r.location || "—"}</span>
                         <span className="ns-meta">{[r.holder, r.type].filter(Boolean).join(" · ") || "—"}</span>
                       </span>
                       <span className="ns-date">
