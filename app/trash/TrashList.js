@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import LocationText from "../components/LocationText";
 
 export default function TrashList({ rows, canPurge }) {
   const router = useRouter();
@@ -83,7 +84,7 @@ export default function TrashList({ rows, canPurge }) {
                     </div>
                   </td>
                   <td>{r.area}</td>
-                  <td>{r.location}</td>
+                  <td><LocationText text={r.location} /></td>
                   <td>{r.type}</td>
                   <td>{r.files}</td>
                   <td className="mono">{r.deletedBy || "—"}</td>
