@@ -1,14 +1,16 @@
 "use client";
 
+import { statusLabel } from "../../lib/status";
+
 const FILES_TEXT = { has: "Has files", none: "No files" };
 
 // The filter bar of the permit list. It is controlled by PermitsBrowser, which filters
 // the already-loaded permits in the browser, so every change shows at once (the search
 // box too, as you type). Every active filter shows as a chip that can be removed with one click.
-export default function FilterBar({ value: v, onChange, onClear, statusOptions, areas, types, months = [], showFiles = true }) {
+export default function FilterBar({ value: v, onChange, onClear, areas, types, months = [], showFiles = true }) {
   const change = (name, value) => onChange(name, value, name === "q" ? { replace: true } : undefined);
 
-  const statusText = (statusOptions.find((s) => s.value === v.status) || {}).label || v.status;
+  const statusText = statusLabel(v.status); // e.g. "Open + Closed"
   // Months that have permits, newest first. A month typed into the address that has
   // none is still listed, so the select never shows a wrong value.
   const monthList = v.month && !months.some((m) => m.value === v.month) ? [{ value: v.month, label: v.month, count: 0 }, ...months] : months;
@@ -49,14 +51,6 @@ export default function FilterBar({ value: v, onChange, onClear, statusOptions, 
             autoComplete="off"
           />
         </label>
-        <select name="status" className="pform-input" value={v.status} onChange={(e) => change("status", e.target.value)} aria-label="Status">
-          <option value="">All statuses</option>
-          {statusOptions.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
         <select name="area" className="pform-input" value={v.area} onChange={(e) => change("area", e.target.value)} aria-label="Area">
           <option value="">All areas</option>
           {areas.map((a) => (

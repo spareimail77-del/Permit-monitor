@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import PageHeader from "./PageHeader";
 import FilterBar from "./FilterBar";
 import PermitsTable from "./PermitsTable";
-import { STATUS_FILTERS, computeStatus } from "../../lib/status";
+import { computeStatus, parseStatusList, toggleStatus } from "../../lib/status";
 import { filterPermits, filtersToQuery, hasFilters, monthLabel, monthOf, parseFilters } from "../../lib/permitFilters";
 import { describeFiles } from "../../lib/permitFiles";
 
@@ -128,10 +128,12 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
     [permits, today]
   );
 
+  const selectedStatuses = useMemo(() => parseStatusList(f.status), [f.status]);
+
   const view = useMemo(() => {
     let rows = filterPermits(all, f);
     if (sort) rows = sortRows(rows, sort, dir);
-    else if (f.status === "overdue" || f.status === "expiring") {
+    else if (selectedStatuses.length > 0 && selectedStatuses.every((k) => k === "overdue" || k === "expiring")) {
       rows = [...rows].sort((a, b) => String(a.valid_to).localeCompare(String(b.valid_to)));
     }
 
@@ -149,7 +151,7 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
     const types = [...new Set(all.map((r) => r.permit_type).filter(Boolean))].sort();
 
     return { rows, base: base.length, counts, months, areas, types };
-  }, [all, f, sort, dir]);
+  }, [all, f, sort, dir, selectedStatuses]);
 
   const tableRows = useMemo(() => view.rows.map((r) => ({ ...r, fileTip: r.files ? describeFiles(r.files) : "" })), [view.rows]);
   const tableColumns = COLUMNS.filter((c) => !(hideFiles && c.key === "files")).map((c) => ({ key: c.key, label: c.label, active: sort === c.key, dir }));
@@ -163,6 +165,8 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
     { value: "closed", label: "Closed", n: view.counts.CLOSED || 0 },
     { value: "canceled", label: "Canceled", n: view.counts.CANCELED || 0 },
   ];
+  // "All" is on when no status is picked; a status chip is on when it is in the picked list.
+  const isOn = (value) => (value === "" ? selectedStatuses.length === 0 : selectedStatuses.includes(value));
   const exportHref = `/api/export${filtersToQuery(f) ? `?${filtersToQuery(f)}` : ""}`;
   const total = all.length;
 
@@ -183,16 +187,16 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
 
       {!filesOk && !hideFiles && <div className="notice">The attachment information could not be read, so the Files column and filter are unavailable.</div>}
 
-      <FilterBar value={f} onChange={onFilter} onClear={onClear} statusOptions={STATUS_FILTERS} areas={view.areas} types={view.types} months={view.months} showFiles={filesOk && !hideFiles} />
+      <FilterBar value={f} onChange={onFilter} onClear={onClear} areas={view.areas} types={view.types} months={view.months} showFiles={filesOk && !hideFiles} />
 
-      <nav className="status-tabs" aria-label="Quick status filter">
+      <nav className="status-tabs" aria-label="Status filter: click one or more to combine">
         {tabs.map((t) => (
           <button
             key={t.value || "all"}
             type="button"
-            onClick={() => onFilter("status", t.value)}
-            className={`status-tab${f.status === t.value ? " is-active" : ""}${t.value ? ` status-tab--${t.value}` : ""}`}
-            aria-pressed={f.status === t.value}
+            onClick={() => onFilter("status", t.value ? toggleStatus(f.status, t.value) : "")}
+            className={`status-tab${isOn(t.value) ? " is-active" : ""}${t.value ? ` status-tab--${t.value}` : ""}`}
+            aria-pressed={isOn(t.value)}
           >
             {t.label} <span className="status-tab__n">{t.n}</span>
           </button>
