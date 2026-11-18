@@ -13,6 +13,7 @@ import { getSupabase } from "../../../lib/db";
 import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
 import { isNA, prettyDate } from "../../../lib/permitRules";
+import { missingForClose } from "../../../lib/closeCheck";
 
 export const dynamic = "force-dynamic";
 
@@ -246,7 +247,7 @@ export default async function PermitPage({ params }) {
       </section>
       )}
 
-      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} />}
+      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} />}
     </div>
   );
 }

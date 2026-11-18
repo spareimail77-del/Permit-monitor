@@ -1,0 +1,142 @@
+/* =========================================================================
+   Permit list (table + phone cards) and the "empty details" close dialog.
+   Only design tokens from globals.css are used, so dark and light both work.
+   Selectors are kept specific on purpose, so this file wins no matter which
+   stylesheet the browser loads first.
+   ========================================================================= */
+
+/* ---- desktop table ------------------------------------------------------ */
+.table.table--permits th,
+.table.table--permits td { padding: 12px 10px; }
+.table.table--permits th:first-child,
+.table.table--permits td:first-child { padding-left: 14px; }
+.table.table--permits td.c-date { white-space: nowrap; font-size: var(--fs-sm); }
+.table.table--permits .cell-empty { color: var(--ink-muted); }
+/* Phone-only cells: invisible on a computer. */
+.table.table--permits td.c-sub,
+.table.table--permits td.c-dates,
+.table.table--permits td.c-more { display: none; }
+
+/* ---- phone: every permit is a compact card ------------------------------ */
+@media (max-width: 720px) {
+  .table.table--permits,
+  .table.table--permits tbody { display: block; }
+  .table.table--permits thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+
+  .table.table--permits tbody tr {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-bottom: var(--sp-3);
+    padding: 12px 14px 8px;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .table.table--permits tbody tr:hover { background: var(--row-hover); }
+  .table.table--permits tbody tr.row-selected { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, var(--surface)); }
+  /* the coloured edge follows the status */
+  .table.table--permits tbody tr.row-link--OPEN { border-left-color: var(--st-open); }
+  .table.table--permits tbody tr.row-link--EXPIRING { border-left-color: var(--st-expiring); }
+  .table.table--permits tbody tr.row-link--OVERDUE { border-left-color: var(--st-overdue); }
+  .table.table--permits tbody tr.row-link--CLOSED { border-left-color: var(--st-closed); }
+  .table.table--permits tbody tr.row-link--CANCELED { border-left-color: var(--st-canceled); }
+
+  .table.table--permits tbody tr td {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    box-shadow: none !important; /* the desktop edge marker */
+  }
+
+  /* line 1: [select] number ........ status [menu] */
+  .table.table--permits td.col-check { order: 1; width: auto; }
+  .table.table--permits td.c-ref { order: 2; }
+  .table.table--permits td.c-status { order: 3; margin-left: auto; text-align: right; }
+  .table.table--permits td.col-menu { order: 4; width: auto; }
+  /* line 2: the location, the one thing people look for */
+  .table.table--permits td.c-loc { order: 5; flex: 0 0 100%; font-size: var(--fs-md); font-weight: 600; line-height: var(--lh-base); overflow-wrap: anywhere; }
+  /* line 3: area and type tags on the left, the validity dates on the right */
+  .table.table--permits td.c-sub { order: 6; display: flex; flex-wrap: wrap; gap: 6px; }
+  .table.table--permits td.c-dates { order: 7; display: block; margin-left: auto; color: var(--ink-muted); font-size: var(--fs-sm); white-space: nowrap; }
+  /* line 4: show / hide the rest */
+  .table.table--permits td.c-more { order: 8; display: block; flex: 0 0 100%; }
+
+  /* the columns that a computer shows but a phone folds away */
+  .table.table--permits td.c-area,
+  .table.table--permits td.c-type,
+  .table.table--permits td.c-date { display: none; }
+  .table.table--permits td.c-detail { display: none; order: 9; flex: 0 0 100%; }
+  .table.table--permits tbody tr.is-open td.c-detail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: 7px 0;
+    border-top: 1px solid var(--rule);
+    text-align: right;
+    animation: fade-in 180ms ease-out;
+  }
+  .table.table--permits td.c-detail::before { content: attr(data-label); flex: none; color: var(--ink-muted); font-family: var(--font); font-size: var(--fs-sm); font-weight: 600; text-align: left; }
+
+  .tag { display: inline-block; padding: 2px 9px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.02em; }
+
+  .row-more {
+    position: relative;
+    z-index: 1; /* above the full-card link, so it can be tapped */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 0;
+    border: 0;
+    border-top: 1px dashed var(--rule-strong);
+    background: none;
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--ease);
+  }
+  .row-more:hover, .row-more[aria-expanded="true"] { color: var(--brand); }
+  .row-more svg { width: 16px; height: 16px; transition: transform 200ms ease; }
+  .row-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+}
+
+/* ---- "some details are empty" dialog ------------------------------------- */
+.dialog.cc-dialog { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.cc-head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+.cc-head .dialog__title { margin: 0; }
+.cc-icon { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--warn-line); border-radius: 50%; background: var(--warn-bg); color: var(--warn); }
+.cc-icon svg { width: 20px; height: 20px; }
+
+.cc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 var(--sp-4); padding: 0; list-style: none; }
+.cc-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border: 1px solid var(--warn-line); border-radius: var(--radius-pill); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-sm); font-weight: 600; }
+.cc-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+
+.cc-list { display: grid; gap: var(--sp-2); max-height: 260px; margin: 0 0 var(--sp-4); padding: 0; overflow: auto; list-style: none; }
+.cc-item { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); }
+.cc-item .cc-chips { margin: 8px 0 0; }
+.cc-item__top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.cc-ref { font-weight: 700; }
+.cc-edit { color: var(--link); font-size: var(--fs-sm); font-weight: 700; text-decoration: none; }
+.cc-edit:hover { text-decoration: underline; }
+
+.cc-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2); }
+.btn.cc-warn { border-color: var(--warn); background: var(--warn-bg); color: var(--warn-ink); }
+.btn.cc-warn:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 28%, var(--warn-bg)); }
+
+@media (max-width: 560px) {
+  /* big stacked buttons, the recommended one (Edit) on top */
+  .cc-actions { flex-direction: column-reverse; }
+  .cc-actions .btn { width: 100%; padding: 12px 18px; text-align: center; }
+}

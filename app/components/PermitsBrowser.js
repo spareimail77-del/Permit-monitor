@@ -31,6 +31,7 @@ const COLUMNS = [
   { key: "type", label: "Type", get: (r) => r.permit_type },
   { key: "applicant", label: "Applicant", get: (r) => r.applicant },
   { key: "holder", label: "Holder", get: (r) => r.holder },
+  { key: "issuer", label: "Issuer", get: (r) => r.issuer },
   { key: "from", label: "From", get: (r) => r.valid_from },
   { key: "to", label: "To", get: (r) => r.valid_to },
   { key: "files", label: "Files", get: (r) => r.fileCount },

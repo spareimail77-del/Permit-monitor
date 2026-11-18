@@ -21,6 +21,8 @@ import {
 import { fileProblem, formatBytes } from "../../lib/fileRules";
 import { uploadPermitFiles } from "../../lib/uploadFiles";
 import LocationPicker from "./LocationPicker";
+import CloseCheckDialog from "./CloseCheckDialog";
+import { missingForClose } from "../../lib/closeCheck";
 import { joinLocations, parseLocations } from "../../lib/locationMatch";
 
 // The permit form: the web version of typing one row in the Excel log.
@@ -135,6 +137,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [others, setOthers] = useState([]); // [{ key, label, file }]
   const [fileErrors, setFileErrors] = useState({}); // slot -> message
   const [errors, setErrors] = useState({});
+  const [closeCheck, setCloseCheck] = useState(null); // empty details found when saving as Closed
   const [state, setState] = useState("idle"); // idle | saving | error | saved
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null); // { ref, id, saved, failed }
@@ -250,7 +253,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
     return items;
   }
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e, skipCloseCheck = false) {
     e.preventDefault();
     if (state === "saving") return;
 
@@ -263,6 +266,15 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       setState("error");
       setMessage("Please fix the marked fields.");
       return;
+    }
+
+    // Saving as Closed while holder / issuer / area authority are empty: ask first.
+    if (isEdit && !skipCloseCheck && status === "CLOSED" && initial?.status !== "CLOSED") {
+      const missing = missingForClose(payload);
+      if (missing.length > 0) {
+        setCloseCheck(missing);
+        return;
+      }
     }
 
     setState("saving");
@@ -707,6 +719,28 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
           Cancel
         </Link>
       </div>
+      {closeCheck && (
+        <CloseCheckDialog
+          items={[{ id: permitId, reference: values.reference, missing: closeCheck }]}
+          total={1}
+          editLabel="Fill them in"
+          confirmLabel="Save & close anyway"
+          onCancel={() => setCloseCheck(null)}
+          onEdit={() => {
+            const key = closeCheck[0]?.key;
+            setCloseCheck(null);
+            setTimeout(() => {
+              const el = key ? document.getElementById(`pf-${key}`) : null;
+              el?.scrollIntoView({ block: "center", behavior: "smooth" });
+              el?.focus({ preventScroll: true });
+            }, 0);
+          }}
+          onConfirm={() => {
+            setCloseCheck(null);
+            handleSubmit({ preventDefault() {} }, true);
+          }}
+        />
+      )}
     </form>
   );
 }

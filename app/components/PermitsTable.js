@@ -6,10 +6,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import LocationText from "./LocationText";
+import CloseCheckDialog from "./CloseCheckDialog";
+import { missingForClose } from "../../lib/closeCheck";
+import "./permits.css";
 
 // The permit list table. Everyone sees the rows; only Root and HSE (canManage) get the
 // checkboxes, the row menu, the bottom bar and the delete / close actions. The server
 // checks the permission again in /api/permits/bulk, so hiding buttons is not the lock.
+// On a phone each row is a compact card; "Details" opens the folded-away columns.
+// Closing a permit whose holder / issuer / area authority is empty asks first (CloseCheckDialog).
 const MAX = 200; // the same limit as the server
 
 const fmt = (iso) => {
@@ -25,6 +30,12 @@ const Clip = () => (
   </svg>
 );
 
+const Chevron = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
 export default function PermitsTable({ rows, columns, onSort, canManage, canExport, showFiles = true }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set());
@@ -32,6 +43,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
   const [dialog, setDialog] = useState(null); // { action, ids }
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null); // { text, error, undo: { action, ids } }
+  const [expanded, setExpanded] = useState(() => new Set()); // phone cards that are open
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef(null);
   const headCheck = useRef(null);
@@ -43,6 +55,10 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
   useEffect(() => {
     const present = new Set(rows.map((r) => r.id));
     setSelected((prev) => {
+      const next = new Set([...prev].filter((id) => present.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+    setExpanded((prev) => {
       const next = new Set([...prev].filter((id) => present.has(id)));
       return next.size === prev.size ? prev : next;
     });
@@ -111,6 +127,15 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
     }
   }
 
+  function toggleOpen(id) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function openMenu(e, r) {
     if (menu && menu.id === r.id) return setMenu(null);
     const b = e.currentTarget.getBoundingClientRect();
@@ -120,12 +145,18 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
     setMenu(room < 190 ? { id: r.id, left, bottom: window.innerHeight - b.top + 4 } : { id: r.id, left, top: b.bottom + 4 });
   }
 
-  // Close and trash ask first. Close only counts the permits that are really open.
+  // Close and trash ask first. Close only counts the permits that are really open, and
+  // notes which of them still have empty details (holder, issuer, area authority).
   function ask(action, list) {
     setMenu(null);
-    const ids = (action === "close" ? list.filter((r) => r.status === "OPEN") : list).map((r) => r.id);
+    const chosen = action === "close" ? list.filter((r) => r.status === "OPEN") : list;
+    const ids = chosen.map((r) => r.id);
     if (ids.length === 0) return setToast({ text: "None of the chosen permits is open, so there is nothing to close.", error: true });
-    setDialog({ action, ids, refs: list.filter((r) => ids.includes(r.id)).map((r) => r.reference) });
+    const incomplete =
+      action === "close"
+        ? chosen.map((r) => ({ id: r.id, reference: r.reference, missing: missingForClose(r) })).filter((x) => x.missing.length > 0)
+        : [];
+    setDialog({ action, ids, refs: chosen.map((r) => r.reference), incomplete });
   }
 
   async function run(action, ids, { undoable = true } = {}) {
@@ -181,10 +212,13 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
   }[dialog.action];
 
   const menuRow = menu && rows.find((r) => r.id === menu.id);
+  // Closing with empty details gets its own dialog instead of the plain one.
+  const checking = dialog && dialog.action === "close" && dialog.incomplete.length > 0;
+  const completeIds = checking ? dialog.ids.filter((id) => !dialog.incomplete.some((i) => i.id === id)) : [];
 
   return (
     <>
-      <table className={`table table--rows table--cards${canManage ? " table--select" : ""}`}>
+      <table className={`table table--rows table--permits${canManage ? " table--select" : ""}`}>
         <thead>
           <tr>
             {canManage && (
@@ -210,70 +244,90 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} className={`row-link row-link--${r.st.key}${selected.has(r.id) ? " row-selected" : ""}`}>
-              {canManage && (
-                <td className="col-check" data-label="Select">
-                  <label className="row-check">
-                    <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Select permit ${r.reference}`} />
-                  </label>
-                </td>
-              )}
-              <td className="mono" data-label="Permit no.">
-                <Link href={`/permits/${r.id}`} className="row-link__a" aria-label={`Open permit ${r.reference}`}>
-                  {r.reference}
-                </Link>
-              </td>
-              <td data-label="Area">{r.area || "—"}</td>
-              <td data-label="Location"><LocationText text={r.location} /></td>
-              <td data-label="Type">{r.permit_type || "—"}</td>
-              <td data-label="Applicant">{r.applicant || "—"}</td>
-              <td data-label="Holder">{r.holder || "—"}</td>
-              <td className="mono" data-label="From">{fmt(r.valid_from)}</td>
-              <td className="mono" data-label="To">{fmt(r.valid_to)}</td>
-              {showFiles && (
-              <td data-label="Files">
-                {r.fileCount === undefined ? (
-                  "—"
-                ) : (
-                  <span className="attach-cell">
-                    <Link
-                      href={`/permits/${r.id}`}
-                      className={`attach${r.fileCount ? "" : " attach--none"}`}
-                      title={r.fileCount ? `Attached: ${r.fileTip}` : "No files attached"}
-                      aria-label={r.fileCount ? `${r.fileCount} attached: ${r.fileTip}` : "No files attached"}
-                    >
-                      <Clip />
-                      <span>{r.fileCount}</span>
-                    </Link>
-                  </span>
+          {rows.map((r) => {
+            const open = expanded.has(r.id);
+            return (
+              <tr key={r.id} className={`row-link row-link--${r.st.key}${selected.has(r.id) ? " row-selected" : ""}${open ? " is-open" : ""}`}>
+                {canManage && (
+                  <td className="col-check" data-label="Select">
+                    <label className="row-check">
+                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Select permit ${r.reference}`} />
+                    </label>
+                  </td>
                 )}
-              </td>
-              )}
-              <td data-label="Status">
-                <StatusBadge status={r.st} showDetail />
-              </td>
-              {canManage && (
-                <td className="col-menu" data-label="Actions">
-                  <button
-                    type="button"
-                    className="row-menu-btn"
-                    data-menu-btn
-                    aria-haspopup="menu"
-                    aria-expanded={menu?.id === r.id}
-                    aria-label={`Actions for permit ${r.reference}`}
-                    onClick={(e) => openMenu(e, r)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <circle cx="12" cy="5" r="1.8" />
-                      <circle cx="12" cy="12" r="1.8" />
-                      <circle cx="12" cy="19" r="1.8" />
-                    </svg>
+                <td className="mono c-ref" data-label="Permit no.">
+                  <Link href={`/permits/${r.id}`} className="row-link__a" aria-label={`Open permit ${r.reference}`}>
+                    {r.reference}
+                  </Link>
+                </td>
+                <td className="c-area" data-label="Area">{r.area || "—"}</td>
+                <td className="c-loc" data-label="Location"><LocationText text={r.location} /></td>
+                <td className="c-type" data-label="Type">{r.permit_type || "—"}</td>
+                <td className="c-detail c-applicant" data-label="Applicant">{r.applicant || <span className="cell-empty">—</span>}</td>
+                <td className="c-detail c-holder" data-label="Holder">{r.holder || <span className="cell-empty">—</span>}</td>
+                <td className="c-detail c-issuer" data-label="Issuer">{r.issuer || <span className="cell-empty">—</span>}</td>
+                <td className="mono c-date c-from" data-label="From">{fmt(r.valid_from)}</td>
+                <td className="mono c-date c-to" data-label="To">{fmt(r.valid_to)}</td>
+                {showFiles && (
+                  <td className="c-detail c-files" data-label="Files">
+                    {r.fileCount === undefined ? (
+                      "—"
+                    ) : (
+                      <span className="attach-cell">
+                        <Link
+                          href={`/permits/${r.id}`}
+                          className={`attach${r.fileCount ? "" : " attach--none"}`}
+                          title={r.fileCount ? `Attached: ${r.fileTip}` : "No files attached"}
+                          aria-label={r.fileCount ? `${r.fileCount} attached: ${r.fileTip}` : "No files attached"}
+                        >
+                          <Clip />
+                          <span>{r.fileCount}</span>
+                        </Link>
+                      </span>
+                    )}
+                  </td>
+                )}
+                <td className="c-status" data-label="Status">
+                  <StatusBadge status={r.st} showDetail />
+                </td>
+                {/* Phone only: area + type tags, the dates in one line, and the Details button. */}
+                {(r.area || r.permit_type) && (
+                  <td className="c-sub">
+                    {r.area && <span className="tag">{r.area}</span>}
+                    {r.permit_type && <span className="tag">{r.permit_type}</span>}
+                  </td>
+                )}
+                <td className="mono c-dates">
+                  {fmt(r.valid_from)} → {fmt(r.valid_to)}
+                </td>
+                {canManage && (
+                  <td className="col-menu" data-label="Actions">
+                    <button
+                      type="button"
+                      className="row-menu-btn"
+                      data-menu-btn
+                      aria-haspopup="menu"
+                      aria-expanded={menu?.id === r.id}
+                      aria-label={`Actions for permit ${r.reference}`}
+                      onClick={(e) => openMenu(e, r)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <circle cx="12" cy="5" r="1.8" />
+                        <circle cx="12" cy="12" r="1.8" />
+                        <circle cx="12" cy="19" r="1.8" />
+                      </svg>
+                    </button>
+                  </td>
+                )}
+                <td className="c-more">
+                  <button type="button" className="row-more" aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} details of permit ${r.reference}`} onClick={() => toggleOpen(r.id)}>
+                    <span>{open ? "Hide details" : "Details"}</span>
+                    <Chevron />
                   </button>
                 </td>
-              )}
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -317,7 +371,20 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
               </div>
             )}
 
-            {dialog && dialogText && (
+            {checking && (
+              <CloseCheckDialog
+                items={dialog.incomplete}
+                total={dialog.ids.length}
+                editHref={dialog.ids.length === 1 ? `/permits/edit/${dialog.incomplete[0].id}` : undefined}
+                busy={busy}
+                onCancel={() => setDialog(null)}
+                onConfirm={() => run("close", dialog.ids)}
+                partialLabel={completeIds.length > 0 ? `Close ${completeIds.length} complete only` : undefined}
+                onPartial={completeIds.length > 0 ? () => run("close", completeIds) : undefined}
+              />
+            )}
+
+            {dialog && dialogText && !checking && (
               <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy && setDialog(null)}>
                 <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
                   <h2 id="dlg-title" className="dialog__title">{dialogText.title}</h2>

@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmDialog from "./ConfirmDialog";
+import CloseCheckDialog from "./CloseCheckDialog";
 
 // Close, cancel, reopen and move one permit to the trash (Root and HSE; the server
 // checks again). status: the stored status OPEN / CLOSED / CANCELED.
 // Routine actions are on the left; the destructive one is kept apart on the right.
-export default function PermitActions({ permitId, reference, status }) {
+// missing: the empty holder / issuer / area authority fields ([] = complete), asked again when closing.
+export default function PermitActions({ permitId, reference, status, missing = [] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState(""); // "" | close | reopen | trash
+  const [dialog, setDialog] = useState(""); // "" | close | closecheck | reopen | trash
   const [panel, setPanel] = useState(""); // "" | "cancel"
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -67,7 +69,7 @@ export default function PermitActions({ permitId, reference, status }) {
         <div className="row-actions">
           {status === "OPEN" ? (
             <>
-              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog("close")}>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog(missing.length > 0 ? "closecheck" : "close")}>
                 Close permit
               </button>
               <button className="btn btn-sm" disabled={busy} onClick={() => setPanel(panel === "cancel" ? "" : "cancel")} aria-expanded={panel === "cancel"}>
@@ -112,6 +114,17 @@ export default function PermitActions({ permitId, reference, status }) {
         onConfirm={confirm}
         onCancel={() => setDialog("")}
       />
+
+      {dialog === "closecheck" && (
+        <CloseCheckDialog
+          items={[{ id: permitId, reference, missing }]}
+          total={1}
+          editHref={`/permits/edit/${permitId}`}
+          busy={busy}
+          onCancel={() => setDialog("")}
+          onConfirm={() => call("PATCH", { action: "close" }, done)}
+        />
+      )}
     </section>
   );
 }
