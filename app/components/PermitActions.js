@@ -10,7 +10,8 @@ import CloseCheckDialog from "./CloseCheckDialog";
 // Routine actions are on the left; the destructive one is kept apart on the right.
 // missing: empty holder / issuer / area authority fields; missingCerts: certificates without an
 // attached copy. Both [] = nothing to remind. Checked again when closing.
-export default function PermitActions({ permitId, reference, status, missing = [], missingCerts = [] }) {
+// options: { holder: [...], issuer: [...] } for filling the empty details in the popup (or null).
+export default function PermitActions({ permitId, reference, status, missing = [], missingCerts = [], options = null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(""); // "" | close | closecheck | reopen | trash
@@ -121,6 +122,8 @@ export default function PermitActions({ permitId, reference, status, missing = [
           items={[{ id: permitId, reference, missing, certs: missingCerts }]}
           total={1}
           editHref={`/permits/edit/${permitId}`}
+          fix={{ options }}
+          onClosed={done}
           busy={busy}
           onCancel={() => setDialog("")}
           onConfirm={() => call("PATCH", { action: "close" }, done)}

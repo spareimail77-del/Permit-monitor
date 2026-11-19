@@ -65,7 +65,7 @@ function readSort(get) {
   return { sort, dir: sort && get("dir") === "desc" ? "desc" : "asc" };
 }
 
-export default function PermitsBrowser({ permits, today, filesOk, canManage, canExport, hideFiles = false }) {
+export default function PermitsBrowser({ permits, today, filesOk, canManage, canExport, hideFiles = false, closeOptions = null }) {
   const searchParams = useSearchParams();
   const initial = useMemo(() => {
     const get = (n) => searchParams.get(n) ?? "";
@@ -218,7 +218,7 @@ export default function PermitsBrowser({ permits, today, filesOk, canManage, can
             )}
           </div>
         ) : (
-          <PermitsTable rows={tableRows} columns={tableColumns} onSort={onSort} canManage={canManage} canExport={canExport} showFiles={!hideFiles} />
+          <PermitsTable rows={tableRows} columns={tableColumns} onSort={onSort} canManage={canManage} canExport={canExport} showFiles={!hideFiles} closeOptions={closeOptions} />
         )}
       </div>
     </>

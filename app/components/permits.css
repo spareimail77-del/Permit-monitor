@@ -130,6 +130,25 @@
 .cc-chip--cert { border-color: var(--danger-line); background: var(--danger-bg); color: var(--danger-ink); }
 .cc-chip--cert::before { background: var(--danger); }
 
+/* fixing right inside the popup */
+.cc-fix { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.cc-fix .cc-label { margin: var(--sp-1) 0 0; }
+.cc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cc-field label { color: var(--ink-muted); font-size: var(--fs-sm); font-weight: 600; }
+.cc-cert { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px var(--sp-3); padding: 10px 12px; border: 1px solid var(--danger-line); border-radius: 8px; background: color-mix(in srgb, var(--danger-bg) 55%, transparent); }
+.cc-cert__name { min-width: 0; color: var(--danger-ink); font-size: var(--fs-sm); font-weight: 700; overflow-wrap: anywhere; }
+.cc-cert__err { flex: 0 0 100%; }
+.cc-pick { position: relative; cursor: pointer; }
+.cc-pick:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cc-pick.is-disabled { opacity: 0.6; cursor: default; }
+.cc-file { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; font-size: var(--fs-sm); }
+.cc-file__n { min-width: 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.cc-file__s { color: var(--ink-muted); white-space: nowrap; }
+.cc-ok { margin: 0; color: var(--ok-ink); font-size: var(--fs-sm); font-weight: 600; }
+.cc-error { margin: 0; font-size: var(--fs-sm); }
+.cc-fulledit { justify-self: start; color: var(--link); font-size: var(--fs-sm); font-weight: 700; text-decoration: none; }
+.cc-fulledit:hover { text-decoration: underline; }
+
 .cc-list { display: grid; gap: var(--sp-2); max-height: 260px; margin: 0 0 var(--sp-4); padding: 0; overflow: auto; list-style: none; }
 .cc-item { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); }
 .cc-item .cc-label { margin-top: 8px; }
@@ -148,4 +167,11 @@
   /* big stacked buttons, the recommended one (Edit) on top */
   .cc-actions { flex-direction: column-reverse; }
   .cc-actions .btn { width: 100%; padding: 12px 18px; text-align: center; }
+}
+
+/* phone: the popup rises from the bottom like a sheet */
+@media (max-width: 560px) {
+  .dialog-backdrop:has(.cc-dialog) { align-items: end; padding: 0; }
+  .dialog.cc-dialog { width: 100%; max-height: 92dvh; padding-bottom: max(var(--sp-5), env(safe-area-inset-bottom, 0px)); border-radius: 16px 16px 0 0; }
+  .cc-file__n { max-width: 140px; }
 }

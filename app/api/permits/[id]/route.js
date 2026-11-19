@@ -1,7 +1,7 @@
 import { getSupabase } from "../../../../lib/db";
 import { getViewerStrict as getViewer } from "../../../../lib/viewer";
 import { todayOman } from "../../../../lib/omanDate";
-import { statusPatch, validatePermitInput, validateStatusInput } from "../../../../lib/permitRules";
+import { oneLine, statusPatch, validatePermitInput, validateStatusInput } from "../../../../lib/permitRules";
 import { resolveLocation } from "../../../../lib/locationServer";
 
 // Root and HSE only: middleware checks the URL (/api/permits needs
@@ -14,7 +14,40 @@ function parseId(params) {
 const bad = (error, status = 400, extra = {}) => Response.json({ error, ...extra }, { status });
 
 // PATCH body: { action: "edit", ...form fields, status, cancelReason }
-//          or { action: "close" } | { action: "cancel", reason } | { action: "reopen" }
+//          or { action: "close", fill? } | { action: "cancel", reason } | { action: "reopen" }
+// "close" may carry fill: { holder, issuer, areaAuthority } (from the check-before-closing
+// popup): only fields that are still EMPTY are filled, Holder and Issuer must be names from
+// the lists, and the permit is closed in the same single database step.
+
+const FILL_FIELDS = [
+  { key: "holder", column: "holder", label: "Permit holder", max: 80, list: "holder" },
+  { key: "issuer", column: "issuer", label: "Authorized permit issuer", max: 80, list: "issuer" },
+  { key: "areaAuthority", column: "area_authority", label: "Area authority", max: 120, list: null },
+];
+
+// -> { patch, guards } or { error }. guards: the empty value each filled column had when
+// read, so the update only applies if nobody changed it in between.
+async function readFill(supabase, fill, permit) {
+  const out = { patch: {}, guards: {} };
+  if (!fill || typeof fill !== "object") return out;
+  for (const f of FILL_FIELDS) {
+    const value = oneLine(fill[f.key], f.max);
+    if (!value) continue;
+    const current = permit[f.column] ?? "";
+    if (String(current).trim() !== "") continue; // never overwrite what is already there
+    let stored = value;
+    if (f.list) {
+      const { data, error } = await supabase.from("permit_options").select("value").eq("list", f.list).eq("active", true).limit(1000);
+      if (error) return { error: "The list could not be checked. Please try again." };
+      const hit = (data || []).find((o) => String(o.value).trim().toUpperCase() === value.toUpperCase());
+      if (!hit) return { error: `${f.label} must be chosen from the list.` };
+      stored = hit.value;
+    }
+    out.patch[f.column] = stored;
+    out.guards[f.column] = current;
+  }
+  return out;
+}
 export async function PATCH(request, { params }) {
   const id = parseId(params);
   if (!id) return bad("Unknown permit.");
@@ -24,7 +57,7 @@ export async function PATCH(request, { params }) {
   const supabase = getSupabase();
   const { data: permit, error: readError } = await supabase
     .from("permits")
-    .select("id, reference, status, closed_at, deleted_at, location")
+    .select("id, reference, status, closed_at, deleted_at, location, holder, issuer, area_authority")
     .eq("id", id)
     .maybeSingle();
   if (readError || !permit) return bad("This permit does not exist.", 404);
@@ -32,10 +65,15 @@ export async function PATCH(request, { params }) {
 
   const today = todayOman();
   let patch;
+  let guards = {};
 
   if (body.action === "close") {
     if (permit.status !== "OPEN") return bad("Only an open permit can be closed.", 409);
     patch = statusPatch(permit, "CLOSED", "", today);
+    const fill = await readFill(supabase, body.fill, permit);
+    if (fill.error) return bad(fill.error, 400);
+    patch = { ...patch, ...fill.patch };
+    guards = fill.guards;
   } else if (body.action === "cancel") {
     if (permit.status !== "OPEN") return bad("Only an open permit can be canceled.", 409);
     const { errors, clean } = validateStatusInput("CANCELED", body.reason);
@@ -86,6 +124,11 @@ export async function PATCH(request, { params }) {
   const newVersion = new Date().toISOString();
   let query = supabase.from("permits").update({ ...patch, updated_at: newVersion }).eq("id", id);
   if (expected) query = query.eq("updated_at", expected);
+  if (body.action === "close") {
+    // Close only a permit that is still open, and only if the filled columns are still as read.
+    query = query.eq("status", "OPEN");
+    for (const [column, value] of Object.entries(guards)) query = query.eq(column, value);
+  }
   const { data, error } = await query.select("id, updated_at");
   if (error) {
     console.error("Updating a permit failed:", error);
@@ -106,6 +149,11 @@ export async function PATCH(request, { params }) {
           { status: 409 }
         );
       }
+    }
+    if (body.action === "close") {
+      const { data: now } = await supabase.from("permits").select("status, deleted_at, holder, issuer, area_authority").eq("id", id).maybeSingle();
+      const changed = !now || now.deleted_at || now.status !== "OPEN" || Object.entries(guards).some(([column, value]) => (now[column] ?? "") !== value);
+      if (changed) return bad("Someone else changed this permit a moment ago. Reload the page and try again.", 409);
     }
     return bad("You are not allowed to change this permit.", 403);
   }

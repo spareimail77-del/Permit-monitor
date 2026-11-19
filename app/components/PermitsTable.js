@@ -36,7 +36,7 @@ const Chevron = () => (
   </svg>
 );
 
-export default function PermitsTable({ rows, columns, onSort, canManage, canExport, showFiles = true }) {
+export default function PermitsTable({ rows, columns, onSort, canManage, canExport, showFiles = true, closeOptions = null }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set());
   const [menu, setMenu] = useState(null); // { id, left, top?, bottom? }
@@ -164,6 +164,14 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
             .filter((x) => x.missing.length > 0 || x.certs.length > 0)
         : [];
     setDialog({ action, ids, refs: chosen.map((r) => r.reference), incomplete });
+  }
+
+  // "Save & close" in the popup closed one permit (after filling in details / adding copies).
+  function afterFixClose(id) {
+    setDialog(null);
+    setSelected(new Set());
+    setToast({ text: "1 permit closed.", undo: { action: "reopen", ids: [id] } });
+    router.refresh();
   }
 
   async function run(action, ids, { undoable = true } = {}) {
@@ -383,6 +391,8 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                 items={dialog.incomplete}
                 total={dialog.ids.length}
                 editHref={dialog.ids.length === 1 ? `/permits/edit/${dialog.incomplete[0].id}` : undefined}
+                fix={dialog.ids.length === 1 ? { options: closeOptions } : undefined}
+                onClosed={() => afterFixClose(dialog.ids[0])}
                 busy={busy}
                 onCancel={() => setDialog(null)}
                 onConfirm={() => run("close", dialog.ids)}

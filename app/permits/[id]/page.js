@@ -14,6 +14,7 @@ import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
 import { isNA, prettyDate } from "../../../lib/permitRules";
 import { missingForClose, missingCertificates } from "../../../lib/closeCheck";
+import { fetchCloseOptions } from "../../../lib/closeOptions";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,8 @@ export default async function PermitPage({ params }) {
   // A permit in the trash is read-only (only Root and HSE can see it at all).
   const canManage = Boolean(viewer?.canManagePermits) && !trashed;
   const v = validity(permit, status, today);
+  // The holder / issuer names for the close popup (only needed while the permit is open).
+  const closeOptions = canManage && permit.status === "OPEN" ? await fetchCloseOptions(supabase) : null;
 
   // One list for the Attachments card: every file, plus a faint row for each
   // certificate that has no copy yet.
@@ -249,7 +252,7 @@ export default async function PermitPage({ params }) {
       </section>
       )}
 
-      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} missingCerts={missingCertificates(permit.certificates, attachedCerts)} />}
+      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} missingCerts={missingCertificates(permit.certificates, attachedCerts)} options={closeOptions} />}
     </div>
   );
 }

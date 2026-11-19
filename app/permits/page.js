@@ -3,6 +3,7 @@ import { getSupabase } from "../../lib/db";
 import { getViewer } from "../../lib/viewer";
 import { todayOman } from "../../lib/omanDate";
 import { fetchFileSummary } from "../../lib/permitFiles";
+import { fetchCloseOptions } from "../../lib/closeOptions";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,12 @@ export default async function PermitsPage({ searchParams }) {
 
   // A guest cannot see attachments at all, so nothing is asked about them.
   const hideFiles = viewer?.canViewFiles === false;
-  const [rows, fileSummary] = await Promise.all([readPermits(), hideFiles ? { ok: false, map: new Map() } : fetchFileSummary(supabase)]);
+  // Only people who can close permits need the holder / issuer names of the close popup.
+  const [rows, fileSummary, closeOptions] = await Promise.all([
+    readPermits(),
+    hideFiles ? { ok: false, map: new Map() } : fetchFileSummary(supabase),
+    viewer?.canManagePermits ? fetchCloseOptions(supabase) : null,
+  ]);
   const failed = rows === null;
 
   const permits = (rows || []).map((r) => ({
@@ -72,6 +78,7 @@ export default async function PermitsPage({ searchParams }) {
         canManage={Boolean(viewer?.canManagePermits)}
         canExport={Boolean(viewer?.canExport)}
         hideFiles={hideFiles}
+        closeOptions={closeOptions}
       />
     </>
   );
