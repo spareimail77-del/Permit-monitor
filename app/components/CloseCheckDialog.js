@@ -3,21 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { isNA } from "../../lib/permitRules";
 import "./permits.css";
 
-// "Some details are empty": shown before a permit is closed when holder, issuer or
-// area authority is still empty (see lib/closeCheck.js for which fields).
-// One dialog for every place that closes permits (list, permit page, edit form):
+// "Check before closing": shown when a permit about to be closed still has empty details
+// (holder, issuer, area authority) or a certificate without an attached copy.
+// See lib/closeCheck.js for the rules. One dialog for every place that closes permits
+// (list, permit page, edit form):
 //
-//   items          [{ id, reference, missing: [{ key, label }] }]  the permits with empty fields
-//   total          how many permits are being closed (more than items when some are complete)
-//   editHref       one permit: the "Edit permit" button is a link to its edit page
+//   items          [{ id, reference, missing: [{ key, label }], certs: [{ name, number }] }]
+//   total          how many permits are being closed (more than items when some are fine)
+//   editHref       one permit: the main button is a link to its edit page
 //   onEdit         ...or a function instead (the edit form uses it to jump to the field)
 //   onConfirm      "Close anyway"
-//   onPartial      several permits: "Close only the complete ones" (shown when there are any)
+//   onPartial      several permits: "Close only the ones without problems"
 //   onCancel       Cancel, Escape, or a click outside
 //
-// Several permits: each one lists its empty fields and has its own Edit link (new tab,
+// Several permits: each one lists what it lacks and has its own Edit link (new tab,
 // so the chosen permits stay chosen).
 
 const Warn = () => (
@@ -27,12 +29,48 @@ const Warn = () => (
   </svg>
 );
 
+const certText = (c) => `${c.name}${c.number && !isNA(c.name) ? ` · no. ${c.number}` : ""}`;
+
+// The two groups of chips for one permit.
+function Problems({ item }) {
+  const fields = item.missing || [];
+  const certs = item.certs || [];
+  return (
+    <>
+      {fields.length > 0 && (
+        <>
+          <p className="cc-label">Empty details</p>
+          <ul className="cc-chips">
+            {fields.map((m) => (
+              <li key={m.key} className="cc-chip">
+                {m.label}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {certs.length > 0 && (
+        <>
+          <p className="cc-label">Certificate copy not attached</p>
+          <ul className="cc-chips">
+            {certs.map((c) => (
+              <li key={c.name} className="cc-chip cc-chip--cert">
+                {certText(c)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function CloseCheckDialog({
   items,
   total = 1,
   editHref,
   onEdit,
-  editLabel = "Edit permit",
+  editLabel,
   confirmLabel = "Close anyway",
   onConfirm,
   partialLabel,
@@ -59,11 +97,25 @@ export default function CloseCheckDialog({
 
   const single = items.length === 1 && total === 1;
   const first = items[0];
+  const hasFields = items.some((i) => (i.missing || []).length > 0);
+  const hasCerts = items.some((i) => (i.certs || []).length > 0);
   const canEdit = single && (editHref || onEdit);
-  const title = single ? `Permit ${first.reference} has empty details` : `${items.length} of ${total} permits have empty details`;
-  const intro = single
-    ? "These details are still empty. Fill them in first, or close the permit as it is."
-    : "These permits are missing details. Open one to fill it in, or close them as they are.";
+  const label = editLabel || (hasFields ? "Edit permit" : "Add certificate");
+
+  let title;
+  let intro;
+  if (single) {
+    title = hasFields && hasCerts ? `Check permit ${first.reference} before closing` : hasCerts ? `Permit ${first.reference}: certificate copy missing` : `Permit ${first.reference} has empty details`;
+    intro =
+      hasFields && hasCerts
+        ? "Some details are empty and a certificate copy is not attached. Fix them first, or close the permit as it is."
+        : hasCerts
+          ? "A certificate copy has not been attached yet. Add it first, or close the permit as it is."
+          : "These details are still empty. Fill them in first, or close the permit as it is.";
+  } else {
+    title = `${items.length} of ${total} permits need a check`;
+    intro = "These permits have empty details or a certificate copy that is not attached. Open one to fix it, or close them as they are.";
+  }
 
   return createPortal(
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy && onCancel()}>
@@ -81,13 +133,9 @@ export default function CloseCheckDialog({
         </p>
 
         {single ? (
-          <ul className="cc-chips" aria-label="Empty details">
-            {first.missing.map((m) => (
-              <li key={m.key} className="cc-chip">
-                {m.label}
-              </li>
-            ))}
-          </ul>
+          <div className="cc-group">
+            <Problems item={first} />
+          </div>
         ) : (
           <ul className="cc-list">
             {items.map((it) => (
@@ -98,13 +146,7 @@ export default function CloseCheckDialog({
                     Edit ↗
                   </Link>
                 </div>
-                <ul className="cc-chips">
-                  {it.missing.map((m) => (
-                    <li key={m.key} className="cc-chip">
-                      {m.label}
-                    </li>
-                  ))}
-                </ul>
+                <Problems item={it} />
               </li>
             ))}
           </ul>
@@ -125,11 +167,11 @@ export default function CloseCheckDialog({
           {canEdit &&
             (editHref ? (
               <Link ref={safeRef} href={editHref} className="btn btn-primary">
-                {editLabel}
+                {label}
               </Link>
             ) : (
               <button ref={safeRef} type="button" className="btn btn-primary" disabled={busy} onClick={onEdit}>
-                {editLabel}
+                {label}
               </button>
             ))}
         </div>

@@ -22,7 +22,7 @@ import { fileProblem, formatBytes } from "../../lib/fileRules";
 import { uploadPermitFiles } from "../../lib/uploadFiles";
 import LocationPicker from "./LocationPicker";
 import CloseCheckDialog from "./CloseCheckDialog";
-import { missingForClose } from "../../lib/closeCheck";
+import { missingForClose, missingCertificates } from "../../lib/closeCheck";
 import { joinLocations, parseLocations } from "../../lib/locationMatch";
 
 // The permit form: the web version of typing one row in the Excel log.
@@ -137,7 +137,7 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
   const [others, setOthers] = useState([]); // [{ key, label, file }]
   const [fileErrors, setFileErrors] = useState({}); // slot -> message
   const [errors, setErrors] = useState({});
-  const [closeCheck, setCloseCheck] = useState(null); // empty details found when saving as Closed
+  const [closeCheck, setCloseCheck] = useState(null); // { missing, certs } found when saving as Closed
   const [state, setState] = useState("idle"); // idle | saving | error | saved
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null); // { ref, id, saved, failed }
@@ -268,11 +268,14 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       return;
     }
 
-    // Saving as Closed while holder / issuer / area authority are empty: ask first.
+    // Saving as Closed with empty details or a certificate copy not attached: ask first.
+    // A copy chosen on this form counts as attached (it is uploaded right after saving).
     if (isEdit && !skipCloseCheck && status === "CLOSED" && initial?.status !== "CLOSED") {
       const missing = missingForClose(payload);
-      if (missing.length > 0) {
-        setCloseCheck(missing);
+      const attached = Array.isArray(initial?.attachedCerts) ? [...initial.attachedCerts, ...Object.keys(certFiles).filter((n) => certFiles[n])] : null;
+      const certsMissing = missingCertificates(payload.certificates, attached);
+      if (missing.length > 0 || certsMissing.length > 0) {
+        setCloseCheck({ missing, certs: certsMissing });
         return;
       }
     }
@@ -721,16 +724,16 @@ export default function PermitForm({ options, existingRefs = [], mode = "new", p
       </div>
       {closeCheck && (
         <CloseCheckDialog
-          items={[{ id: permitId, reference: values.reference, missing: closeCheck }]}
+          items={[{ id: permitId, reference: values.reference, missing: closeCheck.missing, certs: closeCheck.certs }]}
           total={1}
-          editLabel="Fill them in"
+          editLabel="Fix it now"
           confirmLabel="Save & close anyway"
           onCancel={() => setCloseCheck(null)}
           onEdit={() => {
-            const key = closeCheck[0]?.key;
+            const target = closeCheck.missing[0] ? `pf-${closeCheck.missing[0].key}` : closeCheck.certs[0] ? `pf-cert-${closeCheck.certs[0].name}` : "";
             setCloseCheck(null);
             setTimeout(() => {
-              const el = key ? document.getElementById(`pf-${key}`) : null;
+              const el = target ? document.getElementById(target) : null;
               el?.scrollIntoView({ block: "center", behavior: "smooth" });
               el?.focus({ preventScroll: true });
             }, 0);

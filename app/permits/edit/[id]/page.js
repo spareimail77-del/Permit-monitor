@@ -32,6 +32,12 @@ export default async function EditPermitPage({ params }) {
 
   const { lists, error } = await fetchOptions(supabase);
   const certs = Array.isArray(permit.certificates) ? permit.certificates : [];
+  // Names of the certificates that already have a copy (null = could not be read).
+  const { data: certFileRows, error: certFileError } = await supabase
+    .from("permit_files")
+    .select("label")
+    .eq("permit_id", permit.id)
+    .eq("kind", "certificate");
 
   const initial = {
     values: {
@@ -55,6 +61,7 @@ export default async function EditPermitPage({ params }) {
     // When this permit was last saved. Sent back with Save: if someone else saved it in
     // the meantime, the server refuses instead of overwriting their changes.
     updatedAt: permit.updated_at || "",
+    attachedCerts: certFileError ? null : (certFileRows || []).map((f) => f.label),
   };
 
   return (

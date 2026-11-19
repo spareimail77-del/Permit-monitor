@@ -8,8 +8,9 @@ import CloseCheckDialog from "./CloseCheckDialog";
 // Close, cancel, reopen and move one permit to the trash (Root and HSE; the server
 // checks again). status: the stored status OPEN / CLOSED / CANCELED.
 // Routine actions are on the left; the destructive one is kept apart on the right.
-// missing: the empty holder / issuer / area authority fields ([] = complete), asked again when closing.
-export default function PermitActions({ permitId, reference, status, missing = [] }) {
+// missing: empty holder / issuer / area authority fields; missingCerts: certificates without an
+// attached copy. Both [] = nothing to remind. Checked again when closing.
+export default function PermitActions({ permitId, reference, status, missing = [], missingCerts = [] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(""); // "" | close | closecheck | reopen | trash
@@ -69,7 +70,7 @@ export default function PermitActions({ permitId, reference, status, missing = [
         <div className="row-actions">
           {status === "OPEN" ? (
             <>
-              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog(missing.length > 0 ? "closecheck" : "close")}>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog(missing.length > 0 || missingCerts.length > 0 ? "closecheck" : "close")}>
                 Close permit
               </button>
               <button className="btn btn-sm" disabled={busy} onClick={() => setPanel(panel === "cancel" ? "" : "cancel")} aria-expanded={panel === "cancel"}>
@@ -117,7 +118,7 @@ export default function PermitActions({ permitId, reference, status, missing = [
 
       {dialog === "closecheck" && (
         <CloseCheckDialog
-          items={[{ id: permitId, reference, missing }]}
+          items={[{ id: permitId, reference, missing, certs: missingCerts }]}
           total={1}
           editHref={`/permits/edit/${permitId}`}
           busy={busy}

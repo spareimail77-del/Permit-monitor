@@ -24,7 +24,7 @@ export default async function PermitsPage({ searchParams }) {
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabase
         .from("permits")
-        .select("id, reference, area, location, permit_type, applicant, holder, issuer, area_authority, valid_from, valid_to, status")
+        .select("id, reference, area, location, permit_type, applicant, holder, issuer, area_authority, certificates, valid_from, valid_to, status")
         .is("deleted_at", null)
         .order("id", { ascending: false })
         .range(from, from + PAGE - 1);
@@ -46,7 +46,7 @@ export default async function PermitsPage({ searchParams }) {
   const permits = (rows || []).map((r) => ({
     ...r,
     // Only when the files could be read (a Map cannot be sent to the browser, so plain counts).
-    ...(fileSummary.ok ? { files: fileSummary.map.get(r.id) || { permit_copy: 0, jsa: 0, certificate: 0, other: 0 } } : {}),
+    ...(fileSummary.ok ? { files: fileSummary.map.get(r.id) || { permit_copy: 0, jsa: 0, certificate: 0, other: 0, certLabels: [] } } : {}),
   }));
 
   return (

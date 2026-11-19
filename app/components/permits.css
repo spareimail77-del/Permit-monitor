@@ -123,9 +123,18 @@
 .cc-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border: 1px solid var(--warn-line); border-radius: var(--radius-pill); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-sm); font-weight: 600; }
 .cc-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
 
+.cc-group { margin-bottom: var(--sp-4); }
+.cc-group .cc-chips, .cc-label + .cc-chips { margin-bottom: var(--sp-3); }
+.cc-group .cc-chips:last-child { margin-bottom: 0; }
+.cc-label { margin: 0 0 6px; color: var(--ink-muted); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.cc-chip--cert { border-color: var(--danger-line); background: var(--danger-bg); color: var(--danger-ink); }
+.cc-chip--cert::before { background: var(--danger); }
+
 .cc-list { display: grid; gap: var(--sp-2); max-height: 260px; margin: 0 0 var(--sp-4); padding: 0; overflow: auto; list-style: none; }
 .cc-item { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); }
-.cc-item .cc-chips { margin: 8px 0 0; }
+.cc-item .cc-label { margin-top: 8px; }
+.cc-item .cc-chips { margin: 0; }
+.cc-item .cc-chips + .cc-label { margin-top: 10px; }
 .cc-item__top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .cc-ref { font-weight: 700; }
 .cc-edit { color: var(--link); font-size: var(--fs-sm); font-weight: 700; text-decoration: none; }

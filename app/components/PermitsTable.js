@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 import StatusBadge from "./StatusBadge";
 import LocationText from "./LocationText";
 import CloseCheckDialog from "./CloseCheckDialog";
-import { missingForClose } from "../../lib/closeCheck";
+import { checkForClose } from "../../lib/closeCheck";
 import "./permits.css";
 
 // The permit list table. Everyone sees the rows; only Root and HSE (canManage) get the
 // checkboxes, the row menu, the bottom bar and the delete / close actions. The server
 // checks the permission again in /api/permits/bulk, so hiding buttons is not the lock.
 // On a phone each row is a compact card; "Details" opens the folded-away columns.
-// Closing a permit whose holder / issuer / area authority is empty asks first (CloseCheckDialog).
+// Closing a permit with empty details or a missing certificate copy asks first (CloseCheckDialog).
 const MAX = 200; // the same limit as the server
 
 const fmt = (iso) => {
@@ -146,7 +146,9 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
   }
 
   // Close and trash ask first. Close only counts the permits that are really open, and
-  // notes which of them still have empty details (holder, issuer, area authority).
+  // notes which of them have empty details (holder, issuer, area authority) or a
+  // certificate without an attached copy. r.files is missing when the attachments could
+  // not be read: then certificates are not checked (no false alarms).
   function ask(action, list) {
     setMenu(null);
     const chosen = action === "close" ? list.filter((r) => r.status === "OPEN") : list;
@@ -154,7 +156,12 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
     if (ids.length === 0) return setToast({ text: "None of the chosen permits is open, so there is nothing to close.", error: true });
     const incomplete =
       action === "close"
-        ? chosen.map((r) => ({ id: r.id, reference: r.reference, missing: missingForClose(r) })).filter((x) => x.missing.length > 0)
+        ? chosen
+            .map((r) => {
+              const c = checkForClose(r, r.files ? r.files.certLabels || [] : null);
+              return { id: r.id, reference: r.reference, missing: c.missing, certs: c.certs };
+            })
+            .filter((x) => x.missing.length > 0 || x.certs.length > 0)
         : [];
     setDialog({ action, ids, refs: chosen.map((r) => r.reference), incomplete });
   }
@@ -379,7 +386,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                 busy={busy}
                 onCancel={() => setDialog(null)}
                 onConfirm={() => run("close", dialog.ids)}
-                partialLabel={completeIds.length > 0 ? `Close ${completeIds.length} complete only` : undefined}
+                partialLabel={completeIds.length > 0 ? `Close ${completeIds.length} without issues` : undefined}
                 onPartial={completeIds.length > 0 ? () => run("close", completeIds) : undefined}
               />
             )}

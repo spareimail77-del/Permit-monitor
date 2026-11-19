@@ -13,7 +13,7 @@ import { getSupabase } from "../../../lib/db";
 import { getViewer } from "../../../lib/viewer";
 import { FILE_KINDS, formatBytes } from "../../../lib/fileRules";
 import { isNA, prettyDate } from "../../../lib/permitRules";
-import { missingForClose } from "../../../lib/closeCheck";
+import { missingForClose, missingCertificates } from "../../../lib/closeCheck";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +98,8 @@ export default async function PermitPage({ params }) {
   // A certificate copy whose certificate was later removed from the permit is still
   // listed (as a normal file), so it can be opened or deleted.
   const certSet = new Set(certificates.map((c) => c.name));
+  // Certificates without an attached copy (null = the files could not be read: no reminder).
+  const attachedCerts = Array.isArray(files) ? files.filter((f) => f.kind === "certificate").map((f) => f.label) : null;
   const status = computeStatus(permit, today);
   const trashed = Boolean(permit.deleted_at);
   // A permit in the trash is read-only (only Root and HSE can see it at all).
@@ -247,7 +249,7 @@ export default async function PermitPage({ params }) {
       </section>
       )}
 
-      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} />}
+      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} missingCerts={missingCertificates(permit.certificates, attachedCerts)} />}
     </div>
   );
 }
