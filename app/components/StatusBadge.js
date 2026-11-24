@@ -4,6 +4,7 @@ export default function StatusBadge({ status, showDetail = false }) {
   return (
     <span>
       <span className={`badge badge--${status.key}`}>{status.label}</span>
+      {status.missing && <span className="badge badge--MISSING badge--tag">Paper missing</span>}
       {showDetail && status.detail && (
         <span className={status.key === "OVERDUE" ? "status-detail status-detail--bad" : "status-detail"}>{status.detail}</span>
       )}

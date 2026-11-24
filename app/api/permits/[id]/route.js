@@ -14,7 +14,9 @@ function parseId(params) {
 const bad = (error, status = 400, extra = {}) => Response.json({ error, ...extra }, { status });
 
 // PATCH body: { action: "edit", ...form fields, status, cancelReason }
-//          or { action: "close", fill? } | { action: "cancel", reason } | { action: "reopen" }
+//          or { action: "close", fill?, missing? } | { action: "cancel", reason } | { action: "reopen" }
+//          or { action: "mark_missing" } | { action: "mark_found" }   (closed permits: paper copy lost / found)
+// "close" with missing: true closes the permit and records that its paper copy is missing.
 // "close" may carry fill: { holder, issuer, areaAuthority } (from the check-before-closing
 // popup): only fields that are still EMPTY are filled, Holder and Issuer must be names from
 // the lists, and the permit is closed in the same single database step.
@@ -73,7 +75,11 @@ export async function PATCH(request, { params }) {
     const fill = await readFill(supabase, body.fill, permit);
     if (fill.error) return bad(fill.error, 400);
     patch = { ...patch, ...fill.patch };
+    if (body.missing === true) patch.paper_missing = true;
     guards = fill.guards;
+  } else if (body.action === "mark_missing" || body.action === "mark_found") {
+    if (permit.status !== "CLOSED") return bad("Only a closed permit can be marked this way.", 409);
+    patch = { paper_missing: body.action === "mark_missing" };
   } else if (body.action === "cancel") {
     if (permit.status !== "OPEN") return bad("Only an open permit can be canceled.", 409);
     const { errors, clean } = validateStatusInput("CANCELED", body.reason);
@@ -129,6 +135,7 @@ export async function PATCH(request, { params }) {
     query = query.eq("status", "OPEN");
     for (const [column, value] of Object.entries(guards)) query = query.eq(column, value);
   }
+  if (body.action === "mark_missing" || body.action === "mark_found") query = query.eq("status", "CLOSED");
   const { data, error } = await query.select("id, updated_at");
   if (error) {
     console.error("Updating a permit failed:", error);
@@ -154,6 +161,10 @@ export async function PATCH(request, { params }) {
       const { data: now } = await supabase.from("permits").select("status, deleted_at, holder, issuer, area_authority").eq("id", id).maybeSingle();
       const changed = !now || now.deleted_at || now.status !== "OPEN" || Object.entries(guards).some(([column, value]) => (now[column] ?? "") !== value);
       if (changed) return bad("Someone else changed this permit a moment ago. Reload the page and try again.", 409);
+    }
+    if (body.action === "mark_missing" || body.action === "mark_found") {
+      const { data: now } = await supabase.from("permits").select("status, deleted_at").eq("id", id).maybeSingle();
+      if (!now || now.deleted_at || now.status !== "CLOSED") return bad("Someone else changed this permit a moment ago. Reload the page and try again.", 409);
     }
     return bad("You are not allowed to change this permit.", 403);
   }

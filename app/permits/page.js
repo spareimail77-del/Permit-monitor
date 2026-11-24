@@ -25,7 +25,7 @@ export default async function PermitsPage({ searchParams }) {
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabase
         .from("permits")
-        .select("id, reference, area, location, permit_type, applicant, holder, issuer, area_authority, certificates, valid_from, valid_to, status")
+        .select("id, reference, area, location, permit_type, applicant, holder, issuer, area_authority, certificates, valid_from, valid_to, status, paper_missing")
         .is("deleted_at", null)
         .order("id", { ascending: false })
         .range(from, from + PAGE - 1);

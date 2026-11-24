@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSupabase } from "../lib/db";
 import { todayOman } from "../lib/omanDate";
 import { STATUS_KEYS, STATUS_TEXT, computeStatus, isActiveKey } from "../lib/status";
+import { monthLabel } from "../lib/permitFilters";
 import PageHeader from "./components/PageHeader";
 import NeedsAttention from "./components/NeedsAttention";
 import PermitTimeline from "./components/PermitTimeline";
@@ -12,6 +13,27 @@ const PAGE = 1000;
 const fmt = (iso) => (iso ? iso.split("-").reverse().join("-") : "—");
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const listLink = (params) => `/permits?${new URLSearchParams(params).toString()}`;
+
+// ---- month view -----------------------------------------------------------------
+// The dashboard shows ONE month of closed / canceled permits (by their Valid from month, the
+// same month the permit list filters on), so old history does not swamp it. Open, expiring and
+// overdue permits are ALWAYS shown, whatever month they started in. ?month=all shows everything.
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+function shiftMonth(ym, delta) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+// "all", or a month that is not in the future (default: this month, Oman time).
+function pickMonth(raw, today) {
+  const now = today.slice(0, 7);
+  const v = String(Array.isArray(raw) ? raw[0] : raw ?? "").trim();
+  if (v === "all") return "all";
+  return MONTH_RE.test(v) && v <= now ? v : now;
+}
+// A status link from the dashboard. Closed / canceled follow the chosen month; the rest never do.
+const statusLink = (key, month) =>
+  listLink({ status: key.toLowerCase(), ...((key === "CLOSED" || key === "CANCELED") && month !== "all" ? { month } : {}) });
 
 // The 5 statuses, with the donut colours (the same names as the badge classes).
 const Arrow = ({ className = "" }) => (
@@ -31,7 +53,7 @@ const DONUT_W = 13; // ring thickness
 const DONUT_GAP = 4; // visible gap between segments
 const DONUT_C = 2 * Math.PI * DONUT_R;
 
-function Donut({ counts, total }) {
+function Donut({ counts, total, month = "all" }) {
   const segs = STATUS_KEYS.filter((k) => counts[k] > 0);
   const single = segs.length === 1;
   let offset = 0;
@@ -45,7 +67,7 @@ function Donut({ counts, total }) {
           const line = single ? len : Math.max(0.1, len - DONUT_GAP - DONUT_W);
           const start = single ? offset : offset + DONUT_GAP / 2 + DONUT_W / 2;
           const el = (
-            <Link key={key} href={listLink({ status: key.toLowerCase() })} aria-label={`${STATUS_TEXT[key]}: ${counts[key]}`}>
+            <Link key={key} href={statusLink(key, month)} aria-label={`${STATUS_TEXT[key]}: ${counts[key]}`}>
               <circle
                 cx="70"
                 cy="70"
@@ -72,6 +94,45 @@ function Donut({ counts, total }) {
         Total permits
       </text>
     </svg>
+  );
+}
+
+function MonthNav({ month, now }) {
+  const href = (m) => (m === now ? "/" : `/?month=${m}`);
+  const all = month === "all";
+  return (
+    <nav className="month-nav" aria-label="Month of closed and canceled permits">
+      {all ? (
+        <span className="month-nav__label">All time</span>
+      ) : (
+        <>
+          <Link href={href(shiftMonth(month, -1))} className="status-tab" aria-label="Previous month">
+            ‹
+          </Link>
+          <span className="month-nav__label">{monthLabel(month)}</span>
+          {month < now ? (
+            <Link href={href(shiftMonth(month, 1))} className="status-tab" aria-label="Next month">
+              ›
+            </Link>
+          ) : (
+            <span className="status-tab month-nav__off" aria-hidden="true">
+              ›
+            </span>
+          )}
+        </>
+      )}
+      {(all || month !== now) && (
+        <Link href="/" className="status-tab">
+          This month
+        </Link>
+      )}
+      {!all && (
+        <Link href="/?month=all" className="status-tab">
+          All time
+        </Link>
+      )}
+      <span className="month-nav__note">Closed and canceled follow this month. Open permits always show.</span>
+    </nav>
   );
 }
 
@@ -156,16 +217,21 @@ function top(permits, getter, n = Infinity) {
     .slice(0, n);
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }) {
   const today = todayOman();
+  const nowMonth = today.slice(0, 7);
+  const month = pickMonth(searchParams?.month, today);
+  const monthly = month !== "all";
 
   // The dashboard only needs the full details of OPEN permits (status, timeline, breakdowns).
   // Closed and canceled permits are only counted, by the database, so the page no longer
   // reads the whole history. The three counts and the open permits are read at the same time.
   const supabase = getSupabase();
-  const countQuery = (status) => {
+  const countQuery = (status, inMonth = false) => {
     let q = supabase.from("permits").select("id", { count: "exact", head: true }).is("deleted_at", null);
     if (status) q = q.eq("status", status);
+    // Valid from inside the chosen month (plain YYYY-MM-DD dates, no time zone maths).
+    if (inMonth && monthly) q = q.gte("valid_from", `${month}-01`).lt("valid_from", `${shiftMonth(month, 1)}-01`);
     return q;
   };
   const readOpen = async () => {
@@ -184,8 +250,16 @@ export default async function Home() {
     }
     return { rows: out };
   };
-  const [openRead, totalRes, closedRes, canceledRes] = await Promise.all([readOpen(), countQuery(), countQuery("CLOSED"), countQuery("CANCELED")]);
-  const firstError = openRead.error || totalRes.error || closedRes.error || canceledRes.error;
+  // In the month view the "all time" closed / canceled numbers are read too, so they stay visible.
+  const [openRead, totalRes, closedRes, canceledRes, closedAllRes, canceledAllRes] = await Promise.all([
+    readOpen(),
+    countQuery(),
+    countQuery("CLOSED", true),
+    countQuery("CANCELED", true),
+    monthly ? countQuery("CLOSED") : null,
+    monthly ? countQuery("CANCELED") : null,
+  ]);
+  const firstError = openRead.error || totalRes.error || closedRes.error || canceledRes.error || closedAllRes?.error || canceledAllRes?.error;
   const failed = Boolean(firstError);
   if (firstError) console.error("Reading permits for the dashboard failed:", firstError);
 
@@ -194,9 +268,13 @@ export default async function Home() {
   for (const p of permits) if (counts[p.st.key] !== undefined) counts[p.st.key] += 1;
   counts.CLOSED = closedRes.count || 0;
   counts.CANCELED = canceledRes.count || 0;
-  const total = failed ? 0 : totalRes.count || 0;
+  const allTimeTotal = failed ? 0 : totalRes.count || 0;
+  const closedAll = monthly ? closedAllRes?.count || 0 : counts.CLOSED;
+  const canceledAll = monthly ? canceledAllRes?.count || 0 : counts.CANCELED;
+  // Month view: everything still active + the closed / canceled of that month.
+  const total = failed ? 0 : monthly ? permits.length + counts.CLOSED + counts.CANCELED : allTimeTotal;
   // Anything not open / closed / canceled (the database does not allow it, so normally 0).
-  const other = Math.max(0, total - permits.length - counts.CLOSED - counts.CANCELED);
+  const other = monthly ? 0 : Math.max(0, total - permits.length - counts.CLOSED - counts.CANCELED);
   const active = counts.OPEN + counts.EXPIRING + counts.OVERDUE;
 
   const overdue = permits.filter((p) => p.st.key === "OVERDUE").sort((a, b) => b.st.daysOverdue - a.st.daysOverdue);
@@ -243,6 +321,8 @@ export default async function Home() {
         sub={`Data as of ${fmt(today)} (Oman time)`}
       />
 
+      <MonthNav month={month} now={nowMonth} />
+
       {failed && (
         <div className="notice notice--danger">
           The permits could not be read. Has <span className="mono">supabase/01-permits.sql</span> been run, and are both
@@ -263,7 +343,7 @@ export default async function Home() {
       )}
 
       <div className="stat-grid">
-        <StatCard href="/permits" n={total} label="Total permits" />
+        <StatCard href="/permits" n={total} label="Total permits" sub={monthly ? `active + ${monthLabel(month)}` : undefined} />
         <StatCard href={listLink({ status: "active" })} n={active} label="Active / Open" sub="open + expiring + overdue" tone="ok" />
         <StatCard href={listLink({ status: "expiring" })} n={counts.EXPIRING} label="Expiring soon" sub="0 to 3 days left" tone="warn" />
         <StatCard
@@ -273,8 +353,8 @@ export default async function Home() {
           sub={counts.OVERDUE > 0 ? `oldest ${plural(oldest, "day")}` : "none"}
           tone={counts.OVERDUE > 0 ? "bad" : undefined}
         />
-        <StatCard href={listLink({ status: "closed" })} n={counts.CLOSED} label="Closed" />
-        <StatCard href={listLink({ status: "canceled" })} n={counts.CANCELED} label="Canceled" />
+        <StatCard href={statusLink("CLOSED", month)} n={counts.CLOSED} label="Closed" sub={monthly ? `${closedAll} in all time` : undefined} />
+        <StatCard href={statusLink("CANCELED", month)} n={counts.CANCELED} label="Canceled" sub={monthly ? `${canceledAll} in all time` : undefined} />
         {other > 0 && <StatCard href="/permits" n={other} label="Other / unrecognized" sub="status not known" />}
       </div>
 
@@ -282,11 +362,11 @@ export default async function Home() {
         <div className="panel pform-card dash-status">
           <h2 className="pform-title">Status</h2>
           <div className="donut-wrap">
-            <Donut counts={counts} total={total - other} />
+            <Donut counts={counts} total={total - other} month={month} />
             <ul className="legend">
               {STATUS_KEYS.map((k) => (
                 <li key={k}>
-                  <Link href={listLink({ status: k.toLowerCase() })} data-k={k}>
+                  <Link href={statusLink(k, month)} data-k={k}>
                     <span className={`dot dot--${k}`} />
                     {STATUS_TEXT[k]}
                     <strong>{counts[k]}</strong>

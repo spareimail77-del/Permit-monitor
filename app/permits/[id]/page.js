@@ -252,7 +252,7 @@ export default async function PermitPage({ params }) {
       </section>
       )}
 
-      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} missing={missingForClose(permit)} missingCerts={missingCertificates(permit.certificates, attachedCerts)} options={closeOptions} />}
+      {canManage && <PermitActions permitId={permit.id} reference={permit.reference} status={permit.status} paperMissing={Boolean(permit.paper_missing)} missing={missingForClose(permit)} missingCerts={missingCertificates(permit.certificates, attachedCerts)} options={closeOptions} />}
     </div>
   );
 }

@@ -261,6 +261,8 @@ textarea.pform-input { resize: vertical; min-height: 72px; }
 .badge--OVERDUE, .badge--disabled { background: var(--danger-bg); color: var(--danger-ink); }
 .badge--CLOSED { background: var(--neutral-bg); color: var(--neutral-ink); }
 .badge--CANCELED { background: var(--surface-2); color: var(--ink-muted); }
+.badge--MISSING { background: var(--danger-bg); color: var(--danger-ink); }
+.badge--tag { margin-left: 6px; }
 .badge--OTHER { background: var(--surface-2); color: var(--ink-muted); }
 .status-detail { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--ink-muted); }
 .status-detail--bad { color: var(--danger); font-weight: 600; }
@@ -1384,3 +1386,10 @@ button.th-sort { background: none; border: 0; padding: 0; font-size: inherit; te
 }
 .guest-card__actions .btn-primary, .gl-form__go .btn-primary, .gl-new__row .btn-primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .guest-card__actions .btn-primary:disabled, .gl-form__go .btn-primary:disabled { opacity: 0.55; }
+
+/* dashboard: month of closed / canceled permits */
+.month-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.month-nav__label { min-width: 120px; text-align: center; font-weight: 700; font-size: var(--fs-sm); }
+.month-nav__off { opacity: 0.35; pointer-events: none; }
+.month-nav__note { flex-basis: 100%; color: var(--ink-muted); font-size: var(--fs-xs); }
+@media (min-width: 900px) { .month-nav__note { flex-basis: auto; margin-left: var(--sp-2); } }

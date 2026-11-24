@@ -10,8 +10,9 @@ import CloseCheckDialog from "./CloseCheckDialog";
 // Routine actions are on the left; the destructive one is kept apart on the right.
 // missing: empty holder / issuer / area authority fields; missingCerts: certificates without an
 // attached copy. Both [] = nothing to remind. Checked again when closing.
+// paperMissing: the closed permit's paper copy is recorded as missing (it still counts as Closed).
 // options: { holder: [...], issuer: [...] } for filling the empty details in the popup (or null).
-export default function PermitActions({ permitId, reference, status, missing = [], missingCerts = [], options = null }) {
+export default function PermitActions({ permitId, reference, status, paperMissing = false, missing = [], missingCerts = [], options = null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(""); // "" | close | closecheck | reopen | trash
@@ -55,12 +56,18 @@ export default function PermitActions({ permitId, reference, status, missing = [
   const texts = {
     close: { title: `Close permit ${reference}?`, body: "Today's date (Oman time) is saved as the closed date.", go: "Close permit", danger: false },
     reopen: { title: `Reopen permit ${reference}?`, body: "Its closed date or cancel reason is cleared.", go: "Reopen permit", danger: false },
+    closemissing: { title: `Close permit ${reference} as MISSING?`, body: "The paper copy is recorded as missing. The permit counts as Closed everywhere on the site, and shows MISSING in the Excel export.", go: "Close as missing", danger: true },
+    markmissing: { title: `Mark the paper copy of ${reference} as missing?`, body: "It stays Closed on the site. The Excel export shows MISSING instead of CLOSED.", go: "Mark as missing", danger: true },
+    markfound: { title: `Paper copy of ${reference} found?`, body: "The Missing tag is removed. The Excel export shows CLOSED again.", go: "Paper copy found", danger: false },
     trash: { title: `Move permit ${reference} to the trash?`, body: "Nothing is erased. Root or HSE can restore it from the Trash page.", go: "Move to trash", danger: true },
   };
   const t = texts[dialog];
 
   function confirm() {
     if (dialog === "close") call("PATCH", { action: "close" }, done);
+    else if (dialog === "closemissing") call("PATCH", { action: "close", missing: true }, done);
+    else if (dialog === "markmissing") call("PATCH", { action: "mark_missing" }, done);
+    else if (dialog === "markfound") call("PATCH", { action: "mark_found" }, done);
     else if (dialog === "reopen") call("PATCH", { action: "reopen" }, done);
     else if (dialog === "trash") call("DELETE", {}, () => (window.location.href = `/permits?trashed=${encodeURIComponent(reference)}`));
   }
@@ -74,14 +81,24 @@ export default function PermitActions({ permitId, reference, status, missing = [
               <button className="btn btn-sm" disabled={busy} onClick={() => setDialog(missing.length > 0 || missingCerts.length > 0 ? "closecheck" : "close")}>
                 Close permit
               </button>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog("closemissing")}>
+                Close as missing
+              </button>
               <button className="btn btn-sm" disabled={busy} onClick={() => setPanel(panel === "cancel" ? "" : "cancel")} aria-expanded={panel === "cancel"}>
                 Cancel permit
               </button>
             </>
           ) : (
-            <button className="btn btn-sm" disabled={busy} onClick={() => setDialog("reopen")}>
-              Reopen permit
-            </button>
+            <>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setDialog("reopen")}>
+                Reopen permit
+              </button>
+              {status === "CLOSED" && (
+                <button className="btn btn-sm" disabled={busy} onClick={() => setDialog(paperMissing ? "markfound" : "markmissing")}>
+                  {paperMissing ? "Paper copy found" : "Mark paper copy missing"}
+                </button>
+              )}
+            </>
           )}
         </div>
         <button className="btn btn-sm btn--danger-outline" disabled={busy} onClick={() => setDialog("trash")}>
