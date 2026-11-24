@@ -144,6 +144,7 @@ export default function PermitActions({ permitId, reference, status, paperMissin
           busy={busy}
           onCancel={() => setDialog("")}
           onConfirm={() => call("PATCH", { action: "close" }, done)}
+          onMissing={() => call("PATCH", { action: "close", missing: true }, done)}
         />
       )}
     </section>

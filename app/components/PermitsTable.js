@@ -151,7 +151,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
   // not be read: then certificates are not checked (no false alarms).
   function ask(action, list) {
     setMenu(null);
-    const chosen = action === "close" ? list.filter((r) => r.status === "OPEN") : list;
+    const chosen = action === "close" || action === "close_missing" ? list.filter((r) => r.status === "OPEN") : list;
     const ids = chosen.map((r) => r.id);
     if (ids.length === 0) return setToast({ text: "None of the chosen permits is open, so there is nothing to close.", error: true });
     const incomplete =
@@ -195,10 +195,11 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
         const text = {
           trash: `${plural(n, "permit", "permits")} moved to the trash.`,
           close: `${plural(n, "permit", "permits")} closed.`,
+          close_missing: `${plural(n, "permit", "permits")} closed as missing.`,
           restore: `${plural(n, "permit", "permits")} restored from the trash.`,
           reopen: `${plural(n, "permit", "permits")} reopened.`,
         }[action];
-        const undoAction = action === "trash" ? "restore" : action === "close" ? "reopen" : "";
+        const undoAction = action === "trash" ? "restore" : action === "close" || action === "close_missing" ? "reopen" : "";
         setToast({ text: text + skipped, undo: undoable && undoAction ? { action: undoAction, ids: data.changed } : null });
       }
       setSelected(new Set());
@@ -223,6 +224,12 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
       body: "Today's date (Oman time) is saved as the closed date. Permits that are not open are left out.",
       go: "Close permits",
       danger: false,
+    },
+    close_missing: {
+      title: `Close ${plural(dialog.ids.length, "permit", "permits")} as MISSING?`,
+      body: "The paper copy is recorded as missing. It counts as Closed everywhere on the site and shows MISSING in the Excel export.",
+      go: "Close as missing",
+      danger: true,
     },
   }[dialog.action];
 
@@ -358,6 +365,11 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                     Close permit
                   </button>
                 )}
+                {menuRow.status === "OPEN" && (
+                  <button type="button" role="menuitem" className="row-menu__item" onClick={() => ask("close_missing", [menuRow])}>
+                    Close as missing
+                  </button>
+                )}
                 <button type="button" role="menuitem" className="row-menu__item row-menu__item--danger" onClick={() => ask("trash", [menuRow])}>
                   Move to trash
                 </button>
@@ -370,6 +382,11 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                 {selectedRows.some((r) => r.status === "OPEN") && (
                   <button type="button" className="btn btn-sm" disabled={busy} onClick={() => ask("close", selectedRows)}>
                     Close
+                  </button>
+                )}
+                {selectedRows.some((r) => r.status === "OPEN") && (
+                  <button type="button" className="btn btn-sm" disabled={busy} onClick={() => ask("close_missing", selectedRows)}>
+                    Close as missing
                   </button>
                 )}
                 <button type="button" className="btn btn-sm btn-danger" disabled={busy} onClick={() => ask("trash", selectedRows)}>
@@ -396,6 +413,7 @@ export default function PermitsTable({ rows, columns, onSort, canManage, canExpo
                 busy={busy}
                 onCancel={() => setDialog(null)}
                 onConfirm={() => run("close", dialog.ids)}
+                onMissing={dialog.ids.length === 1 ? () => run("close_missing", dialog.ids) : undefined}
                 partialLabel={completeIds.length > 0 ? `Close ${completeIds.length} without issues` : undefined}
                 onPartial={completeIds.length > 0 ? () => run("close", completeIds) : undefined}
               />

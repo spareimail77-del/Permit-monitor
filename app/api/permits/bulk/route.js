@@ -9,13 +9,14 @@ import { statusPatch } from "../../../../lib/permitRules";
 // Body: { ids: [1, 2, 3], action: "trash" | "close" | "restore" | "reopen" }
 //   trash   moves permits to the trash (soft delete, nothing is erased)
 //   close   closes OPEN permits (same rule as the single-permit "close")
+//   close_missing  same, and records that the paper copy is missing (Excel shows MISSING)
 //   restore takes permits back out of the trash      (the Undo of "trash")
 //   reopen  reopens closed/canceled permits          (the Undo of "close")
 // There is NO permanent delete here: that stays on the Trash page, for Root only.
 // Answer: { ok, action, changed: [ids that were really changed], skipped: number }
 
 const MAX_IDS = 200;
-const ACTIONS = ["trash", "close", "restore", "reopen"];
+const ACTIONS = ["trash", "close", "close_missing", "restore", "reopen"];
 const bad = (error, status = 400) => Response.json({ error }, { status });
 
 export async function POST(request) {
@@ -56,6 +57,11 @@ export async function POST(request) {
     case "close":
       eligible = live.filter((p) => p.status === "OPEN");
       patch = statusPatch({ status: "OPEN", closed_at: null }, "CLOSED", "", today);
+      guard = (q) => q.is("deleted_at", null).eq("status", "OPEN");
+      break;
+    case "close_missing":
+      eligible = live.filter((p) => p.status === "OPEN");
+      patch = { ...statusPatch({ status: "OPEN", closed_at: null }, "CLOSED", "", today), paper_missing: true };
       guard = (q) => q.is("deleted_at", null).eq("status", "OPEN");
       break;
     case "reopen":

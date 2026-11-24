@@ -23,6 +23,7 @@ import "./permits.css";
 //   editHref       link to the full edit form (a button, or a small link when fix is on)
 //   onEdit         ...or a function instead (the edit form uses it to jump to the field)
 //   onConfirm      "Close anyway" (without saving anything typed here)
+//   onMissing      ONE permit: "Close as missing" (closed, paper copy lost; shows MISSING in Excel)
 //   onPartial      several permits: "Close only the ones without problems"
 //   onCancel       Cancel, Escape, or a click outside
 //
@@ -84,6 +85,7 @@ export default function CloseCheckDialog({
   editLabel,
   confirmLabel = "Close anyway",
   onConfirm,
+  onMissing,
   partialLabel,
   onPartial,
   busy = false,
@@ -310,6 +312,11 @@ export default function CloseCheckDialog({
           <button type="button" className="btn cc-warn" disabled={locked} onClick={onConfirm}>
             {busy ? "Working…" : fixing && hasInput ? "Close without saving" : confirmLabel}
           </button>
+          {onMissing && single && (
+            <button type="button" className="btn" disabled={locked} onClick={onMissing} title="Closes the permit and records that its paper copy is missing">
+              Close as missing
+            </button>
+          )}
           {fixing && (
             <button type="button" className="btn btn-primary" disabled={locked || !canSave} onClick={saveAndClose}>
               {saving ? "Saving…" : "Save & close"}

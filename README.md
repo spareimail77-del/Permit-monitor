@@ -381,3 +381,5 @@ Use **‹ ›** to go back, **This month**, or **All time** (the old view). Addr
 - **Closed and Canceled** count the permits whose **Valid from** is in the chosen month (the same month the permit list filters on). The "all time" number stays visible under each card.
 - Total = all active permits + the closed and canceled of that month. Clicking Closed or Canceled opens the list with the same month filter, so the numbers match.
 - No SQL, packages or environment variables for this step.
+
+**Where the Close as missing button is:** permit list row menu (⋮), the blue bar when permits are chosen, the "Check before closing" popup, and the permit page (Actions).
