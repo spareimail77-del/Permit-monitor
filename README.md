@@ -358,3 +358,26 @@ Root creates a link under **Admin -> Guest links**. Whoever opens it presses **S
 - Needs `SUPABASE_SERVICE_ROLE_KEY` (already used by the Admin pages).
 
 **Set-up:** Supabase -> SQL Editor: run all of `supabase/11-guest-links.sql` **before** deploying the code. Needs 01 to 10 already run.
+
+## Paper copy missing (Closed, but the physical copy is lost)
+
+A permit whose paper copy is lost is still **Closed** for every count, card, ring and filter. Only the label changes:
+the site shows a red **Paper missing** tag next to Closed, and the Excel export writes **MISSING** in the Status column.
+
+- **Permit page -> Actions (Root and HSE):** an open permit has **Close as missing**. A closed permit has **Mark paper copy missing** / **Paper copy found**.
+- Reopening or cancelling the permit clears the tag. Editing a closed permit keeps it.
+- Excel: the log's colour rules only know Open / Closed / Expired, so MISSING is written as plain text (no colour).
+
+**Set-up (in this order):** 1. Supabase -> SQL Editor: run `supabase/12-paper-missing.sql` **before** deploying. 2. Upload the changed files to GitHub and let Vercel redeploy. No new packages or environment variables.
+
+**Tests:** close an open test permit with **Close as missing**: Closed counts go up by one, Missing tag shows, export says MISSING. **Paper copy found**: tag gone, export says CLOSED. Mark a closed one missing, then Reopen: tag gone.
+
+## Dashboard month view
+
+The dashboard shows **one month** of closed and canceled permits (default: this month, Oman time), so old history does not swamp it.
+Use **‹ ›** to go back, **This month**, or **All time** (the old view). Address: `/?month=2026-10` or `/?month=all`.
+
+- **Open, Expiring soon and Overdue always show**, whatever month they started in. The timeline, Needs attention and "Active permits by..." tiles are not affected.
+- **Closed and Canceled** count the permits whose **Valid from** is in the chosen month (the same month the permit list filters on). The "all time" number stays visible under each card.
+- Total = all active permits + the closed and canceled of that month. Clicking Closed or Canceled opens the list with the same month filter, so the numbers match.
+- No SQL, packages or environment variables for this step.
